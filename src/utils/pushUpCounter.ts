@@ -10,8 +10,8 @@ function angleBetween(a: Point, b: Point, c: Point): number {
   return (Math.acos(Math.max(-1, Math.min(1, dot / (magAB * magCB)))) * 180) / Math.PI;
 }
 
-const DOWN_ANGLE = 125; // user's bottom range is 90-120°, so 125 catches all of it
-const UP_ANGLE = 150;   // user's top is 176°, 150 gives clean 25° hysteresis gap
+const DOWN_ANGLE = 140; // lenient bottom — avg user doesn't need to go nose-to-floor
+const UP_ANGLE = 160;   // raised to keep 20° hysteresis gap and avoid false reps
 
 export type RepPhase = 'up' | 'down';
 
