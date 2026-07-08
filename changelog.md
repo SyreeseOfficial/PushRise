@@ -1,0 +1,108 @@
+# PushRise Changelog
+
+This file tracks every major decision, change, or milestone made on PushRise — product, technical, and strategic. If an AI assistant loses context mid-session or a new session starts cold, **read this file first**. It is the source of truth for what has been done, what was decided, and why.
+
+Format: newest entries at the top.
+
+---
+
+## 2026-07-08 — Onboarding Design, Copy, and Feature Decisions
+
+### Decisions made
+- **Onboarding expanded to 20 screens** — Duolingo model (alarm created before paywall), ~15 min investment before ask. Sunk cost drives conversion. Validated by Prayer Lock case study (3% → 15% conversion with longer onboarding).
+- **Full copy written** for all onboarding screens, paywall, post-trial paywall, and downsell. Tone: tough love. Conversion psychology: identity destruction + reconstruction, loss framing, loaded quiz questions, progressive commitment, sunk cost, contrast pricing.
+- **Review prompt moved** — was in onboarding (wrong), now fires after first alarm is successfully dismissed with push-ups. Emotional peak = higher rating, fewer 1-star responses.
+- **Fake user count removed** — "join 184,829 people" replaced with copy that doesn't require a number ("People who used to hit snooze. Now they don't." + testimonials).
+- **Outside-alarm push-up logging added to MVP** — users can log push-ups anytime, not just during alarms. Camera or manual. All reps count toward bank.
+- **Alarm push-ups count toward bank** — separating them would punish core behavior.
+- **Accounts removed from MVP** — RevenueCat handles anonymous users. No sign-up screen in v1. Auth added post-MVP when social requires it.
+- **Referral program deferred to post-MVP** — needs backend + accounts; RevenueCat doesn't handle it natively. Tracked in `todo.md`.
+- **Accent color decided** — warm orange/amber (~`#FF6B00`–`#FF9500` range). Energy, urgency, fits male 15–25 demographic.
+- **Alarm sounds** — both device sounds + custom file picker ship on day 1.
+- **Persona reveal added** — 3 types (The Sleeper, The Inconsistent, The Optimizer) based on quiz answers. Reflects answers back, makes app feel custom-built.
+- **New onboarding screens added:** commitment screen, price comparison screen, journey summary screen, founder's note (digital, cursive font, placeholder selfie).
+- **Downsell confirmed** — Downsell 1: discounted price + real 15-min timer. Downsell 2: 3-day extension. Decline copy: "No thanks, I'll miss out." (loss aversion).
+
+### Files changed
+- `updated-prd.md` — major update: full 20-screen onboarding sequence with all copy, outside push-up logging, resolved open questions, removed accounts from MVP
+- `pre-build.md` — complete: all screens inventoried, full copy referenced, persona logic table, rewards list, badge list, founder note placeholder
+- `todo.md` — updated: referral + accounts moved to post-MVP with notes, outside push-up logging added to MVP, custom sounds added to MVP, review prompt timing corrected
+- `PRD.md` — **deleted** (superseded by `updated-prd.md`)
+
+---
+
+## 2026-07-08 — Pre-Build Decisions + File Setup
+
+### Decisions made
+- **Framework:** Bare React Native (Expo can't access `AlarmManager` or foreground services — would need to eject anyway)
+- **Billing:** RevenueCat (abstracts Google Play Billing complexity, handles iOS later, free tier)
+- **Backend:** Supabase, but **post-MVP only** — no backend needed until social features ship
+- **Auth:** Google Sign-In, **post-MVP only** — no accounts until social requires them
+- **Privacy policy:** Placeholder URL in-app for now; real hosted policy required before Play Store submission
+- **Test devices:** Personal Android phone + Android tablet available. No Xiaomi/Samsung — OEM alarm testing needs a plan (borrow, BrowserStack, or find a tester)
+
+### Files created
+- `todo.md` — full task list organized by phase (pre-build, MVP, Play Store, post-MVP roadmap)
+- `pre-build.md` — planning template for founder to fill in before coding starts (screens, UI refs, tone, copy, rewards, badges, alarm sounds)
+- `updated-prd.md` — tech stack table updated to reflect above decisions
+
+---
+
+## 2026-07-08 — Technical Feasibility Research
+
+### What happened
+Researched both existential risks (camera detection + alarm reliability) before committing to a build approach.
+
+### Camera Detection (MediaPipe)
+- **Proven concept:** [RepDetect](https://github.com/giaongo/RepDetect) is an open-source Android app in Kotlin that already does exactly this with MediaPipe. The use case is validated.
+- **Low light is a documented weak spot:** Benchmarks show 45.2mm mean position error and 36.2° angle error in poor lighting. 6am dark bedroom is exactly this condition.
+- **Out-of-frame instability:** If any body part exits the camera frame, landmark tracking degrades and miscounts. Developers building this add extra filtering logic to ignore erratic coordinate jumps.
+- **Verdict:** Works in decent conditions. Needs extra engineering to handle real-world 6am conditions. Can't just drop in the library.
+
+### Alarm Reliability
+- **`setAlarmClock()` bypasses Android Doze** at the OS level — correct API to use.
+- **OEM layer is the real problem** — sits entirely on top of Android's standard system:
+  - **Xiaomi/MIUI:** Aggressively kills background services. Resets autostart permissions silently after OTA updates.
+  - **Huawei/Honor:** PowerGenie throttles apps that call `setAlarmClock()` more than ~3x/day. Also kills processes holding wakelocks longer than 60 minutes.
+  - **Samsung:** App Power Monitor kicks in after 3 days of no use — less aggressive but still a risk.
+- **Fix exists:** Foreground service + `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` + onboarding screen walking users through disabling battery optimization manually.
+- **Reference:** [dontkillmyapp.com](https://dontkillmyapp.com) — developer-maintained database of every OEM's kill behavior. Use this during implementation.
+- **Verdict:** Solvable. Requires OEM-specific handling and real device testing on Samsung + Xiaomi hardware.
+
+### Overall risk rating
+| Risk | Likelihood | Solvable |
+|---|---|---|
+| Camera detection in good light | Low | Yes — proven |
+| Camera detection in low light / bad angle | High | Yes — extra engineering needed |
+| Alarm on stock Android | Low | Yes — `setAlarmClock()` handles it |
+| Alarm on Xiaomi/Huawei | High | Yes — foreground service + onboarding |
+| Alarm on Samsung | Medium | Yes — needs testing |
+
+Neither risk kills the app. Both require real effort. Week 1 validation gate stands.
+
+---
+
+## 2026-07-08 — Initial PRD + Founder Interview
+
+### What happened
+- Cleaned up and reformatted `PRD.md`, `gamification.md`, and `addiction.md` into structured markdown
+- Conducted a 30-question founder interview covering core mechanic, target user, monetization, onboarding, social features, and technical risks
+- Produced `updated-prd.md` as the canonical product document going forward
+
+### Key decisions made
+- **Social features cut from MVP.** Leaderboards, friend challenges, and accounts require a backend and a user base to be useful. Shipping without them.
+- **Lifetime price set to $14.99** (up from original $4.99). At $4.99 a user beats it in two months of subscribing — hurts LTV.
+- **Post-trial behavior:** lock the push-up mechanic, not the alarm itself. Killing the alarm entirely after trial = one-star reviews.
+- **Manual fallback included** despite breaking the accountability promise — a user who bounces because detection fails is worse than one who uses manual mode.
+- **Streak logic:** tied to completing the push-up goal, not opening the app.
+
+### Existential risks identified (must validate Week 1)
+1. **Android alarm reliability** — Battery optimization on Samsung, Xiaomi, Huawei will silently kill background processes. Solution path: `AlarmManager.setAlarmClock()` + foreground service + guide users through disabling battery optimization during onboarding.
+2. **Camera detection quality** — MediaPipe on a budget Android in low light is unproven. Pushy's #1 complaint is bad detection. Must be tested on real hardware before any other feature is built.
+
+### Files changed
+- `PRD.md` — reformatted (no content removed, structure cleaned)
+- `gamification.md` — reformatted
+- `addiction.md` — reformatted
+- `updated-prd.md` — created (new canonical PRD)
+- `changelog.md` — created (this file)
