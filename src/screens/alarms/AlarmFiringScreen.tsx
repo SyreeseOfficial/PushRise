@@ -36,15 +36,17 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
   const countRef = useRef(0);
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
+  const [debugAngle, setDebugAngle] = useState<number | null>(null);
 
   useEffect(() => {
     const interval = setInterval(async () => {
       if (processingRef.current || !cameraRef.current) return;
       processingRef.current = true;
       try {
-        const snapshot = await cameraRef.current.takeSnapshot({quality: 50, skipMetadata: true});
+        const snapshot = await cameraRef.current.takeSnapshot({quality: 60, skipMetadata: true});
         const landmarks = await PoseDetection.detectFromFile(snapshot.path);
-        const newPhase = detectRepPhase(landmarks, phaseRef.current);
+        const {phase: newPhase, angle} = detectRepPhase(landmarks, phaseRef.current);
+        setDebugAngle(Math.round(angle));
         if (phaseRef.current === 'down' && newPhase === 'up') {
           countRef.current += 1;
           setCount(countRef.current);
@@ -56,7 +58,7 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
       } finally {
         processingRef.current = false;
       }
-    }, 300);
+    }, 200);
     return () => clearInterval(interval);
   }, [reps, onDone]);
 
@@ -74,6 +76,9 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
       <View style={styles.cameraOverlay}>
         <Text style={styles.countNum}>{count}</Text>
         <Text style={styles.countOf}>/ {reps} push-ups</Text>
+        {debugAngle !== null && (
+          <Text style={styles.debugAngle}>elbow angle: {debugAngle}°  phase: {phaseRef.current}</Text>
+        )}
       </View>
       <TouchableOpacity onPress={onSkip} style={styles.skipBtn}>
         <Text style={styles.skipTxt}>Skip (no push-ups)</Text>
@@ -177,4 +182,5 @@ const styles = StyleSheet.create({
   countOf: {fontSize: 18, color: '#fff', marginTop: -8},
   skipBtn: {paddingVertical: 16},
   skipTxt: {fontSize: 14, color: '#333'},
+  debugAngle: {fontSize: 12, color: '#FF6B00', marginTop: 4, opacity: 0.8},
 });

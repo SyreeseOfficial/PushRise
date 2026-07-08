@@ -6,6 +6,32 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-08 — Camera Detection Working (10/10 reps)
+
+### What happened
+Built the full alarm → push-up detection → dismiss flow end-to-end on a real device (Android 16).
+
+### Technical decisions
+- **Library:** ML Kit Pose Detection (`com.google.mlkit:pose-detection:18.0.0-beta5`) via a custom Kotlin native module — not MediaPipe. ML Kit bundled model ships inside the APK, no network call, works in Airplane mode.
+- **Frame processor abandoned:** react-native-vision-camera frame processors crash on Android because `Tasks.await()` holds a reference to an already-recycled `Image` object. Switched to snapshot-based approach: `takeSnapshot()` every 200ms → write JPEG to disk → pass file path to Kotlin → ML Kit decodes and detects.
+- **Landmark used:** shoulder/elbow/wrist angle (both arms averaged if both visible, falls back to single arm). Thresholds calibrated on real device: DOWN < 125°, UP > 150°.
+- **Screen stays on:** `FLAG_KEEP_SCREEN_ON` added unconditionally in `MainActivity.onCreate()` — was previously in `else` branch only (old Android), causing screen to dim during push-ups.
+- **SYSTEM_ALERT_WINDOW removed** from merged manifest (ML Kit auto-merges it, blocks Android 16 install) via `tools:node="remove"` in AndroidManifest.xml.
+- **install method:** `adb push` → `adb shell pm install` (no `-g` flag). `adb install -g` causes `INSTALL_FAILED_ABORTED` on special permissions.
+
+### Files created/changed
+- `android/app/src/main/java/com/pushrise/PoseDetectionModule.kt` — Kotlin native module wrapping ML Kit, snapshot → landmark positions
+- `android/app/src/main/java/com/pushrise/PoseDetectionPackage.kt` — registers the module
+- `android/app/src/main/java/com/pushrise/MainApplication.kt` — adds `PoseDetectionPackage()`
+- `android/app/src/main/java/com/pushrise/MainActivity.kt` — `FLAG_KEEP_SCREEN_ON` always set
+- `android/app/build.gradle` — ML Kit dependency + `work-runtime` resolution strategy
+- `android/app/src/main/AndroidManifest.xml` — removes `SYSTEM_ALERT_WINDOW`
+- `src/utils/pushUpCounter.ts` — elbow angle math, phase state machine (DOWN/UP thresholds)
+- `src/screens/alarms/AlarmFiringScreen.tsx` — 200ms snapshot loop, debug angle overlay, camera + manual fallback modes
+- `android/app/src/main/res/raw/alarm.mp3` — generated via ffmpeg (two-tone beep, loops)
+
+---
+
 ## 2026-07-08 — Onboarding Design, Copy, and Feature Decisions
 
 ### Decisions made

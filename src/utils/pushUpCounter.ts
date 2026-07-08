@@ -10,16 +10,15 @@ function angleBetween(a: Point, b: Point, c: Point): number {
   return (Math.acos(Math.max(-1, Math.min(1, dot / (magAB * magCB)))) * 180) / Math.PI;
 }
 
-const DOWN_ANGLE = 90;
-const UP_ANGLE = 155;
+const DOWN_ANGLE = 125; // user's bottom range is 90-120°, so 125 catches all of it
+const UP_ANGLE = 150;   // user's top is 176°, 150 gives clean 25° hysteresis gap
 
 export type RepPhase = 'up' | 'down';
 
-// data is the raw object from the ML Kit frame processor plugin
 export function detectRepPhase(
   data: Record<string, {x: number; y: number}>,
   currentPhase: RepPhase,
-): RepPhase {
+): {phase: RepPhase; angle: number} {
   const ls = data.leftShoulderPosition;
   const le = data.leftElbowPosition;
   const lw = data.leftWristPosition;
@@ -30,18 +29,16 @@ export function detectRepPhase(
   let angle = 180;
 
   if (ls && le && lw && rs && re && rw) {
-    const leftAngle = angleBetween(ls, le, lw);
-    const rightAngle = angleBetween(rs, re, rw);
-    angle = (leftAngle + rightAngle) / 2;
+    angle = (angleBetween(ls, le, lw) + angleBetween(rs, re, rw)) / 2;
   } else if (ls && le && lw) {
     angle = angleBetween(ls, le, lw);
   } else if (rs && re && rw) {
     angle = angleBetween(rs, re, rw);
   } else {
-    return currentPhase;
+    return {phase: currentPhase, angle: 180};
   }
 
-  if (angle < DOWN_ANGLE) return 'down';
-  if (angle > UP_ANGLE) return 'up';
-  return currentPhase;
+  if (angle < DOWN_ANGLE) return {phase: 'down', angle};
+  if (angle > UP_ANGLE) return {phase: 'up', angle};
+  return {phase: currentPhase, angle};
 }

@@ -29,7 +29,7 @@ class PoseDetectionModule(reactContext: ReactApplicationContext) :
                 return
             }
             // Rotate 270° to compensate for front camera mirroring/orientation
-            val image = InputImage.fromBitmap(bitmap, 270)
+            val image = InputImage.fromBitmap(bitmap, 0)
 
             detector.process(image)
                 .addOnSuccessListener { pose ->
