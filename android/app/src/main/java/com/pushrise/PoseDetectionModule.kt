@@ -36,6 +36,7 @@ class PoseDetectionModule(reactContext: ReactApplicationContext) :
                     val result = Arguments.createMap()
                     fun addLandmark(name: String, landmark: PoseLandmark?) {
                         landmark ?: return
+                        if (landmark.inFrameLikelihood < 0.5f) return
                         val m = Arguments.createMap()
                         m.putDouble("x", landmark.position.x.toDouble())
                         m.putDouble("y", landmark.position.y.toDouble())

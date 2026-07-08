@@ -33,6 +33,8 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
   const device = useCameraDevice('front');
   const cameraRef = useRef<Camera>(null);
   const phaseRef = useRef<RepPhase>('up');
+  const pendingPhaseRef = useRef<RepPhase>('up');
+  const pendingCountRef = useRef(0);
   const countRef = useRef(0);
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
@@ -47,12 +49,21 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
         const landmarks = await PoseDetection.detectFromFile(snapshot.path);
         const {phase: newPhase, angle} = detectRepPhase(landmarks, phaseRef.current);
         setDebugAngle(Math.round(angle));
-        if (phaseRef.current === 'down' && newPhase === 'up') {
-          countRef.current += 1;
-          setCount(countRef.current);
-          if (countRef.current >= reps) onDone();
+        // debounce: require 2 consecutive frames before committing a phase change
+        if (newPhase === pendingPhaseRef.current) {
+          pendingCountRef.current += 1;
+        } else {
+          pendingPhaseRef.current = newPhase;
+          pendingCountRef.current = 1;
         }
-        phaseRef.current = newPhase;
+        if (pendingCountRef.current >= 2 && newPhase !== phaseRef.current) {
+          if (phaseRef.current === 'down' && newPhase === 'up') {
+            countRef.current += 1;
+            setCount(countRef.current);
+            if (countRef.current >= reps) onDone();
+          }
+          phaseRef.current = newPhase;
+        }
       } catch {
         // frame failed — skip it
       } finally {

@@ -6,6 +6,30 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-08 — Metro Cache Bug (Root Cause of Phantom Regressions)
+
+### What happened
+After reverting bad detection changes, detection still felt broken across multiple reinstalls. Root cause: Metro was serving a stale cached JS bundle from the bad build. Native Kotlin was correct but Metro's in-memory bundle still had rolling average + min rep interval code.
+
+**Fix:** `npx react-native start --reset-cache`. Always run this when reverting JS changes — without it the app runs old code even though the files are correct.
+
+---
+
+## 2026-07-08 — Camera Detection Improvements (Confidence Filter + Debounce)
+
+### What was added
+- **Landmark confidence filter** (`inFrameLikelihood >= 0.5` in Kotlin) — landmarks ML Kit isn't confident about are omitted before the angle calc. Prevents garbage angles from blurry/occluded frames.
+- **2-frame phase debounce** — phase only commits after 2 consecutive frames agree. Prevents a single noisy mid-rep frame from triggering a phantom count.
+
+### What was tried and reverted (made things worse)
+- `SINGLE_IMAGE_MODE` — loses STREAM_MODE's temporal context between sequential frames; jitterier, slower.
+- 3-frame angle rolling average — added 400ms lag on top of 400ms debounce = 800ms total, reps missed.
+- 600ms minimum rep interval — redundant with debounce, added failure cases at fast cadence.
+
+See `camera-detection-learnings.md` for full notes on each.
+
+---
+
 ## 2026-07-08 — Camera Detection Working (10/10 reps)
 
 ### What happened
