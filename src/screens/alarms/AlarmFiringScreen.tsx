@@ -5,9 +5,10 @@ import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import type {RouteProp} from '@react-navigation/native';
 import type {RootStackParamList} from '../../navigation/navigationRef';
-import {cancelAlarm} from '../../utils/notifee';
+import {cancelAlarm, dismissFiredAlarm, scheduleAlarm} from '../../utils/notifee';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
+import {useAlarmStore} from '../../store/alarmStore';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
 const {PoseDetection} = NativeModules;
@@ -50,7 +51,6 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
         const landmarks = await PoseDetection.detectFromFile(snapshot.path);
         const {phase: newPhase, angle} = detectRepPhase(landmarks, phaseRef.current);
         setDebugAngle(Math.round(angle));
-        // debounce: require 2 consecutive frames before committing a phase change
         if (newPhase === pendingPhaseRef.current) {
           pendingCountRef.current += 1;
         } else {
@@ -78,13 +78,7 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
 
   return (
     <View style={styles.cameraArea}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        device={device}
-        isActive
-        photo
-      />
+      <Camera ref={cameraRef} style={styles.camera} device={device} isActive photo />
       <View style={styles.cameraOverlay}>
         <Text style={styles.countNum}>{count}</Text>
         <Text style={styles.countOf}>/ {reps} push-ups</Text>
@@ -102,15 +96,20 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
 export default function AlarmFiringScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation();
-  const {alarmId, reps} = route.params;
+  const {alarmId, reps, sound, volume} = route.params;
   const {addReps} = useBankStore();
+  const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual'>('idle');
   const soundRef = useRef<Sound | null>(null);
 
   useEffect(() => {
     Vibration.vibrate([0, 500, 300, 500], true);
-    const s = new Sound('alarm.mp3', Sound.MAIN_BUNDLE, err => {
-      if (!err) { s.setNumberOfLoops(-1); s.play(); }
+    const s = new Sound(sound ?? 'alarm.mp3', Sound.MAIN_BUNDLE, err => {
+      if (!err) {
+        s.setVolume(volume ?? 1.0);
+        s.setNumberOfLoops(-1);
+        s.play();
+      }
     });
     soundRef.current = s;
     return () => {
@@ -118,19 +117,31 @@ export default function AlarmFiringScreen() {
       s.stop();
       s.release();
     };
-  }, []);
+  }, [sound, volume]);
 
-  const dismiss = useCallback(async () => {
+  const cleanup = useCallback(async (completed: boolean) => {
     Vibration.cancel();
     soundRef.current?.stop();
-    await cancelAlarm(alarmId);
-    navigation.goBack();
-  }, [alarmId, navigation]);
 
-  const complete = useCallback(async () => {
-    addReps(reps);
-    await dismiss();
-  }, [addReps, reps, dismiss]);
+    if (alarm && alarm.days.length > 0 && alarm.enabled) {
+      // Recurring: schedule next occurrence, then only dismiss tray notification.
+      // cancelAlarm would kill the newly-scheduled trigger, so we use dismissFiredAlarm.
+      await scheduleAlarm({
+        ...alarm,
+        volume: alarm.volume ?? 1.0,
+        sound: alarm.sound ?? 'alarm.mp3',
+      });
+      await dismissFiredAlarm(alarmId);
+    } else {
+      await cancelAlarm(alarmId);
+    }
+
+    if (completed) addReps(reps);
+    navigation.goBack();
+  }, [alarm, alarmId, reps, addReps, navigation]);
+
+  const complete = useCallback(() => cleanup(true), [cleanup]);
+  const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
   const startCamera = async () => {
     const permission = await Camera.requestCameraPermission();
@@ -167,13 +178,8 @@ export default function AlarmFiringScreen() {
         </View>
       )}
 
-      {mode === 'camera' && (
-        <CameraCounter reps={reps} onDone={complete} onSkip={dismiss} />
-      )}
-
-      {mode === 'manual' && (
-        <ManualCounter reps={reps} onDone={complete} onSkip={dismiss} />
-      )}
+      {mode === 'camera' && <CameraCounter reps={reps} onDone={complete} onSkip={dismiss} />}
+      {mode === 'manual' && <ManualCounter reps={reps} onDone={complete} onSkip={dismiss} />}
     </View>
   );
 }

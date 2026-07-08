@@ -18,6 +18,8 @@ export interface Alarm {
   label: string;
   enabled: boolean;
   days: number[]; // 0=Sun..6=Sat, empty = one-time
+  volume: number; // 0–1
+  sound: string;  // bundled filename, e.g. 'alarm.mp3'
 }
 
 interface AlarmStore {
@@ -32,6 +34,8 @@ export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
 
   addAlarm: async data => {
     const alarm: Alarm = {
+      volume: 1.0,
+      sound: 'alarm.mp3',
       ...data,
       id: Date.now().toString(),
       enabled: true,
