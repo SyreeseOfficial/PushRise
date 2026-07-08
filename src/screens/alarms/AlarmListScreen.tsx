@@ -4,6 +4,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useAlarmStore, Alarm} from '../../store/alarmStore';
+import {useBankStore} from '../../store/bankStore';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -44,10 +45,16 @@ function AlarmRow({alarm}: {alarm: Alarm}) {
 export default function AlarmListScreen() {
   const navigation = useNavigation<Nav>();
   const {alarms} = useAlarmStore();
+  const {totalReps} = useBankStore();
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Alarms</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Alarms</Text>
+        <View style={styles.bankPill}>
+          <Text style={styles.bankPillTxt}>🔥 {totalReps.toLocaleString()} reps</Text>
+        </View>
+      </View>
       <FlatList
         data={alarms}
         keyExtractor={a => a.id}
@@ -73,13 +80,10 @@ export default function AlarmListScreen() {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#0a0a0a'},
-  header: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#fff',
-    padding: 20,
-    paddingBottom: 8,
-  },
+  headerRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8},
+  header: {fontSize: 32, fontWeight: '700', color: '#fff'},
+  bankPill: {backgroundColor: '#1a1a1a', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#2a2a2a'},
+  bankPillTxt: {fontSize: 13, color: '#FF6B00', fontWeight: '600'},
   row: {
     flexDirection: 'row',
     alignItems: 'center',

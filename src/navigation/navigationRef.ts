@@ -4,6 +4,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   AlarmFiring: {alarmId: string; reps: number};
   AddAlarm: undefined;
+  BankCamera: undefined;
 };
 
 export const navigationRef =

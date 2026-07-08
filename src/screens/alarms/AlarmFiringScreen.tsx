@@ -7,6 +7,7 @@ import type {RouteProp} from '@react-navigation/native';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 import {cancelAlarm} from '../../utils/notifee';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
+import {useBankStore} from '../../store/bankStore';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
 const {PoseDetection} = NativeModules;
@@ -102,6 +103,7 @@ export default function AlarmFiringScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation();
   const {alarmId, reps} = route.params;
+  const {addReps} = useBankStore();
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual'>('idle');
   const soundRef = useRef<Sound | null>(null);
 
@@ -124,6 +126,11 @@ export default function AlarmFiringScreen() {
     await cancelAlarm(alarmId);
     navigation.goBack();
   }, [alarmId, navigation]);
+
+  const complete = useCallback(async () => {
+    addReps(reps);
+    await dismiss();
+  }, [addReps, reps, dismiss]);
 
   const startCamera = async () => {
     const permission = await Camera.requestCameraPermission();
@@ -161,11 +168,11 @@ export default function AlarmFiringScreen() {
       )}
 
       {mode === 'camera' && (
-        <CameraCounter reps={reps} onDone={dismiss} onSkip={dismiss} />
+        <CameraCounter reps={reps} onDone={complete} onSkip={dismiss} />
       )}
 
       {mode === 'manual' && (
-        <ManualCounter reps={reps} onDone={dismiss} onSkip={dismiss} />
+        <ManualCounter reps={reps} onDone={complete} onSkip={dismiss} />
       )}
     </View>
   );

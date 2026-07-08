@@ -8,6 +8,7 @@ import AlarmListScreen from '../screens/alarms/AlarmListScreen';
 import AddAlarmScreen from '../screens/alarms/AddAlarmScreen';
 import AlarmFiringScreen from '../screens/alarms/AlarmFiringScreen';
 import ProgressScreen from '../screens/progress/ProgressScreen';
+import BankCameraScreen from '../screens/progress/BankCameraScreen';
 import RewardsScreen from '../screens/rewards/RewardsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -55,6 +56,11 @@ export default function RootNavigator() {
           name="AddAlarm"
           component={AddAlarmScreen}
           options={{presentation: 'modal'}}
+        />
+        <Stack.Screen
+          name="BankCamera"
+          component={BankCameraScreen}
+          options={{presentation: 'fullScreenModal', gestureEnabled: false}}
         />
       </Stack.Navigator>
     </NavigationContainer>
