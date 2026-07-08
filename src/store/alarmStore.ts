@@ -1,5 +1,14 @@
 import {create} from 'zustand';
+import {persist, createJSONStorage} from 'zustand/middleware';
+import {createMMKV} from 'react-native-mmkv';
 import {scheduleAlarm, cancelAlarm} from '../utils/notifee';
+
+const storage = createMMKV();
+const mmkvStorage = createJSONStorage(() => ({
+  getItem: (key: string) => storage.getString(key) ?? null,
+  setItem: (key: string, value: string) => storage.set(key, value),
+  removeItem: (key: string) => storage.delete(key),
+}));
 
 export interface Alarm {
   id: string;
@@ -18,8 +27,7 @@ interface AlarmStore {
   deleteAlarm: (id: string) => Promise<void>;
 }
 
-// ponytail: no persistence — OS AlarmManager keeps alarms alive; add MMKV back once Nitro links cleanly
-export const useAlarmStore = create<AlarmStore>()((set, get) => ({
+export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
   alarms: [],
 
   addAlarm: async data => {
@@ -50,4 +58,4 @@ export const useAlarmStore = create<AlarmStore>()((set, get) => ({
     await cancelAlarm(id);
     set(s => ({alarms: s.alarms.filter(a => a.id !== id)}));
   },
-}));
+}), {name: 'alarms', storage: mmkvStorage}));
