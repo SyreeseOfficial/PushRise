@@ -4,6 +4,40 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ---
 
+## My Ideas (Not by AI)
+- Manufactured urgency
+- Limited-time reward slots: "Pizza reward available for the next 48 hours" (you set it, the app surfaces it urgently)
+- "Power hour" window each morning where reps count double
+
+Notification artillery
+- "Your friend just did 30 push-ups" (even if they don't have friends in-app, fake this with bot accounts in early versions)
+- Re-engagement: "You haven't opened PushRise in 2 days. Your muscles are getting cold."
+- Celebratory "confetti" notification when hitting milestones — dopamine hit from the OS itself
+
+Reward scarcity / gatekeeping
+- Rewards locked behind rep thresholds that feel achievable but take real grinding (e.g., "500 reps to unlock custom sounds")
+- Premium rewards slot that refreshes weekly — you have to check back
+
+The number that never goes down (except streaks)
+- Total lifetime reps counter is permanent and keeps growing. People don't want to feel like quitters on a big number.
+- Streak is the only number that can go down — so you protect the growing ones and panic over the fragile one
+
+## My Todos
+- [ ] When the alarm itself goes off, it doesnt match the apps style/design/colors. Make it uniform with the rest of the app.
+It should also change based on dark mode, light mode, system mode.
+- [ ] Whenever the user is on any of these tabs: progress, rewards, settings, the icon for the alarms tab turns into a question mark.
+But when the user is on the alarms tab, the icon for alarms is the actual alarm clock icon.
+- [ ] When creating custom rewards, some of the background colors for the emojis are different colors like orange. The background color
+behind the emoji should always be the subtle grey. Same thing for dark mode. The background color should be the grey thats on the dark mode.
+I think the correct grey is the grey that ships with the default rewards.
+- [ ] In the settings menu, some of the icons have a different background color as well like orange or black. I also want the background colors
+for the icons to be the same grey color.
+- [ ] Currently, when the user tries to redeem a reward, a popup message opens up asking the user if they want to redeem their reward.
+It seems like the styling is like the phone's native OS styling. Is there a way to change it to match our custom styling to be uniform
+with the rest of the app?
+
+--- 
+
 ## Before Coding Starts
 
 - [x] Fill out `pre-build.md` completely — DONE (screens, copy, voice, rewards, badges)

@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import {createMMKV} from 'react-native-mmkv';
+import {getBonus, checkMilestone, getWeekStart} from '../utils/engagement';
 
 const storage = createMMKV();
 const mmkvStorage = createJSONStorage(() => ({
@@ -14,20 +15,30 @@ export interface Reward {
   emoji: string;
   title: string;
   cost: number;
-  oneTime?: boolean; // if true, deleted after redemption; default false (repeatable)
+  oneTime?: boolean;
+}
+
+export interface Celebration {
+  bonus: number;
+  milestone: number | null;
 }
 
 interface BankStore {
   totalReps: number;
   todayReps: number;
-  todayDate: string; // 'YYYY-MM-DD', used to reset todayReps each day
+  todayDate: string;
+  weekReps: number;
+  weekStartDate: string;
   currentStreak: number;
   longestStreak: number;
-  lastCompletedDate: string | null; // 'YYYY-MM-DD'
-  graceUsedAt: string | null;       // 'YYYY-MM-DD' — resets when streak resets
+  lastCompletedDate: string | null;
+  graceUsedAt: string | null;
   hasSeenBankIntro: boolean;
+  seenMilestones: number[];
+  pendingCelebration: Celebration | null;
   rewards: Reward[];
   addReps: (n: number) => void;
+  clearCelebration: () => void;
   markIntroSeen: () => void;
   addReward: (data: Omit<Reward, 'id'>) => void;
   editReward: (id: string, data: Omit<Reward, 'id'>) => void;
@@ -59,7 +70,7 @@ function computeStreak(s: BankStore, today: string): Partial<BankStore> {
 
   const diff = daysBetween(s.lastCompletedDate, today);
 
-  if (diff === 0) return {}; // already counted today
+  if (diff === 0) return {};
 
   if (diff === 1) {
     const next = s.currentStreak + 1;
@@ -67,7 +78,6 @@ function computeStreak(s: BankStore, today: string): Partial<BankStore> {
   }
 
   if (diff === 2) {
-    // one missed day — grace day available once per 7-day rolling window
     const graceAvailable = !s.graceUsedAt || daysBetween(s.graceUsedAt, today) >= 7;
     if (graceAvailable) {
       const next = s.currentStreak + 1;
@@ -75,7 +85,6 @@ function computeStreak(s: BankStore, today: string): Partial<BankStore> {
     }
   }
 
-  // streak broken
   return {currentStreak: 1, lastCompletedDate: today, graceUsedAt: null};
 }
 
@@ -83,11 +92,15 @@ const BANK_DEFAULTS = {
   totalReps: 0,
   todayReps: 0,
   todayDate: '',
+  weekReps: 0,
+  weekStartDate: '',
   currentStreak: 0,
   longestStreak: 0,
   lastCompletedDate: null as string | null,
   graceUsedAt: null as string | null,
   hasSeenBankIntro: false,
+  seenMilestones: [] as number[],
+  pendingCelebration: null as Celebration | null,
   rewards: DEFAULT_REWARDS,
 };
 
@@ -96,17 +109,35 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
 
   addReps: (n) => {
     if (n <= 0) return;
+    const s = get();
     const today = toDateStr(new Date());
-    set(s => {
-      const isNewDay = s.todayDate !== today;
-      return {
-        totalReps: s.totalReps + n,
-        todayReps: (isNewDay ? 0 : s.todayReps) + n,
-        todayDate: today,
-        ...computeStreak(s, today),
-      };
+    const weekStart = getWeekStart();
+
+    const bonus = getBonus();
+    const totalAdded = n + bonus;
+
+    const newTotal = s.totalReps + totalAdded;
+    const milestone = checkMilestone(s.totalReps, newTotal, s.seenMilestones);
+
+    const isNewDay = s.todayDate !== today;
+    const isNewWeek = s.weekStartDate !== weekStart;
+
+    const celebration: Celebration | null =
+      bonus > 0 || milestone !== null ? {bonus, milestone} : null;
+
+    set({
+      totalReps: newTotal,
+      todayReps: (isNewDay ? 0 : s.todayReps) + totalAdded,
+      todayDate: today,
+      weekReps: (isNewWeek ? 0 : s.weekReps) + totalAdded,
+      weekStartDate: weekStart,
+      seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,
+      pendingCelebration: celebration,
+      ...computeStreak(s, today),
     });
   },
+
+  clearCelebration: () => set({pendingCelebration: null}),
 
   markIntroSeen: () => set({hasSeenBankIntro: true}),
 

@@ -1,33 +1,38 @@
 import React, {useState} from 'react';
-import {View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
+import {
+  View, Modal, KeyboardAvoidingView, Platform,
+  TouchableOpacity, ScrollView,
+} from 'react-native';
 import {Text, Button, TextInput, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useBankStore} from '../../store/bankStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
+import {
+  getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
+} from '../../utils/engagement';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 type Sheet = 'closed' | 'intro' | 'mode' | 'manual';
 
+const RANK_MEDALS = ['🥇', '🥈', '🥉', '', ''];
+
+// ─── Sub-components ────────────────────────────────────────────────────────
+
 function StatCard({value, label}: {value: string; label: string}) {
   const theme = useTheme();
   return (
     <View style={[{
-      flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderRadius: 20,
-      padding: 20,
-      alignItems: 'center',
+      flex: 1, backgroundColor: theme.colors.surface,
+      borderRadius: 20, padding: 20, alignItems: 'center',
     }, theme.dark ? {} : cardShadow]}>
       <Text style={{
-        fontSize: 38,
-        fontWeight: '800',
-        color: theme.colors.primary,
-        letterSpacing: -1,
-        lineHeight: 44,
+        fontSize: 38, fontWeight: '800',
+        color: theme.colors.primary, letterSpacing: -1, lineHeight: 44,
       }}>
         {value}
       </Text>
@@ -38,23 +43,320 @@ function StatCard({value, label}: {value: string; label: string}) {
   );
 }
 
+function AvatarCard({totalReps, streak}: {totalReps: number; streak: number}) {
+  const theme = useTheme();
+  const c = theme.colors;
+  const avatar = getAvatarLevel(totalReps);
+  const title = getTitle(totalReps, streak);
+
+  const next = [10000, 5000, 1000, 500, 100].find(t => totalReps < t) ?? null;
+  const prevThreshold = avatar.minReps;
+  const progress = next
+    ? Math.min((totalReps - prevThreshold) / (next - prevThreshold), 1)
+    : 1;
+
+  return (
+    <View style={[{
+      backgroundColor: c.surface, borderRadius: 20, padding: 20,
+      flexDirection: 'row', alignItems: 'center', gap: 16,
+    }, theme.dark ? {} : cardShadow]}>
+      {/* Avatar placeholder — replace with Image when assets are ready */}
+      <View style={{
+        width: 72, height: 72, borderRadius: 20,
+        backgroundColor: c.primaryContainer,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Text style={{fontSize: 36}}>{avatar.emoji}</Text>
+        <View style={{
+          position: 'absolute', bottom: -6, right: -6,
+          backgroundColor: c.primary, borderRadius: 10,
+          paddingHorizontal: 6, paddingVertical: 2,
+        }}>
+          <Text style={{fontSize: 10, fontWeight: '800', color: '#fff'}}>Lv.{avatar.level}</Text>
+        </View>
+      </View>
+
+      <View style={{flex: 1}}>
+        <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
+          {title}
+        </Text>
+        <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2, fontWeight: '500'}}>
+          {avatar.label}
+        </Text>
+
+        {/* Level progress bar */}
+        <View style={{marginTop: 10}}>
+          <View style={{height: 6, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
+            <LinearGradient
+              colors={BRAND_GRADIENT.colors}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0}}
+              style={{height: 6, borderRadius: 100, width: `${Math.max(progress * 100, 4)}%`}}
+            />
+          </View>
+          {next && (
+            <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginTop: 4}}>
+              {(next - totalReps).toLocaleString()} reps to next level
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function LeaderboardCard({weekReps}: {weekReps: number}) {
+  const theme = useTheme();
+  const c = theme.colors;
+  const entries = getLeaderboard(weekReps);
+
+  return (
+    <View style={[{
+      backgroundColor: c.surface, borderRadius: 20, overflow: 'hidden',
+    }, theme.dark ? {} : cardShadow]}>
+      <View style={{paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline'}}>
+        <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}}>Weekly Leaderboard</Text>
+        <Text style={{fontSize: 11, color: c.onSurfaceVariant, fontWeight: '500'}}>This week</Text>
+      </View>
+
+      {entries.map((entry, i) => {
+        const isUser = entry.isUser;
+        return (
+          <View key={i}>
+            {i > 0 && <View style={{height: 1, backgroundColor: c.outline, marginLeft: isUser ? 0 : 20}} />}
+            <LinearGradient
+              colors={isUser ? ['rgba(255,107,0,0.12)', 'rgba(255,45,0,0.06)'] : ['transparent', 'transparent']}
+              start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+              style={{
+                flexDirection: 'row', alignItems: 'center',
+                paddingHorizontal: 20, paddingVertical: 13, gap: 12,
+              }}>
+              <Text style={{fontSize: 16, width: 28, textAlign: 'center'}}>
+                {RANK_MEDALS[entry.rank - 1] || `${entry.rank}`}
+              </Text>
+              <Text style={{
+                flex: 1, fontSize: 15,
+                fontWeight: isUser ? '800' : '500',
+                color: isUser ? c.primary : c.onSurface,
+              }}>
+                {entry.name}
+              </Text>
+              <Text style={{
+                fontSize: 15, fontWeight: '700',
+                color: isUser ? c.primary : c.onSurfaceVariant,
+              }}>
+                {entry.weekReps.toLocaleString()}
+              </Text>
+              <Text style={{fontSize: 12, color: c.onSurfaceVariant, width: 30}}>reps</Text>
+            </LinearGradient>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function ShareCardModal({visible, onClose, totalReps, streak, weekReps}: {
+  visible: boolean; onClose: () => void;
+  totalReps: number; streak: number; weekReps: number;
+}) {
+  const theme = useTheme();
+  const c = theme.colors;
+  const avatar = getAvatarLevel(totalReps);
+  const title = getTitle(totalReps, streak);
+  const today = new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'});
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24}}>
+
+        {/* The card — screenshot this */}
+        <LinearGradient
+          colors={['#1A1A1A', '#0A0A0A']}
+          style={{width: '100%', borderRadius: 28, padding: 28, gap: 20}}>
+          {/* Header */}
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+              <LinearGradient
+                colors={BRAND_GRADIENT.colors}
+                start={BRAND_GRADIENT.start} end={BRAND_GRADIENT.end}
+                style={{width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center'}}>
+                <Text style={{fontSize: 18}}>⏰</Text>
+              </LinearGradient>
+              <Text style={{fontSize: 18, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.3}}>PushRise</Text>
+            </View>
+            <Text style={{fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '500'}}>{today}</Text>
+          </View>
+
+          {/* Avatar + Title */}
+          <View style={{alignItems: 'center', gap: 8, paddingVertical: 8}}>
+            <View style={{
+              width: 80, height: 80, borderRadius: 22,
+              backgroundColor: 'rgba(255,85,0,0.15)',
+              alignItems: 'center', justifyContent: 'center',
+              borderWidth: 1, borderColor: 'rgba(255,85,0,0.3)',
+            }}>
+              <Text style={{fontSize: 42}}>{avatar.emoji}</Text>
+            </View>
+            <LinearGradient
+              colors={BRAND_GRADIENT.colors}
+              start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+              style={{borderRadius: 100, paddingHorizontal: 16, paddingVertical: 5}}>
+              <Text style={{fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.3}}>
+                {title.toUpperCase()}
+              </Text>
+            </LinearGradient>
+          </View>
+
+          {/* Big stat */}
+          <View style={{alignItems: 'center'}}>
+            <Text style={{
+              fontSize: 72, fontWeight: '800', color: '#FFFFFF',
+              letterSpacing: -3, lineHeight: 76,
+            }}>
+              {weekReps}
+            </Text>
+            <Text style={{fontSize: 16, color: 'rgba(255,255,255,0.55)', fontWeight: '500'}}>
+              push-ups this week
+            </Text>
+          </View>
+
+          {/* Divider */}
+          <View style={{height: 1, backgroundColor: 'rgba(255,255,255,0.08)'}} />
+
+          {/* Footer stats */}
+          <View style={{flexDirection: 'row', justifyContent: 'space-around'}}>
+            <View style={{alignItems: 'center', gap: 3}}>
+              <Text style={{fontSize: 22, fontWeight: '800', color: '#FF7040'}}>{totalReps.toLocaleString()}</Text>
+              <Text style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '500'}}>ALL TIME</Text>
+            </View>
+            <View style={{width: 1, backgroundColor: 'rgba(255,255,255,0.08)'}} />
+            <View style={{alignItems: 'center', gap: 3}}>
+              <Text style={{fontSize: 22, fontWeight: '800', color: streak > 0 ? '#FF7040' : 'rgba(255,255,255,0.3)'}}>
+                {streak > 0 ? `🔥 ${streak}` : '—'}
+              </Text>
+              <Text style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '500'}}>DAY STREAK</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* Instruction — outside the card so it's not in the screenshot */}
+        <Text style={{color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 20, fontWeight: '500', letterSpacing: 0.3}}>
+          ✦  Screenshot the card above to share  ✦
+        </Text>
+
+        <TouchableOpacity onPress={onClose} style={{marginTop: 16, padding: 12}}>
+          <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 15}}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
+function CelebrationModal({visible, bonus, milestone, onClose}: {
+  visible: boolean; bonus: number; milestone: number | null; onClose: () => void;
+}) {
+  const theme = useTheme();
+  const c = theme.colors;
+  const msg = milestone ? MILESTONE_MESSAGES[milestone] : null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 32}}>
+        <View style={[{
+          backgroundColor: c.surface, borderRadius: 28,
+          padding: 32, alignItems: 'center', width: '100%',
+        }, theme.dark ? {} : cardShadow]}>
+
+          {/* Milestone message */}
+          {msg && (
+            <>
+              <Text style={{fontSize: 48, marginBottom: 16}}>🏆</Text>
+              <Text style={{
+                fontSize: 22, fontWeight: '800', color: c.onSurface,
+                textAlign: 'center', letterSpacing: -0.5, marginBottom: 10,
+              }}>
+                {msg.title}
+              </Text>
+              <Text style={{
+                fontSize: 15, color: c.onSurfaceVariant, textAlign: 'center',
+                lineHeight: 24, marginBottom: 24,
+              }}>
+                {msg.body}
+              </Text>
+            </>
+          )}
+
+          {/* Bonus reps */}
+          {bonus > 0 && (
+            <View style={{alignItems: 'center', marginBottom: msg ? 16 : 24}}>
+              {!msg && <Text style={{fontSize: 48, marginBottom: 12}}>🎲</Text>}
+              <LinearGradient
+                colors={BRAND_GRADIENT.colors}
+                start={BRAND_GRADIENT.start} end={BRAND_GRADIENT.end}
+                style={{borderRadius: 100, paddingHorizontal: 20, paddingVertical: 10, marginBottom: 8}}>
+                <Text style={{fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.3}}>
+                  +{bonus} Lucky Rep{bonus > 1 ? 's' : ''}! 🎉
+                </Text>
+              </LinearGradient>
+              {!msg && (
+                <Text style={{fontSize: 14, color: c.onSurfaceVariant, textAlign: 'center'}}>
+                  Bonus reps added to your bank.
+                </Text>
+              )}
+            </View>
+          )}
+
+          <Button mode="contained" onPress={onClose} contentStyle={{paddingHorizontal: 24, paddingVertical: 6}}>
+            Let's go 💪
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Main Screen ───────────────────────────────────────────────────────────
+
 export default function ProgressScreen() {
   const navigation = useNavigation<Nav>();
   const theme = useTheme();
   const c = theme.colors;
 
-  const {totalReps, todayReps, currentStreak, longestStreak, hasSeenBankIntro, markIntroSeen, addReps} = useBankStore();
+  const {
+    totalReps, todayReps, weekReps, currentStreak, longestStreak,
+    hasSeenBankIntro, markIntroSeen, addReps,
+    pendingCelebration, clearCelebration,
+  } = useBankStore();
   const {dailyGoal} = useSettingsStore();
 
   const [sheet, setSheet] = useState<Sheet>('closed');
   const [manualInput, setManualInput] = useState('');
+  const [showShare, setShowShare] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  // Pick up any pending celebration (from camera screen or alarm firing)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (pendingCelebration) {
+        setShowCelebration(true);
+      }
+    }, [pendingCelebration]),
+  );
+
+  const dismissCelebration = () => {
+    setShowCelebration(false);
+    clearCelebration();
+  };
 
   const openBank = () => setSheet(hasSeenBankIntro ? 'mode' : 'intro');
   const handleIntroNext = () => { markIntroSeen(); setSheet('mode'); };
+
   const handleCamera = () => {
     setSheet('closed');
     setTimeout(() => navigation.navigate('BankCamera'), 150);
   };
+
   const submitManual = () => {
     const n = parseInt(manualInput, 10);
     if (n > 0) addReps(n);
@@ -62,43 +364,56 @@ export default function ProgressScreen() {
     setSheet('closed');
   };
 
+  const goalProgress = dailyGoal > 0 ? Math.min(todayReps / dailyGoal, 1) : 0;
+
   const sheetBg = {
     backgroundColor: c.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 28,
-    paddingBottom: 48,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 28, paddingBottom: 48,
   };
 
-  const goalProgress = dailyGoal > 0 ? Math.min(todayReps / dailyGoal, 1) : 0;
+  const handle = (
+    <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 24}} />
+  );
 
   return (
     <View style={{flex: 1, backgroundColor: c.background}}>
-      {/* Large title header */}
-      <View style={{paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20}}>
+      {/* Header */}
+      <View style={{
+        paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
+        flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
+      }}>
         <Text style={{fontSize: 34, fontWeight: '800', color: c.onBackground, letterSpacing: -0.5}}>
           Progress
         </Text>
+        <TouchableOpacity
+          onPress={() => setShowShare(true)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 5,
+            backgroundColor: c.surfaceVariant, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 100,
+          }}>
+          <Text style={{fontSize: 13}}>🔗</Text>
+          <Text style={{fontSize: 13, fontWeight: '700', color: c.onBackground}}>Share</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={{paddingHorizontal: 16, gap: 12}}>
-        {/* Bank Push-ups hero — gradient card */}
+      <ScrollView
+        contentContainerStyle={{paddingHorizontal: 16, gap: 12, paddingBottom: 120}}
+        showsVerticalScrollIndicator={false}>
+
+        {/* Avatar + title */}
+        <AvatarCard totalReps={totalReps} streak={currentStreak} />
+
+        {/* Bank Push-ups hero */}
         <TouchableOpacity onPress={openBank} activeOpacity={0.9}>
           <LinearGradient
             colors={BRAND_GRADIENT.colors}
-            start={BRAND_GRADIENT.start}
-            end={BRAND_GRADIENT.end}
+            start={BRAND_GRADIENT.start} end={BRAND_GRADIENT.end}
             style={{
-              borderRadius: 24,
-              padding: 22,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 16,
-              shadowColor: '#FF4500',
-              shadowOffset: {width: 0, height: 8},
-              shadowOpacity: 0.35,
-              shadowRadius: 16,
-              elevation: 8,
+              borderRadius: 24, padding: 22,
+              flexDirection: 'row', alignItems: 'center', gap: 16,
+              shadowColor: '#FF4500', shadowOffset: {width: 0, height: 8},
+              shadowOpacity: 0.35, shadowRadius: 16, elevation: 8,
             }}>
             <Text style={{fontSize: 36}}>💪🏽</Text>
             <View style={{flex: 1}}>
@@ -113,7 +428,7 @@ export default function ProgressScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Stats row */}
+        {/* Stat cards */}
         <View style={{flexDirection: 'row', gap: 12}}>
           <StatCard value={totalReps.toLocaleString()} label="banked reps" />
           <StatCard
@@ -123,45 +438,26 @@ export default function ProgressScreen() {
         </View>
 
         {longestStreak > 0 && (
-          <Text style={{
-            fontSize: 12,
-            color: c.onSurfaceVariant,
-            textAlign: 'center',
-            fontWeight: '500',
-          }}>
+          <Text style={{fontSize: 12, color: c.onSurfaceVariant, textAlign: 'center', fontWeight: '500'}}>
             Best streak: {longestStreak} day{longestStreak !== 1 ? 's' : ''}
           </Text>
         )}
 
-        {/* Daily goal card */}
+        {/* Daily goal */}
         {dailyGoal > 0 && (
-          <View style={[{
-            backgroundColor: c.surface,
-            borderRadius: 20,
-            padding: 20,
-          }, theme.dark ? {} : cardShadow]}>
+          <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 20}, theme.dark ? {} : cardShadow]}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14}}>
               <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}}>Today's Goal</Text>
               <View style={{flexDirection: 'row', alignItems: 'baseline', gap: 4}}>
-                <Text style={{fontSize: 22, fontWeight: '800', color: c.primary}}>
-                  {todayReps}
-                </Text>
-                <Text style={{fontSize: 14, color: c.onSurfaceVariant, fontWeight: '500'}}>
-                  / {dailyGoal}
-                </Text>
+                <Text style={{fontSize: 22, fontWeight: '800', color: c.primary}}>{todayReps}</Text>
+                <Text style={{fontSize: 14, color: c.onSurfaceVariant, fontWeight: '500'}}>/ {dailyGoal}</Text>
               </View>
             </View>
-            {/* Gradient progress track */}
             <View style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
               <LinearGradient
                 colors={BRAND_GRADIENT.colors}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={{
-                  height: 8,
-                  borderRadius: 100,
-                  width: `${Math.max(goalProgress * 100, 0)}%`,
-                }}
+                start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+                style={{height: 8, borderRadius: 100, width: `${Math.max(goalProgress * 100, 0)}%`}}
               />
             </View>
             {todayReps >= dailyGoal && (
@@ -171,19 +467,22 @@ export default function ProgressScreen() {
             )}
           </View>
         )}
-      </View>
 
-      {/* Bottom sheet */}
+        {/* Leaderboard */}
+        <LeaderboardCard weekReps={weekReps} />
+
+      </ScrollView>
+
+      {/* Bank sheet */}
       <Modal
         visible={sheet !== 'closed'}
-        transparent
-        animationType="slide"
+        transparent animationType="slide"
         onRequestClose={() => setSheet('closed')}>
         <View style={{flex: 1, justifyContent: 'flex-end', backgroundColor: c.backdrop}}>
 
           {sheet === 'intro' && (
             <View style={sheetBg}>
-              <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 28}} />
+              {handle}
               <Text style={{fontSize: 26, fontWeight: '800', color: c.onSurface, letterSpacing: -0.5, marginBottom: 14}}>
                 Earn while you grind.
               </Text>
@@ -198,20 +497,15 @@ export default function ProgressScreen() {
 
           {sheet === 'mode' && (
             <View style={sheetBg}>
-              <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 24}} />
+              {handle}
               <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 16, letterSpacing: -0.3}}>
                 How do you want to log?
               </Text>
 
               <TouchableOpacity onPress={handleCamera} activeOpacity={0.8}>
                 <View style={[{
-                  backgroundColor: c.surface,
-                  borderRadius: 16,
-                  padding: 18,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 14,
-                  marginBottom: 10,
+                  backgroundColor: c.surface, borderRadius: 16, padding: 18,
+                  flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10,
                 }, theme.dark ? {backgroundColor: c.surfaceVariant} : cardShadow]}>
                   <Text style={{fontSize: 26}}>📷</Text>
                   <View style={{flex: 1}}>
@@ -224,13 +518,8 @@ export default function ProgressScreen() {
 
               <TouchableOpacity onPress={() => setSheet('manual')} activeOpacity={0.8}>
                 <View style={[{
-                  backgroundColor: c.surface,
-                  borderRadius: 16,
-                  padding: 18,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 14,
-                  marginBottom: 16,
+                  backgroundColor: c.surface, borderRadius: 16, padding: 18,
+                  flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16,
                 }, theme.dark ? {backgroundColor: c.surfaceVariant} : cardShadow]}>
                   <Text style={{fontSize: 26}}>✏️</Text>
                   <View style={{flex: 1}}>
@@ -250,7 +539,7 @@ export default function ProgressScreen() {
           {sheet === 'manual' && (
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{justifyContent: 'flex-end'}}>
               <View style={sheetBg}>
-                <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 24}} />
+                {handle}
                 <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 20, letterSpacing: -0.3}}>
                   How many did you do?
                 </Text>
@@ -279,6 +568,25 @@ export default function ProgressScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Share card */}
+      <ShareCardModal
+        visible={showShare}
+        onClose={() => setShowShare(false)}
+        totalReps={totalReps}
+        streak={currentStreak}
+        weekReps={weekReps}
+      />
+
+      {/* Celebration (bonus reps + milestones) */}
+      {pendingCelebration && (
+        <CelebrationModal
+          visible={showCelebration}
+          bonus={pendingCelebration.bonus}
+          milestone={pendingCelebration.milestone}
+          onClose={dismissCelebration}
+        />
+      )}
     </View>
   );
 }
