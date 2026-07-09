@@ -2,19 +2,27 @@ import React, {useState, useEffect} from 'react';
 import {FlatList, View, Modal, KeyboardAvoidingView, Platform, Alert} from 'react-native';
 import {
   Appbar, FAB, Text, Button, Surface, TextInput,
-  TouchableRipple, useTheme, Divider,
+  TouchableRipple, useTheme, Divider, Switch, Snackbar,
 } from 'react-native-paper';
 import {useBankStore, Reward} from '../../store/bankStore';
 
+// 4 rows × 5 columns = 20 default emojis
 const EMOJIS = [
   '🏆','🎁','🎉','⭐','💫',
   '📺','🎮','🎬','🎵','🎧',
   '🍕','🍔','🍰','🍩','☕',
-  '👕','👟','🎒','💵','💳',
-  '💪','🔥','😴','🛋️','🏖️',
+  '👕','👟','🎒','💵','💪',
 ];
 
-interface FormState {emoji: string; title: string; cost: string}
+interface FormState {
+  emoji: string;
+  customEmoji: string;
+  title: string;
+  cost: string;
+  oneTime: boolean;
+}
+
+const EMPTY_FORM: FormState = {emoji: '🏆', customEmoji: '', title: '', cost: '', oneTime: false};
 
 function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   visible: boolean;
@@ -24,11 +32,17 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   onClose: () => void;
 }) {
   const theme = useTheme();
-  const [form, setForm] = useState<FormState>({emoji: '🏆', title: '', cost: ''});
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   useEffect(() => {
     if (visible) {
-      setForm({emoji: initial?.emoji ?? '🏆', title: initial?.title ?? '', cost: initial?.cost?.toString() ?? ''});
+      setForm({
+        emoji: initial?.emoji ?? '🏆',
+        customEmoji: '',
+        title: initial?.title ?? '',
+        cost: initial?.cost?.toString() ?? '',
+        oneTime: initial?.oneTime ?? false,
+      });
     }
   }, [visible, initial]);
 
@@ -36,8 +50,10 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
     const cost = parseInt(form.cost, 10);
     if (!form.title.trim()) return;
     if (!cost || cost < 1) return;
-    onSave({emoji: form.emoji, title: form.title.trim(), cost});
+    onSave({emoji: form.emoji, title: form.title.trim(), cost, oneTime: form.oneTime});
   };
+
+  const selectGridEmoji = (e: string) => setForm(f => ({...f, emoji: e, customEmoji: ''}));
 
   const sheetBg = {
     backgroundColor: theme.colors.surface,
@@ -53,27 +69,30 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.backdrop}}>
         <View style={sheetBg}>
-          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24}}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
             <Text variant="titleLarge">{modalTitle}</Text>
             <Button onPress={onClose} mode="text">Close</Button>
           </View>
 
+          {/* Emoji grid — 4 rows */}
           <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 10}}>
             Emoji
           </Text>
-          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24}}>
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12}}>
             {EMOJIS.map(e => (
               <TouchableRipple
                 key={e}
-                onPress={() => setForm(f => ({...f, emoji: e}))}
+                onPress={() => selectGridEmoji(e)}
                 borderless
                 style={{borderRadius: 12}}>
                 <Surface
-                  elevation={form.emoji === e ? 2 : 0}
+                  elevation={0}
                   style={{
                     width: 48, height: 48, borderRadius: 12,
                     alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: form.emoji === e ? theme.colors.secondaryContainer : theme.colors.surfaceVariant,
+                    backgroundColor: form.emoji === e && !form.customEmoji
+                      ? theme.colors.secondaryContainer
+                      : theme.colors.surfaceVariant,
                   }}>
                   <Text style={{fontSize: 24}}>{e}</Text>
                 </Surface>
@@ -81,6 +100,20 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             ))}
           </View>
 
+          {/* Custom emoji input */}
+          <TextInput
+            mode="outlined"
+            label="Or type a custom emoji"
+            value={form.customEmoji}
+            onChangeText={v => {
+              setForm(f => ({...f, customEmoji: v, emoji: v || f.emoji}));
+            }}
+            placeholder="🏅"
+            maxLength={8}
+            style={{marginBottom: 16}}
+          />
+
+          {/* Reward name */}
           <TextInput
             mode="outlined"
             label="Reward name"
@@ -90,6 +123,8 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             maxLength={40}
             style={{marginBottom: 16}}
           />
+
+          {/* Cost */}
           <TextInput
             mode="outlined"
             label="Push-ups required"
@@ -98,8 +133,20 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             placeholder="50"
             keyboardType="number-pad"
             maxLength={5}
-            style={{width: 160, marginBottom: 24}}
+            style={{width: 160, marginBottom: 16}}
           />
+
+          {/* One-time toggle */}
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24}}>
+            <View style={{flex: 1, marginRight: 12}}>
+              <Text variant="labelLarge">One-time reward</Text>
+              <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
+                Removes from list after you redeem it. Off = repeatable.
+              </Text>
+            </View>
+            <Switch value={form.oneTime} onValueChange={v => setForm(f => ({...f, oneTime: v}))} />
+          </View>
+
           <Button mode="contained" onPress={save} contentStyle={{paddingVertical: 8}}>
             Save Reward
           </Button>
@@ -109,10 +156,10 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   );
 }
 
-function RewardCard({reward, totalReps, onRedeem, onLongPress}: {
+function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
   reward: Reward;
   totalReps: number;
-  onRedeem: () => void;
+  onTryRedeem: () => void;
   onLongPress: () => void;
 }) {
   const theme = useTheme();
@@ -122,16 +169,31 @@ function RewardCard({reward, totalReps, onRedeem, onLongPress}: {
   return (
     <TouchableRipple onLongPress={onLongPress} borderless style={{borderRadius: 16, marginBottom: 10}}>
       <Surface elevation={1} style={{borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center'}}>
-        <Text style={{fontSize: 34, marginRight: 14}}>{reward.emoji}</Text>
+        <View style={{marginRight: 14}}>
+          <Text style={{fontSize: 34}}>{reward.emoji}</Text>
+        </View>
         <View style={{flex: 1}}>
-          <Text variant="titleMedium">{reward.title}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+            <Text variant="titleMedium">{reward.title}</Text>
+            {reward.oneTime && (
+              <Text variant="labelSmall" style={{
+                color: theme.colors.onSecondaryContainer,
+                backgroundColor: theme.colors.secondaryContainer,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                borderRadius: 4,
+              }}>
+                one-time
+              </Text>
+            )}
+          </View>
           <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 3}}>
             {reward.cost.toLocaleString()} push-ups
           </Text>
         </View>
         <Button
           mode={canAfford ? 'contained' : 'outlined'}
-          onPress={canAfford ? onRedeem : undefined}
+          onPress={onTryRedeem}
           compact
           style={{borderRadius: 24}}>
           {canAfford ? 'Redeem' : `+${needed.toLocaleString()}`}
@@ -146,6 +208,7 @@ export default function RewardsScreen() {
   const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward} = useBankStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
+  const [snackbar, setSnackbar] = useState('');
 
   const openAdd = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit = (r: Reward) => { setEditing(r); setModalOpen(true); };
@@ -157,7 +220,6 @@ export default function RewardsScreen() {
   };
 
   const handleLongPress = (r: Reward) => {
-    // ponytail: native Alert is fine — no need for a Paper Dialog just for this
     Alert.alert(r.title, 'What do you want to do?', [
       {text: 'Edit', onPress: () => openEdit(r)},
       {text: 'Delete', style: 'destructive', onPress: () => deleteReward(r.id)},
@@ -165,7 +227,12 @@ export default function RewardsScreen() {
     ]);
   };
 
-  const handleRedeem = (r: Reward) => {
+  const handleTryRedeem = (r: Reward) => {
+    if (totalReps < r.cost) {
+      const needed = r.cost - totalReps;
+      setSnackbar(`You need ${needed.toLocaleString()} more push-ups to unlock this.`);
+      return;
+    }
     Alert.alert(
       `Redeem ${r.emoji} ${r.title}?`,
       `This will use ${r.cost.toLocaleString()} push-ups from your bank.`,
@@ -198,7 +265,7 @@ export default function RewardsScreen() {
           <RewardCard
             reward={item}
             totalReps={totalReps}
-            onRedeem={() => handleRedeem(item)}
+            onTryRedeem={() => handleTryRedeem(item)}
             onLongPress={() => handleLongPress(item)}
           />
         )}
@@ -223,6 +290,13 @@ export default function RewardsScreen() {
         style={{position: 'absolute', bottom: 88, right: 24}}
         onPress={openAdd}
       />
+
+      <Snackbar
+        visible={!!snackbar}
+        onDismiss={() => setSnackbar('')}
+        duration={3000}>
+        {snackbar}
+      </Snackbar>
 
       <RewardModal
         visible={modalOpen}

@@ -1,14 +1,13 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {FlatList, View} from 'react-native';
 import {
   Appbar, FAB, Switch, IconButton, Text,
-  Dialog, RadioButton, Button, Divider, useTheme,
+  Divider, useTheme,
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useAlarmStore, Alarm} from '../../store/alarmStore';
 import {useBankStore} from '../../store/bankStore';
-import {useThemeStore, type ThemeMode} from '../../store/themeStore';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -55,17 +54,14 @@ export default function AlarmListScreen() {
   const {alarms} = useAlarmStore();
   const {totalReps} = useBankStore();
   const theme = useTheme();
-  const {mode, setMode} = useThemeStore();
-  const [dialogVisible, setDialogVisible] = useState(false);
 
   return (
     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
       <Appbar.Header>
         <Appbar.Content title="Alarms" />
-        <Text style={{color: theme.colors.primary, fontWeight: '600', marginRight: 4}}>
+        <Text style={{color: theme.colors.primary, fontWeight: '600', marginRight: 12}}>
           🔥 {totalReps.toLocaleString()}
         </Text>
-        <Appbar.Action icon="cog-outline" onPress={() => setDialogVisible(true)} />
       </Appbar.Header>
 
       <FlatList
@@ -92,25 +88,6 @@ export default function AlarmListScreen() {
         style={{position: 'absolute', bottom: 88, right: 24}}
         onPress={() => navigation.navigate('AddAlarm')}
       />
-
-      <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
-        <Dialog.Title>Appearance</Dialog.Title>
-        <Dialog.Content>
-          <RadioButton.Group
-            value={mode}
-            onValueChange={v => {
-              setMode(v as ThemeMode);
-              setDialogVisible(false);
-            }}>
-            <RadioButton.Item label="Light" value="light" />
-            <RadioButton.Item label="Dark" value="dark" />
-            <RadioButton.Item label="Follow system" value="system" />
-          </RadioButton.Group>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={() => setDialogVisible(false)}>Cancel</Button>
-        </Dialog.Actions>
-      </Dialog>
     </View>
   );
 }

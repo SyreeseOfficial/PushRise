@@ -14,6 +14,7 @@ export interface Reward {
   emoji: string;
   title: string;
   cost: number;
+  oneTime?: boolean; // if true, deleted after redemption; default false (repeatable)
 }
 
 interface BankStore {
@@ -110,6 +111,9 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
     const {rewards, totalReps} = get();
     const reward = rewards.find(r => r.id === id);
     if (!reward || totalReps < reward.cost) return;
-    set({totalReps: totalReps - reward.cost});
+    set({
+      totalReps: totalReps - reward.cost,
+      rewards: reward.oneTime ? rewards.filter(r => r.id !== id) : rewards,
+    });
   },
 }), {name: 'bank', storage: mmkvStorage}));

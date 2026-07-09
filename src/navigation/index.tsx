@@ -2,8 +2,7 @@ import React from 'react';
 import {NavigationContainer, DefaultTheme as NavDefaultTheme} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {useTheme} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useTheme, Icon} from 'react-native-paper';
 import {navigationRef, RootStackParamList} from './navigationRef';
 import AlarmListScreen from '../screens/alarms/AlarmListScreen';
 import AddAlarmScreen from '../screens/alarms/AddAlarmScreen';
@@ -11,6 +10,7 @@ import AlarmFiringScreen from '../screens/alarms/AlarmFiringScreen';
 import ProgressScreen from '../screens/progress/ProgressScreen';
 import BankCameraScreen from '../screens/progress/BankCameraScreen';
 import RewardsScreen from '../screens/rewards/RewardsScreen';
+import SettingsScreen from '../screens/settings/SettingsScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import {useOnboardingStore} from '../store/onboardingStore';
 
@@ -36,7 +36,7 @@ function MainTabs() {
         component={AlarmListScreen}
         options={{
           tabBarIcon: ({focused, color, size}) => (
-            <Icon name={focused ? 'alarm' : 'alarm-outline'} size={size} color={color} />
+            <Icon source={focused ? 'alarm' : 'alarm-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -45,7 +45,7 @@ function MainTabs() {
         component={ProgressScreen}
         options={{
           tabBarIcon: ({focused, color, size}) => (
-            <Icon name={focused ? 'chart-bar' : 'chart-bar'} size={size} color={color} />
+            <Icon source={focused ? 'trending-up' : 'trending-up'} color={color} size={size} />
           ),
         }}
       />
@@ -54,7 +54,16 @@ function MainTabs() {
         component={RewardsScreen}
         options={{
           tabBarIcon: ({focused, color, size}) => (
-            <Icon name={focused ? 'gift' : 'gift-outline'} size={size} color={color} />
+            <Icon source={focused ? 'gift' : 'gift-outline'} color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarIcon: ({focused, color, size}) => (
+            <Icon source={focused ? 'cog' : 'cog-outline'} color={color} size={size} />
           ),
         }}
       />

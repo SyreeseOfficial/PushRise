@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Sound from 'react-native-sound';
 import {useNavigation} from '@react-navigation/native';
 import {useAlarmStore} from '../../store/alarmStore';
+import {useSettingsStore} from '../../store/settingsStore';
 
 Sound.setCategory('Alarm');
 
@@ -31,6 +32,7 @@ export default function AddAlarmScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
   const {addAlarm} = useAlarmStore();
+  const {defaultReps} = useSettingsStore();
   const previewRef = useRef<Sound | null>(null);
 
   const [time, setTime] = useState(() => {
@@ -40,7 +42,7 @@ export default function AddAlarmScreen() {
     return d;
   });
   const [showPicker, setShowPicker] = useState(false);
-  const [reps, setReps] = useState('10');
+  const [reps, setReps] = useState(String(defaultReps));
   const [label, setLabel] = useState('');
   const [recurring, setRecurring] = useState(false);
   const [days, setDays] = useState<number[]>([]);

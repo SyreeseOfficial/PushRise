@@ -66,7 +66,7 @@ export default function ProgressScreen() {
             borderLeftWidth: 3,
             borderLeftColor: theme.colors.primary,
           }}>
-          <Text style={{fontSize: 28}}>💪</Text>
+          <Text style={{fontSize: 28}}>💪🏽</Text>
           <View style={{flex: 1}}>
             <Text variant="titleMedium">Bank Push-ups</Text>
             <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
