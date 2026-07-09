@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, TextInput, Switch, ScrollView, Platform} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, TextInput, Switch, ScrollView} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Sound from 'react-native-sound';
@@ -36,6 +36,7 @@ export default function AddAlarmScreen() {
     d.setHours(d.getHours() + 1);
     return d;
   });
+  const [showPicker, setShowPicker] = useState(false);
   const [reps, setReps] = useState('10');
   const [label, setLabel] = useState('');
   const [recurring, setRecurring] = useState(false);
@@ -85,14 +86,24 @@ export default function AddAlarmScreen() {
       </View>
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        <DateTimePicker
-          value={time}
-          mode="time"
-          display={Platform.OS === 'android' ? 'spinner' : 'spinner'}
-          onChange={(_, d) => d && setTime(d)}
-          textColor="#fff"
-          style={styles.picker}
-        />
+        <TouchableOpacity style={styles.timeDisplay} onPress={() => setShowPicker(true)}>
+          <Text style={styles.timeDisplayTxt}>
+            {time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+          </Text>
+          <Text style={styles.timeDisplayHint}>tap to change</Text>
+        </TouchableOpacity>
+
+        {showPicker && (
+          <DateTimePicker
+            value={time}
+            mode="time"
+            display="default"
+            onChange={(event, date) => {
+              setShowPicker(false);
+              if (event.type !== 'dismissed' && date) setTime(date);
+            }}
+          />
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Push-ups to dismiss</Text>
@@ -200,7 +211,9 @@ const styles = StyleSheet.create({
   saveBtn: {fontSize: 16, color: '#FF6B00', fontWeight: '700'},
   body: {flex: 1},
   bodyContent: {paddingBottom: 40},
-  picker: {alignSelf: 'center', marginVertical: 8},
+  timeDisplay: {alignItems: 'center', paddingVertical: 28},
+  timeDisplayTxt: {fontSize: 72, fontWeight: '200', color: '#fff', letterSpacing: -2},
+  timeDisplayHint: {fontSize: 13, color: '#444', marginTop: 4},
   section: {
     paddingHorizontal: 20,
     paddingVertical: 16,
