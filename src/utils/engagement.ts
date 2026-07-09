@@ -110,3 +110,32 @@ export function getLeaderboard(userWeekReps: number): LeaderboardEntry[] {
     {name: n4, weekReps: below2, isUser: false, rank: 5},
   ];
 }
+
+type TickerFn = (name: string, rand: () => number) => string;
+
+const TICKER_TEMPLATES: TickerFn[] = [
+  (n, r) => `${n} just did ${Math.round(r() * 45 + 10)} push-ups 💪`,
+  (n, r) => `${n} just hit Level ${Math.ceil(r() * 5) + 1} ⚡`,
+  (n, r) => `${n} just hit a ${Math.round(r() * 12 + 3)}-day streak 🔥`,
+  (n)    => `${n} just unlocked Iron Riser 🏆`,
+  (n)    => `${n} just redeemed 📺 TV Time`,
+  (n)    => `${n} just redeemed 🎮 Video Games`,
+  (n)    => `${n} just crushed their daily goal 🎯`,
+  (n)    => `${n} just earned the 5AM Club title ☀️`,
+  (n, r) => `${n} just banked ${Math.round(r() * 80 + 20)} reps 💰`,
+  (n)    => `${n} just unlocked The Grinder 🔥`,
+  (n, r) => `${n} is on a roll — ${Math.round(r() * 30 + 20)} reps today`,
+  (n)    => `${n} just hit Legend status 🦾`,
+  (n)    => `${n} just redeemed 🍕 Treat Yourself`,
+  (n, r) => `${n} woke up and did ${Math.round(r() * 25 + 5)} push-ups 🌅`,
+  (n)    => `${n} just completed their morning alarm 💥`,
+];
+
+export function getTickerMessages(): string[] {
+  const rand = seededRng(new Date().toISOString().slice(0, 13)); // changes hourly
+  const names = [...FAKE_NAMES].sort(() => rand() - 0.5);
+  return Array.from({length: 30}, (_, i) => {
+    const fn = TICKER_TEMPLATES[Math.floor(rand() * TICKER_TEMPLATES.length)];
+    return fn(names[i % names.length], rand);
+  });
+}

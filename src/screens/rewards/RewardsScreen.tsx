@@ -1,9 +1,12 @@
-import React, {useState, useEffect} from 'react';
-import {FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect, useRef} from 'react';
+import {Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
 import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import {useBankStore, Reward} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
+
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 const EMOJIS = [
   '🏆','🎁','🎉','⭐','💫',
@@ -206,6 +209,7 @@ export default function RewardsScreen() {
   const [snackbar, setSnackbar] = useState('');
   const [redeemTarget, setRedeemTarget] = useState<Reward | null>(null);
   const [actionTarget, setActionTarget] = useState<Reward | null>(null);
+  const confettiRef = useRef<ConfettiCannon>(null);
 
   const openAdd = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit = (r: Reward) => { setEditing(r); setModalOpen(true); };
@@ -335,7 +339,11 @@ export default function RewardsScreen() {
             <Button onPress={() => setRedeemTarget(null)}>Cancel</Button>
             <Button
               mode="contained"
-              onPress={() => { redeemReward(redeemTarget!.id); setRedeemTarget(null); }}>
+              onPress={() => {
+                redeemReward(redeemTarget!.id);
+                setRedeemTarget(null);
+                setTimeout(() => confettiRef.current?.start(), 100);
+              }}>
               Redeem
             </Button>
           </Dialog.Actions>
@@ -353,6 +361,17 @@ export default function RewardsScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <ConfettiCannon
+        ref={confettiRef}
+        count={120}
+        origin={{x: SCREEN_WIDTH / 2, y: -20}}
+        autoStart={false}
+        fadeOut
+        explosionSpeed={400}
+        fallSpeed={2800}
+        colors={['#FF5500', '#FF7040', '#FFD700', '#FF2D00', '#FFFFFF', '#FF9A6C']}
+      />
     </View>
   );
 }

@@ -8,19 +8,24 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - Manufactured urgency
 - Limited-time reward slots: "Pizza reward available for the next 48 hours" (you set it, the app surfaces it urgently)
 - "Power hour" window each morning where reps count double
-
-Notification artillery
 - "Your friend just did 30 push-ups" (even if they don't have friends in-app, fake this with bot accounts in early versions)
 - Re-engagement: "You haven't opened PushRise in 2 days. Your muscles are getting cold."
-- Celebratory "confetti" notification when hitting milestones — dopamine hit from the OS itself
-
-Reward scarcity / gatekeeping
 - Rewards locked behind rep thresholds that feel achievable but take real grinding (e.g., "500 reps to unlock custom sounds")
 - Premium rewards slot that refreshes weekly — you have to check back
+- Anonymous rival: "Someone with your exact rep count just pulled ahead. You're now #4." Completely fabricated. People will grind for hours over this.
+- Boss battle: "Defeat Marcus T. this week — he's 23 reps ahead of you." New fake rival every week.
+- Ghost mode: a ghost counter showing yesterday-you's rep count at the same time of day. You're racing your past self.
+- Rep multiplier that grows with your streak (1x day 1 → 1.5x day 3 → 2x day 7). Miss a day? It resets to 1x. Watching a 2x multiplier die is devastating.
+- Daily challenge: "Today: 75 push-ups before 2pm. 1,247 people accepted." (fake number, new challenge every day)
+- "Viral moment": when you hit a milestone the app says "This won't be shown again — screenshot now." Makes the moment feel scarce.
+- Commitment contract: onboarding or settings prompt — "What are you grinding for?" Answer shows on your profile/progress screen every time you open the app. Psychological binding.
+- Morning unlock ritual: until you bank 10 reps, a subtle "not warmed up yet" indicator shows on your avatar. Compulsion to clear it before the day starts.
+- After banking reps: "Add 5 more to hit a round 50?" People hate odd numbers. Biggest ROI of the whole list.
+- "The PushRise community is 4,382 push-ups from 1,000,000 this week." Fake group goal that updates live-ish. People contribute to a fake milestone.
+- Late-night notification: "23 PushRisers are grinding right now. The gym is quiet — perfect time."
 
-The number that never goes down (except streaks)
-- Total lifetime reps counter is permanent and keeps growing. People don't want to feel like quitters on a big number.
-- Streak is the only number that can go down — so you protect the growing ones and panic over the fragile one
+
+
 
 ## My Todos
 - [ ] When the alarm itself goes off, it doesnt match the apps style/design/colors. Make it uniform with the rest of the app.
@@ -35,6 +40,13 @@ for the icons to be the same grey color.
 - [ ] Currently, when the user tries to redeem a reward, a popup message opens up asking the user if they want to redeem their reward.
 It seems like the styling is like the phone's native OS styling. Is there a way to change it to match our custom styling to be uniform
 with the rest of the app?
+
+- The weekly leader board is bugged out. The numbers of the users around the app's user should always be close to our users current record.
+Like if our user is just starting the app and their current total reps are at 0. 4th place should be 0 and 5th place would be 0. 
+Our user would be 3rd place every time. 2nd place might be like 1-2 reps. and first place might be like 3-4 reps or something like that.
+Basically the other users should always be close to our user's total numbers.
+- We should add an onboarding screen for this if it doesn't exist yet. We already give the user the option to set a daily pushup amount goal.
+So I think we should ask the user during onboarding at some point if they want to set a daily pushup goal amount.
 
 --- 
 
