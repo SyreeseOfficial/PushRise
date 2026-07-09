@@ -274,6 +274,8 @@ export default function SettingsScreen() {
           />
           <TapRow
             icon="star-outline"
+            iconBg={c.primary}
+            iconFg="#FFFFFF"
             title="Rate PushRise"
             onPress={() =>
               Linking.openURL('https://play.google.com/store/apps/details?id=com.pushrise').catch(() =>

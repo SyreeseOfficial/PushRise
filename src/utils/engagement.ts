@@ -28,11 +28,12 @@ export function checkMilestone(prevTotal: number, newTotal: number, seen: number
 
 const TITLES = [
   {label: '5AM Club',       check: (_r: number, s: number) => s >= 14},
-  {label: 'Legend',         check: (r: number) => r >= 10000},
-  {label: 'Iron Machine',   check: (r: number) => r >= 5000},
-  {label: 'The Grinder',    check: (r: number) => r >= 1000},
-  {label: 'Iron Riser',     check: (r: number) => r >= 500},
-  {label: 'Getting Warmed Up', check: (r: number) => r >= 100},
+  {label: 'Legend',         check: (r: number) => r >= 6000},
+  {label: 'Iron Riser',     check: (r: number) => r >= 3000},
+  {label: 'Built Different', check: (r: number) => r >= 1500},
+  {label: 'The Grinder',    check: (r: number) => r >= 750},
+  {label: 'Locked In',      check: (r: number) => r >= 200},
+  {label: 'Early Riser',    check: (r: number) => r >= 20},
   {label: 'Newcomer',       check: () => true},
 ];
 
@@ -40,14 +41,17 @@ export function getTitle(totalReps: number, streak: number): string {
   return TITLES.find(t => t.check(totalReps, streak))?.label ?? 'Newcomer';
 }
 
-// Each level has a placeholder emoji — user will add real images later
 export const AVATAR_LEVELS = [
-  {minReps: 10000, emoji: '🦾', label: 'Cyborg',      level: 6},
-  {minReps: 5000,  emoji: '💪🏽', label: 'Beast Mode',  level: 5},
-  {minReps: 1000,  emoji: '🔥', label: 'On Fire',      level: 4},
-  {minReps: 500,   emoji: '⚡', label: 'Charged',      level: 3},
-  {minReps: 100,   emoji: '💧', label: 'Warming Up',   level: 2},
-  {minReps: 0,     emoji: '🌱', label: 'Seedling',     level: 1},
+  {minReps: 6000,  emoji: '👑', label: 'Legend',          level: 10},
+  {minReps: 3000,  emoji: '🦾', label: 'Iron Riser',      level: 9},
+  {minReps: 1500,  emoji: '🦁', label: 'Built Different', level: 8},
+  {minReps: 750,   emoji: '💪', label: 'The Grinder',     level: 7},
+  {minReps: 400,   emoji: '🔥', label: 'On Fire',         level: 6},
+  {minReps: 200,   emoji: '⚡', label: 'Locked In',       level: 5},
+  {minReps: 100,   emoji: '💧', label: 'In The Habit',    level: 4},
+  {minReps: 50,    emoji: '🌊', label: 'Finding Rhythm',  level: 3},
+  {minReps: 20,    emoji: '☀️', label: 'Early Riser',     level: 2},
+  {minReps: 0,     emoji: '🌱', label: 'Seedling',        level: 1},
 ];
 
 export function getAvatarLevel(totalReps: number) {
@@ -77,10 +81,22 @@ function seededRng(seed: string) {
 }
 
 const FAKE_NAMES = [
+  // American
   'Marcus T.', 'Jordan B.', 'Alex R.', 'Sam K.', 'Riley P.',
   'Casey M.', 'Taylor W.', 'Morgan S.', 'Drew K.', 'Quinn R.',
-  'Avery L.', 'Blake H.', 'Skyler N.', 'Devon C.', 'Remi F.',
-  'Jamie O.', 'Rowan E.', 'Finley B.', 'Harley J.', 'Sage V.',
+  // East Asian
+  'Wei L.', 'Yuki S.', 'Min J.', 'Ji-ho K.', 'Ren T.',
+  'Hana M.', 'Soo Y.', 'Daiki N.', 'Mei C.', 'Junho P.',
+  // South Asian
+  'Arjun K.', 'Priya S.', 'Ravi M.', 'Ananya B.', 'Dev P.',
+  'Aisha R.', 'Riya G.', 'Kiran N.', 'Dhruv S.', 'Pooja V.',
+  // European
+  'Luca R.', 'Sofia M.', 'Mateo G.', 'Isabelle D.', 'Nico B.',
+  'Elena V.', 'Felix H.', 'Zara K.', 'Tomás M.', 'Ingrid L.',
+  // African / Middle Eastern
+  'Amara D.', 'Kofi A.', 'Zainab H.', 'Emeka O.', 'Fatima A.',
+  // Latin American
+  'Camila R.', 'Diego F.', 'Valeria M.', 'Javier T.', 'Lucia C.',
 ];
 
 export interface LeaderboardEntry {
@@ -135,12 +151,12 @@ export function getBoss(userWeekReps: number, weekStart: string, bossDefeatedWee
 // ─── Community Goal ─────────────────────────────────────────────────────────
 
 export function getCommunityGoal(): {repsToGo: number; total: number; goal: number} {
-  const goal = 1_000_000;
+  const goal = 10_000;
   const weekStart = getWeekStart();
   const rand = seededRng(weekStart);
 
   // Base for this week — community is always close but not done
-  const weeklyBase = Math.round(rand() * 60000 + 910000); // 910k–970k
+  const weeklyBase = Math.round(rand() * 1500 + 7500); // 7500–9000
 
   // Ticks up ~3–7 reps every 2 minutes, live-ish
   const now = new Date();

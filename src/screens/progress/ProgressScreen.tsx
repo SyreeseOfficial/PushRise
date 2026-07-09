@@ -50,7 +50,7 @@ function AvatarCard({totalReps, streak}: {totalReps: number; streak: number}) {
   const avatar = getAvatarLevel(totalReps);
   const title = getTitle(totalReps, streak);
 
-  const next = [10000, 5000, 1000, 500, 100].find(t => totalReps < t) ?? null;
+  const next = [20, 50, 100, 200, 400, 750, 1500, 3000, 6000].find(t => totalReps < t) ?? null;
   const prevThreshold = avatar.minReps;
   const progress = next
     ? Math.min((totalReps - prevThreshold) / (next - prevThreshold), 1)

@@ -9,10 +9,9 @@ import {BRAND_GRADIENT, cardShadow} from '../../theme';
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 const EMOJIS = [
-  '🏆','🎁','🎉','⭐','💫',
-  '📺','🎮','🎬','🎵','🎧',
-  '🍕','🍔','🍰','🍩','☕',
-  '👕','👟','🎒','💵','💪',
+  '🏆','🎁','🎉','⭐','📺','🎮',
+  '🎬','🎵','🎧','🍕','🍔','🍰',
+  '☕','👕','👟','🎒','💵','💪',
 ];
 
 interface FormState {
@@ -164,7 +163,7 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
       <View style={{borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14}}>
         <View style={{
           width: 52, height: 52, borderRadius: 14,
-          backgroundColor: canAfford ? c.primaryContainer : c.surfaceVariant,
+          backgroundColor: c.surfaceVariant,
           alignItems: 'center', justifyContent: 'center',
         }}>
           <Text style={{fontSize: 28}}>{reward.emoji}</Text>
