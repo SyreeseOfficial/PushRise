@@ -10,6 +10,8 @@ import AlarmFiringScreen from '../screens/alarms/AlarmFiringScreen';
 import ProgressScreen from '../screens/progress/ProgressScreen';
 import BankCameraScreen from '../screens/progress/BankCameraScreen';
 import RewardsScreen from '../screens/rewards/RewardsScreen';
+import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
+import {useOnboardingStore} from '../store/onboardingStore';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -43,10 +45,16 @@ function MainTabs() {
 }
 
 export default function RootNavigator() {
+  const {hasCompletedOnboarding} = useOnboardingStore();
+
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-        <Stack.Screen name="MainTabs" component={MainTabs} />
+        {!hasCompletedOnboarding ? (
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{gestureEnabled: false}} />
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen
           name="AlarmFiring"
           component={AlarmFiringScreen}
@@ -57,11 +65,13 @@ export default function RootNavigator() {
           component={AddAlarmScreen}
           options={{presentation: 'modal'}}
         />
-        <Stack.Screen
-          name="BankCamera"
-          component={BankCameraScreen}
-          options={{presentation: 'fullScreenModal', gestureEnabled: false}}
-        />
+            <Stack.Screen
+              name="BankCamera"
+              component={BankCameraScreen}
+              options={{presentation: 'fullScreenModal', gestureEnabled: false}}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -18,6 +18,10 @@ export interface Reward {
 
 interface BankStore {
   totalReps: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastCompletedDate: string | null; // 'YYYY-MM-DD'
+  graceUsedAt: string | null;       // 'YYYY-MM-DD' — resets when streak resets
   hasSeenBankIntro: boolean;
   rewards: Reward[];
   addReps: (n: number) => void;
@@ -36,12 +40,58 @@ const DEFAULT_REWARDS: Reward[] = [
   {id: 'd5', emoji: '💵', title: '$10 Spending Money', cost: 150},
 ];
 
+function toDateStr(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetween(a: string, b: string): number {
+  return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
+}
+
+function computeStreak(s: BankStore, today: string): Partial<BankStore> {
+  if (!s.lastCompletedDate) {
+    return {currentStreak: 1, longestStreak: Math.max(1, s.longestStreak), lastCompletedDate: today};
+  }
+
+  const diff = daysBetween(s.lastCompletedDate, today);
+
+  if (diff === 0) return {}; // already counted today
+
+  if (diff === 1) {
+    const next = s.currentStreak + 1;
+    return {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today};
+  }
+
+  if (diff === 2) {
+    // one missed day — grace day available once per 7-day rolling window
+    const graceAvailable = !s.graceUsedAt || daysBetween(s.graceUsedAt, today) >= 7;
+    if (graceAvailable) {
+      const next = s.currentStreak + 1;
+      return {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today, graceUsedAt: today};
+    }
+  }
+
+  // streak broken
+  return {currentStreak: 1, lastCompletedDate: today, graceUsedAt: null};
+}
+
 export const useBankStore = create<BankStore>()(persist((set, get) => ({
   totalReps: 0,
+  currentStreak: 0,
+  longestStreak: 0,
+  lastCompletedDate: null,
+  graceUsedAt: null,
   hasSeenBankIntro: false,
   rewards: DEFAULT_REWARDS,
 
-  addReps: (n) => set(s => ({totalReps: s.totalReps + n})),
+  addReps: (n) => {
+    if (n <= 0) return;
+    set(s => ({
+      totalReps: s.totalReps + n,
+      ...computeStreak(s, toDateStr(new Date())),
+    }));
+  },
+
   markIntroSeen: () => set({hasSeenBankIntro: true}),
 
   addReward: (data) => set(s => ({

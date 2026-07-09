@@ -20,7 +20,7 @@ type Sheet = 'closed' | 'intro' | 'mode' | 'manual';
 
 export default function ProgressScreen() {
   const navigation = useNavigation<Nav>();
-  const {totalReps, hasSeenBankIntro, markIntroSeen, addReps} = useBankStore();
+  const {totalReps, currentStreak, longestStreak, hasSeenBankIntro, markIntroSeen, addReps} = useBankStore();
   const [sheet, setSheet] = useState<Sheet>('closed');
   const [manualInput, setManualInput] = useState('');
 
@@ -65,10 +65,15 @@ export default function ProgressScreen() {
           <Text style={styles.statLabel}>banked</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNum}>—</Text>
+          <Text style={styles.statNum}>
+            {currentStreak > 0 ? `🔥 ${currentStreak}` : '—'}
+          </Text>
           <Text style={styles.statLabel}>day streak</Text>
         </View>
       </View>
+      {longestStreak > 0 && (
+        <Text style={styles.bestStreak}>Best: {longestStreak} day{longestStreak !== 1 ? 's' : ''}</Text>
+      )}
 
       <Modal
         visible={sheet !== 'closed'}
@@ -193,6 +198,7 @@ const styles = StyleSheet.create({
   },
   statNum: {fontSize: 36, fontWeight: '700', color: '#FF6B00'},
   statLabel: {fontSize: 12, color: '#555', marginTop: 4, letterSpacing: 0.5},
+  bestStreak: {fontSize: 13, color: '#333', textAlign: 'center', marginTop: 12},
 
   // Modal / sheet
   modalBackdrop: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.75)'},
