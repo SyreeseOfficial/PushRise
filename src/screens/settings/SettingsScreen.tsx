@@ -81,10 +81,10 @@ export default function SettingsScreen() {
   const SettingIcon = ({icon, bg, fg}: {icon: string; bg?: string; fg?: string}) => (
     <View style={{
       width: 36, height: 36, borderRadius: 10,
-      backgroundColor: bg ?? c.secondaryContainer,
+      backgroundColor: bg ?? c.surfaceVariant,
       alignItems: 'center', justifyContent: 'center',
     }}>
-      <Icon source={icon} size={20} color={fg ?? c.onSecondaryContainer} />
+      <Icon source={icon} size={20} color={fg ?? c.onSurfaceVariant} />
     </View>
   );
 
@@ -265,8 +265,6 @@ export default function SettingsScreen() {
           />
           <TapRow
             icon="star-outline"
-            iconBg={c.tertiaryContainer}
-            iconFg={c.onTertiaryContainer}
             title="Rate PushRise"
             onPress={() =>
               Linking.openURL('https://play.google.com/store/apps/details?id=com.pushrise').catch(() =>

@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {View, Vibration, StatusBar, Alert, NativeModules} from 'react-native';
-import {Button, Text} from 'react-native-paper';
+import {Button, Text, useTheme} from 'react-native-paper';
 import Sound from 'react-native-sound';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useRoute, useNavigation} from '@react-navigation/native';
@@ -11,19 +11,16 @@ import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
-import {DarkTheme} from '../../theme';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
 const {PoseDetection} = NativeModules;
-
-// ponytail: always dark regardless of user theme — alarm fires in the dark
-const c = DarkTheme.colors;
 
 Sound.setCategory('Alarm');
 
 function ManualCounter({
   reps, onDone, onSkip, hapticOnRep,
 }: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean}) {
+  const {colors} = useTheme();
   const [count, setCount] = useState(0);
 
   const tap = () => {
@@ -37,7 +34,7 @@ function ManualCounter({
 
   return (
     <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 24}}>
-      <Text variant="bodyMedium" style={{color: c.onSurfaceVariant}}>Tap once per push-up</Text>
+      <Text variant="bodyMedium" style={{color: colors.onSurfaceVariant}}>Tap once per push-up</Text>
       <Button
         mode="contained"
         onPress={tap}
@@ -46,7 +43,7 @@ function ManualCounter({
         labelStyle={{fontSize: 24, fontWeight: '900'}}>
         {count} / {reps}
       </Button>
-      <Button mode="text" textColor={c.onSurfaceVariant} onPress={onSkip}>
+      <Button mode="text" textColor={colors.onSurfaceVariant} onPress={onSkip}>
         Skip (no push-ups)
       </Button>
     </View>
@@ -56,6 +53,7 @@ function ManualCounter({
 function CameraCounter({
   reps, onDone, onSkip, hapticOnRep, preferFrontCamera,
 }: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; preferFrontCamera: boolean}) {
+  const {colors} = useTheme();
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const cameraRef = useRef<Camera>(null);
   const phaseRef = useRef<RepPhase>('up');
@@ -105,19 +103,19 @@ function CameraCounter({
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
       <Camera ref={cameraRef} style={{width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'}} device={device} isActive photo />
       <View style={{position: 'absolute', bottom: 80, alignItems: 'center'}}>
-        <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
+        <Text style={{fontSize: 96, fontWeight: '700', color: colors.primary, lineHeight: 96}}>
           {count}
         </Text>
-        <Text variant="titleLarge" style={{color: '#fff', marginTop: -8}}>
+        <Text variant="titleLarge" style={{color: colors.onSurface, marginTop: -8}}>
           / {reps} push-ups
         </Text>
         {debugAngle !== null && (
-          <Text variant="labelSmall" style={{color: c.primary, marginTop: 4, opacity: 0.8}}>
+          <Text variant="labelSmall" style={{color: colors.primary, marginTop: 4, opacity: 0.8}}>
             elbow angle: {debugAngle}°  phase: {phaseRef.current}
           </Text>
         )}
       </View>
-      <Button mode="text" textColor={c.onSurfaceVariant} onPress={onSkip} style={{position: 'absolute', bottom: 24}}>
+      <Button mode="text" textColor={colors.onSurfaceVariant} onPress={onSkip} style={{position: 'absolute', bottom: 24}}>
         Skip (no push-ups)
       </Button>
     </View>
@@ -127,6 +125,7 @@ function CameraCounter({
 export default function AlarmFiringScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation();
+  const {colors: c} = useTheme();
   const {alarmId, reps, sound, volume} = route.params;
   const {addReps} = useBankStore();
   const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));

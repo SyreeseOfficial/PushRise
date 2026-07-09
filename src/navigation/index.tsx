@@ -48,7 +48,7 @@ function MainTabs() {
         component={AlarmListScreen}
         options={{
           tabBarIcon: ({focused, color, size}) => (
-            <Icon source={focused ? 'alarm' : 'alarm-outline'} color={color} size={size} />
+            <Icon source="alarm" color={color} size={size} />
           ),
         }}
       />

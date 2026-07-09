@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import {FlatList, View, Modal, KeyboardAvoidingView, Platform, Alert, TouchableOpacity} from 'react-native';
-import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme} from 'react-native-paper';
+import {FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
+import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useBankStore, Reward} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
@@ -73,17 +73,22 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             Emoji
           </Text>
           <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12}}>
-            {EMOJIS.map(e => (
-              <TouchableRipple key={e} onPress={() => setForm(f => ({...f, emoji: e, customEmoji: ''}))} borderless style={{borderRadius: 12}}>
-                <View style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: form.emoji === e && !form.customEmoji ? c.primaryContainer : c.surfaceVariant,
-                }}>
-                  <Text style={{fontSize: 24}}>{e}</Text>
-                </View>
-              </TouchableRipple>
-            ))}
+            {EMOJIS.map(e => {
+              const selected = form.emoji === e && !form.customEmoji;
+              return (
+                <TouchableRipple key={e} onPress={() => setForm(f => ({...f, emoji: e, customEmoji: ''}))} borderless style={{borderRadius: 12}}>
+                  <View style={{
+                    width: 48, height: 48, borderRadius: 12,
+                    alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: c.surfaceVariant,
+                    borderWidth: selected ? 2 : 0,
+                    borderColor: c.primary,
+                  }}>
+                    <Text style={{fontSize: 24}}>{e}</Text>
+                  </View>
+                </TouchableRipple>
+              );
+            })}
           </View>
 
           <TextInput
@@ -199,6 +204,8 @@ export default function RewardsScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
   const [snackbar, setSnackbar] = useState('');
+  const [redeemTarget, setRedeemTarget] = useState<Reward | null>(null);
+  const [actionTarget, setActionTarget] = useState<Reward | null>(null);
 
   const openAdd = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit = (r: Reward) => { setEditing(r); setModalOpen(true); };
@@ -209,27 +216,14 @@ export default function RewardsScreen() {
     setModalOpen(false);
   };
 
-  const handleLongPress = (r: Reward) => {
-    Alert.alert(r.title, 'What do you want to do?', [
-      {text: 'Edit', onPress: () => openEdit(r)},
-      {text: 'Delete', style: 'destructive', onPress: () => deleteReward(r.id)},
-      {text: 'Cancel', style: 'cancel'},
-    ]);
-  };
+  const handleLongPress = (r: Reward) => setActionTarget(r);
 
   const handleTryRedeem = (r: Reward) => {
     if (totalReps < r.cost) {
       setSnackbar(`You need ${(r.cost - totalReps).toLocaleString()} more push-ups to unlock this.`);
       return;
     }
-    Alert.alert(
-      `Redeem ${r.emoji} ${r.title}?`,
-      `This will use ${r.cost.toLocaleString()} push-ups from your bank.`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {text: 'Redeem', onPress: () => redeemReward(r.id)},
-      ],
-    );
+    setRedeemTarget(r);
   };
 
   return (
@@ -320,6 +314,45 @@ export default function RewardsScreen() {
         onSave={handleSave}
         onClose={() => setModalOpen(false)}
       />
+
+      {/* Redeem confirmation dialog */}
+      <Portal>
+        <Dialog visible={!!redeemTarget} onDismiss={() => setRedeemTarget(null)} style={{borderRadius: 24}}>
+          <Dialog.Content style={{paddingTop: 24, alignItems: 'center', gap: 8}}>
+            {redeemTarget && (
+              <>
+                <Text style={{fontSize: 48}}>{redeemTarget.emoji}</Text>
+                <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, textAlign: 'center', letterSpacing: -0.3}}>
+                  Redeem {redeemTarget.title}?
+                </Text>
+                <Text style={{fontSize: 14, color: c.onSurfaceVariant, textAlign: 'center', marginTop: 4}}>
+                  This will use {redeemTarget.cost.toLocaleString()} push-ups from your bank.
+                </Text>
+              </>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setRedeemTarget(null)}>Cancel</Button>
+            <Button
+              mode="contained"
+              onPress={() => { redeemReward(redeemTarget!.id); setRedeemTarget(null); }}>
+              Redeem
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Long-press action dialog */}
+        <Dialog visible={!!actionTarget} onDismiss={() => setActionTarget(null)} style={{borderRadius: 24}}>
+          <Dialog.Title>{actionTarget?.title}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{color: c.onSurfaceVariant}}>What do you want to do?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button textColor={c.error} onPress={() => { deleteReward(actionTarget!.id); setActionTarget(null); }}>Delete</Button>
+            <Button onPress={() => { openEdit(actionTarget!); setActionTarget(null); }}>Edit</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
