@@ -8,6 +8,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
+import {useSettingsStore} from '../../store/settingsStore';
 import {requestNotificationPermission} from '../../utils/notifee';
 
 const STEPS = [
@@ -15,7 +16,7 @@ const STEPS = [
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
   'create-alarm',
-  'commitment', 'perm-warn', 'notif-perm', 'battery', 'paywall',
+  'daily-goal', 'commitment', 'perm-warn', 'notif-perm', 'battery', 'paywall',
 ] as const;
 
 type Step = typeof STEPS[number];
@@ -78,6 +79,7 @@ export default function OnboardingScreen() {
   const theme = useTheme();
   const {addAlarm} = useAlarmStore();
   const {completeOnboarding} = useOnboardingStore();
+  const settings = useSettingsStore();
 
   const [stepIdx, setStepIdx] = useState(0);
   const currentStep = STEPS[stepIdx] as Step;
@@ -98,6 +100,8 @@ export default function OnboardingScreen() {
   });
   const [showAlarmPicker, setShowAlarmPicker] = useState(false);
   const [alarmReps, setAlarmReps] = useState('10');
+  const [dailyGoalInput, setDailyGoalInput] = useState('');
+  const [grindingFor, setGrindingFor] = useState('');
 
   const analyzeProgress = useRef(new Animated.Value(0)).current;
   const [analyzeProgress2, setAnalyzeProgress2] = useState(0);
@@ -504,24 +508,96 @@ export default function OnboardingScreen() {
           </View>
         );
 
-      case 'commitment':
+      case 'daily-goal': {
+        const GOAL_PRESETS = [25, 50, 100, 200];
+        const selectedGoal = parseInt(dailyGoalInput, 10);
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
-              Before we go any further.
+              Set a daily rep goal.
             </Text>
-            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 24}}>
-              How committed are you to actually doing this?
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
+              How many push-ups do you want to do every day?
             </Text>
-            {['Fully committed. No more excuses.', "I'm ready to try", "I'm still figuring it out"].map(opt => (
-              <TouchableRipple key={opt} onPress={next} borderless style={{borderRadius: 14, marginBottom: 10}}>
-                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                  <Text variant="bodyLarge">{opt}</Text>
-                </Surface>
-              </TouchableRipple>
-            ))}
+            <View style={{flexDirection: 'row', gap: 10, marginBottom: 20}}>
+              {GOAL_PRESETS.map(n => (
+                <TouchableRipple
+                  key={n}
+                  onPress={() => setDailyGoalInput(String(n))}
+                  borderless
+                  style={{flex: 1, borderRadius: 14}}>
+                  <Surface
+                    elevation={0}
+                    style={{
+                      borderRadius: 14, padding: 16, alignItems: 'center',
+                      backgroundColor: selectedGoal === n ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                    }}>
+                    <Text style={{
+                      fontSize: 22, fontWeight: '800',
+                      color: selectedGoal === n ? theme.colors.primary : theme.colors.onSurface,
+                    }}>{n}</Text>
+                    <Text style={{fontSize: 11, color: theme.colors.onSurfaceVariant, marginTop: 2}}>reps</Text>
+                  </Surface>
+                </TouchableRipple>
+              ))}
+            </View>
+            <TextInput
+              mode="outlined"
+              label="Or enter a custom number"
+              value={dailyGoalInput}
+              onChangeText={v => setDailyGoalInput(v.replace(/[^0-9]/g, ''))}
+              keyboardType="number-pad"
+              maxLength={4}
+              style={{marginBottom: 24}}
+            />
+            <Button
+              mode="contained"
+              disabled={!selectedGoal || selectedGoal < 1}
+              onPress={() => { settings.update({dailyGoal: selectedGoal}); next(); }}
+              contentStyle={{paddingVertical: 8}}
+              style={{marginBottom: 12}}>
+              Set My Goal →
+            </Button>
+            <Button mode="text" onPress={next}>Skip for now</Button>
           </View>
         );
+      }
+
+      case 'commitment': {
+        const canContinue = grindingFor.trim().length > 2;
+        return (
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
+              What are you grinding for?
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 8}}>
+              Be specific. Vague goals don't stick.
+            </Text>
+            <Text variant="bodySmall" style={{color: theme.colors.outline, marginBottom: 24}}>
+              e.g. "Wake up before 7am every day" or "Get stronger before summer"
+            </Text>
+            <TextInput
+              mode="outlined"
+              value={grindingFor}
+              onChangeText={setGrindingFor}
+              placeholder="I'm grinding for…"
+              multiline
+              numberOfLines={3}
+              maxLength={120}
+              style={{marginBottom: 28}}
+            />
+            <Button
+              mode="contained"
+              disabled={!canContinue}
+              onPress={() => { settings.update({grindingFor: grindingFor.trim()}); next(); }}
+              contentStyle={{paddingVertical: 8}}
+              style={{marginBottom: 12}}>
+              Lock it in →
+            </Button>
+            <Button mode="text" onPress={next}>Skip</Button>
+          </View>
+        );
+      }
 
       case 'perm-warn':
         return (

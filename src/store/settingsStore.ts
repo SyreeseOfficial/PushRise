@@ -19,6 +19,7 @@ export const SETTINGS_DEFAULTS = {
   keepScreenOn: true,
   preferFrontCamera: true,
   dailyGoal: 0,
+  grindingFor: '',
 };
 
 type SettingsData = typeof SETTINGS_DEFAULTS;

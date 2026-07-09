@@ -14,7 +14,7 @@ import {cardShadow} from '../../theme';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
-type DialogKey = 'theme' | 'defaultReps' | 'dailyGoal' | 'about' | 'resetSettings' | 'resetAll' | null;
+type DialogKey = 'theme' | 'defaultReps' | 'dailyGoal' | 'grindingFor' | 'about' | 'resetSettings' | 'resetAll' | null;
 
 const THEME_OPTIONS: {label: string; value: ThemeMode; icon: string}[] = [
   {label: 'Follow System', value: 'system', icon: 'theme-light-dark'},
@@ -37,11 +37,13 @@ export default function SettingsScreen() {
   const [dialog, setDialog] = useState<DialogKey>(null);
   const [tempReps, setTempReps] = useState('');
   const [tempGoal, setTempGoal] = useState('');
+  const [tempGrinding, setTempGrinding] = useState('');
   const [tempTheme, setTempTheme] = useState<ThemeMode>('system');
 
   const open = (key: DialogKey) => {
     if (key === 'defaultReps') setTempReps(String(settings.defaultReps));
     if (key === 'dailyGoal') setTempGoal(settings.dailyGoal > 0 ? String(settings.dailyGoal) : '');
+    if (key === 'grindingFor') setTempGrinding(settings.grindingFor);
     if (key === 'theme') setTempTheme(mode);
     setDialog(key);
   };
@@ -49,6 +51,7 @@ export default function SettingsScreen() {
 
   const saveReps = () => { const n = parseInt(tempReps, 10); if (n >= 1) settings.update({defaultReps: n}); close(); };
   const saveGoal = () => { const n = parseInt(tempGoal, 10); settings.update({dailyGoal: n > 0 ? n : 0}); close(); };
+  const saveGrinding = () => { settings.update({grindingFor: tempGrinding.trim()}); close(); };
   const saveTheme = () => { setMode(tempTheme); close(); };
   const handleResetSettings = () => { settings.reset(); close(); };
   const handleResetAll = async () => { settings.reset(); resetBank(); await resetAlarms(); close(); };
@@ -252,6 +255,12 @@ export default function SettingsScreen() {
             title="Daily push-up goal"
             value={settings.dailyGoal > 0 ? `${settings.dailyGoal} reps` : 'Off'}
             onPress={() => open('dailyGoal')}
+          />
+          <TapRow
+            icon="target"
+            title="What are you grinding for?"
+            value={settings.grindingFor ? '✓' : 'Not set'}
+            onPress={() => open('grindingFor')}
             last
           />
         </Card>
@@ -374,6 +383,29 @@ export default function SettingsScreen() {
           <Dialog.Actions>
             <Button onPress={close}>Cancel</Button>
             <Button onPress={saveGoal}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={dialog === 'grindingFor'} onDismiss={close}>
+          <Dialog.Title>What are you grinding for?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+              This shows on your Progress tab as a daily reminder.
+            </Text>
+            <TextInput
+              mode="outlined"
+              value={tempGrinding}
+              onChangeText={setTempGrinding}
+              placeholder="I'm grinding for…"
+              multiline
+              numberOfLines={3}
+              maxLength={120}
+              autoFocus
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={close}>Cancel</Button>
+            <Button onPress={saveGrinding}>Save</Button>
           </Dialog.Actions>
         </Dialog>
 

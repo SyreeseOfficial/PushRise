@@ -13,6 +13,7 @@ import {useSettingsStore} from '../../store/settingsStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
+  getBoss, getCommunityGoal,
 } from '../../utils/engagement';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
@@ -327,13 +328,33 @@ export default function ProgressScreen() {
     totalReps, todayReps, weekReps, currentStreak, longestStreak,
     hasSeenBankIntro, markIntroSeen, addReps,
     pendingCelebration, clearCelebration,
+    bossDefeatedWeek, defeatBoss,
   } = useBankStore();
-  const {dailyGoal} = useSettingsStore();
+  const {dailyGoal, grindingFor} = useSettingsStore();
 
   const [sheet, setSheet] = useState<Sheet>('closed');
   const [manualInput, setManualInput] = useState('');
   const [showShare, setShowShare] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [communityGoal, setCommunityGoal] = useState(getCommunityGoal);
+  const [showBossWin, setShowBossWin] = useState(false);
+
+  const weekStart = useBankStore(s => s.weekStartDate) || require('../../utils/engagement').getWeekStart();
+  const boss = getBoss(weekReps, weekStart, bossDefeatedWeek);
+
+  // Refresh community goal number every 30s for live feel
+  React.useEffect(() => {
+    const t = setInterval(() => setCommunityGoal(getCommunityGoal()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Check if user beat the boss
+  React.useEffect(() => {
+    if (!boss.isDefeated && weekReps > boss.weekReps && weekReps > 0) {
+      defeatBoss(weekStart);
+      setShowBossWin(true);
+    }
+  }, [weekReps, boss.weekReps, boss.isDefeated, weekStart, defeatBoss]);
 
   // Pick up any pending celebration (from camera screen or alarm firing)
   useFocusEffect(
@@ -468,6 +489,102 @@ export default function ProgressScreen() {
           </View>
         )}
 
+        {/* Grinding for — commitment contract */}
+        {grindingFor ? (
+          <View style={[{
+            backgroundColor: c.surface, borderRadius: 20, padding: 18,
+            flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+          }, theme.dark ? {} : cardShadow]}>
+            <Text style={{fontSize: 20, marginTop: 1}}>🎯</Text>
+            <View style={{flex: 1}}>
+              <Text style={{fontSize: 11, fontWeight: '700', color: c.primary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4}}>
+                Grinding For
+              </Text>
+              <Text style={{fontSize: 15, color: c.onSurface, fontStyle: 'italic', lineHeight: 22}}>
+                "{grindingFor}"
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Community challenge */}
+        <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 20}, theme.dark ? {} : cardShadow]}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14}}>
+            <View style={{width: 7, height: 7, borderRadius: 4, backgroundColor: c.primary}} />
+            <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}}>Community Challenge</Text>
+            <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginLeft: 'auto', fontWeight: '500'}}>This week</Text>
+          </View>
+          <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 12, lineHeight: 20}}>
+            The PushRise community is{' '}
+            <Text style={{fontWeight: '800', color: c.primary}}>
+              {communityGoal.repsToGo.toLocaleString()}
+            </Text>
+            {' '}push-ups away from{' '}
+            <Text style={{fontWeight: '700', color: c.onSurface}}>1,000,000</Text>
+            {' '}this week.
+          </Text>
+          <View style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
+            <LinearGradient
+              colors={BRAND_GRADIENT.colors}
+              start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+              style={{height: 8, borderRadius: 100, width: `${(communityGoal.total / communityGoal.goal) * 100}%`}}
+            />
+          </View>
+          <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginTop: 8, fontWeight: '500', textAlign: 'right'}}>
+            {communityGoal.total.toLocaleString()} / {communityGoal.goal.toLocaleString()}
+          </Text>
+        </View>
+
+        {/* Boss battle */}
+        <View style={[{backgroundColor: c.surface, borderRadius: 20, overflow: 'hidden'}, theme.dark ? {} : cardShadow]}>
+          {boss.isDefeated ? (
+            <LinearGradient
+              colors={['rgba(255,107,0,0.12)', 'rgba(255,45,0,0.04)']}
+              style={{padding: 20}}>
+              <Text style={{fontSize: 13, fontWeight: '700', color: c.primary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8}}>
+                ⚔️ Rival This Week
+              </Text>
+              <Text style={{fontSize: 22, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3, marginBottom: 4}}>
+                🏆 You beat {boss.name}!
+              </Text>
+              <Text style={{fontSize: 13, color: c.onSurfaceVariant}}>
+                {boss.weekReps} reps vs your {weekReps}. New rival starts next week.
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={{padding: 20}}>
+              <Text style={{fontSize: 13, fontWeight: '700', color: c.error, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8}}>
+                ⚔️ Rival This Week
+              </Text>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12}}>
+                <View>
+                  <Text style={{fontSize: 22, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
+                    {boss.name}
+                  </Text>
+                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 2}}>
+                    {boss.weekReps} reps this week
+                  </Text>
+                </View>
+                <View style={{alignItems: 'flex-end'}}>
+                  <Text style={{fontSize: 22, fontWeight: '800', color: c.primary, letterSpacing: -0.3}}>
+                    You
+                  </Text>
+                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 2}}>
+                    {weekReps} reps
+                  </Text>
+                </View>
+              </View>
+              <View style={{backgroundColor: c.errorContainer, borderRadius: 10, padding: 10}}>
+                <Text style={{fontSize: 13, fontWeight: '700', color: c.error, textAlign: 'center'}}>
+                  {boss.weekReps > weekReps
+                    ? `You're ${(boss.weekReps - weekReps).toLocaleString()} reps behind — catch up.`
+                    : `You're ahead by ${(weekReps - boss.weekReps).toLocaleString()} reps — don't stop.`}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
         {/* Leaderboard */}
         <LeaderboardCard weekReps={weekReps} />
 
@@ -587,6 +704,25 @@ export default function ProgressScreen() {
           onClose={dismissCelebration}
         />
       )}
+
+      {/* Boss defeated celebration */}
+      <Modal visible={showBossWin} transparent animationType="fade" onRequestClose={() => setShowBossWin(false)}>
+        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 32}}>
+          <View style={[{backgroundColor: c.surface, borderRadius: 28, padding: 32, alignItems: 'center', width: '100%'}, theme.dark ? {} : cardShadow]}>
+            <Text style={{fontSize: 56, marginBottom: 16}}>🏆</Text>
+            <Text style={{fontSize: 24, fontWeight: '800', color: c.onSurface, textAlign: 'center', letterSpacing: -0.5, marginBottom: 10}}>
+              You beat {boss.name}!
+            </Text>
+            <Text style={{fontSize: 15, color: c.onSurfaceVariant, textAlign: 'center', lineHeight: 24, marginBottom: 28}}>
+              {weekReps} reps vs their {boss.weekReps}.{'\n'}
+              A new rival shows up next week. Stay ready.
+            </Text>
+            <Button mode="contained" onPress={() => setShowBossWin(false)} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+              Let's go 💪
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

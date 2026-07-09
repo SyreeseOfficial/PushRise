@@ -36,9 +36,11 @@ interface BankStore {
   hasSeenBankIntro: boolean;
   seenMilestones: number[];
   pendingCelebration: Celebration | null;
+  bossDefeatedWeek: string | null;
   rewards: Reward[];
   addReps: (n: number) => void;
   clearCelebration: () => void;
+  defeatBoss: (weekStart: string) => void;
   markIntroSeen: () => void;
   addReward: (data: Omit<Reward, 'id'>) => void;
   editReward: (id: string, data: Omit<Reward, 'id'>) => void;
@@ -101,6 +103,7 @@ const BANK_DEFAULTS = {
   hasSeenBankIntro: false,
   seenMilestones: [] as number[],
   pendingCelebration: null as Celebration | null,
+  bossDefeatedWeek: null as string | null,
   rewards: DEFAULT_REWARDS,
 };
 
@@ -138,6 +141,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
   },
 
   clearCelebration: () => set({pendingCelebration: null}),
+  defeatBoss: (weekStart) => set({bossDefeatedWeek: weekStart}),
 
   markIntroSeen: () => set({hasSeenBankIntro: true}),
 

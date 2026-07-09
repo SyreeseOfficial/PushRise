@@ -111,6 +111,49 @@ export function getLeaderboard(userWeekReps: number): LeaderboardEntry[] {
   ];
 }
 
+// ─── Boss Battle ───────────────────────────────────────────────────────────
+
+export interface Boss {
+  name: string;
+  weekReps: number; // their fixed rep count for the week, grows day by day
+  isDefeated: boolean;
+}
+
+export function getBoss(userWeekReps: number, weekStart: string, bossDefeatedWeek: string | null): Boss {
+  const rand = seededRng(weekStart);
+  const name = FAKE_NAMES[Math.floor(rand() * FAKE_NAMES.length)];
+
+  // Boss has a fixed daily pace seeded by the week — user only sees them gaining over time
+  const dailyRate = Math.round(rand() * 25 + 20); // 20–45 reps/day
+  const weekStartMs = new Date(weekStart + 'T00:00:00').getTime();
+  const daysElapsed = Math.max(0, Math.floor((Date.now() - weekStartMs) / 86400000));
+  const weekReps = Math.round(dailyRate * (daysElapsed + 1));
+
+  return {name, weekReps, isDefeated: bossDefeatedWeek === weekStart};
+}
+
+// ─── Community Goal ─────────────────────────────────────────────────────────
+
+export function getCommunityGoal(): {repsToGo: number; total: number; goal: number} {
+  const goal = 1_000_000;
+  const weekStart = getWeekStart();
+  const rand = seededRng(weekStart);
+
+  // Base for this week — community is always close but not done
+  const weeklyBase = Math.round(rand() * 60000 + 910000); // 910k–970k
+
+  // Ticks up ~3–7 reps every 2 minutes, live-ish
+  const now = new Date();
+  const minsElapsed = Math.floor((now.getTime() - new Date(weekStart + 'T00:00:00').getTime()) / 60000);
+  const liveRate = Math.round(rand() * 4 + 3); // 3–7 per tick
+  const liveGrowth = Math.floor(minsElapsed / 2) * liveRate;
+
+  const total = Math.min(weeklyBase + liveGrowth, goal - 200);
+  return {repsToGo: goal - total, total, goal};
+}
+
+// ─── Ticker ─────────────────────────────────────────────────────────────────
+
 type TickerFn = (name: string, rand: () => number) => string;
 
 const TICKER_TEMPLATES: TickerFn[] = [
