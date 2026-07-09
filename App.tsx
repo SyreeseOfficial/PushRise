@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
-import {AppState} from 'react-native';
+import {AppState, useColorScheme} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {PaperProvider} from 'react-native-paper';
 import notifee from '@notifee/react-native';
 import {
   setupNotifee,
@@ -9,6 +10,8 @@ import {
 } from './src/utils/notifee';
 import {navigate} from './src/navigation/navigationRef';
 import RootNavigator from './src/navigation';
+import {useThemeStore} from './src/store/themeStore';
+import {DarkTheme, LightTheme} from './src/theme';
 
 function alarmParamsFromData(id: string, data?: Record<string, string>) {
   return {
@@ -28,11 +31,15 @@ async function checkForActiveAlarm() {
 }
 
 export default function App() {
+  const systemScheme = useColorScheme();
+  const {mode} = useThemeStore();
+  const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
+  const theme = isDark ? DarkTheme : LightTheme;
+
   useEffect(() => {
     setupNotifee();
     requestNotificationPermission();
 
-    // Case 1: app killed → launched by fullScreenAction
     notifee.getInitialNotification().then(initial => {
       if (initial?.notification?.id) {
         const n = initial.notification;
@@ -40,13 +47,11 @@ export default function App() {
       }
     });
 
-    // Case 2: app backgrounded → fullScreenAction brings it to foreground
     checkForActiveAlarm();
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active') checkForActiveAlarm();
     });
 
-    // Case 3: app already in foreground when alarm fires
     const unsub = setupForegroundHandler((alarmId, reps, sound, volume) => {
       navigate('AlarmFiring', {alarmId, reps, sound, volume});
     });
@@ -59,7 +64,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <RootNavigator />
+      <PaperProvider theme={theme}>
+        <RootNavigator />
+      </PaperProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,15 +1,14 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
+import {View, ScrollView, Animated} from 'react-native';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  TextInput, Animated, StatusBar,
-} from 'react-native';
+  Text, Button, Surface, Chip, TextInput,
+  ProgressBar, TouchableRipple, useTheme,
+} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 import {requestNotificationPermission} from '../../utils/notifee';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const STEPS = [
   'welcome', 'founder', 'social',
@@ -52,8 +51,6 @@ const TESTIMONIALS = [
   {stars: 5, text: '"My roommate started using it after he saw me wake up on time for two weeks straight. Now we compete."', name: 'Tyler, 24'},
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optimizer' {
   if (q2 === 2 && q1 <= 1) return 'optimizer';
   if (q1 >= 2 && q2 === 0) return 'sleeper';
@@ -77,25 +74,21 @@ const PERSONA_DATA = {
 
 const CHART_HEIGHTS = [0.15, 0.38, 0.62, 0.9];
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
-
 export default function OnboardingScreen() {
+  const theme = useTheme();
   const {addAlarm} = useAlarmStore();
   const {completeOnboarding} = useOnboardingStore();
 
-  // Step
   const [stepIdx, setStepIdx] = useState(0);
   const currentStep = STEPS[stepIdx] as Step;
   const progress = stepIdx / (STEPS.length - 1);
 
-  // Quiz answers (-1 = unanswered)
   const [q1, setQ1] = useState(-1);
   const [q2, setQ2] = useState(-1);
   const [q3, setQ3] = useState(-1);
   const [q4, setQ4] = useState(-1);
   const [rewardGoals, setRewardGoals] = useState<number[]>([]);
 
-  // Wake/alarm time
   const [wakeTime, setWakeTime] = useState<Date>(() => {
     const d = new Date(); d.setHours(7, 0, 0, 0); return d;
   });
@@ -106,25 +99,22 @@ export default function OnboardingScreen() {
   const [showAlarmPicker, setShowAlarmPicker] = useState(false);
   const [alarmReps, setAlarmReps] = useState('10');
 
-  // Analyzing animation
   const analyzeProgress = useRef(new Animated.Value(0)).current;
+  const [analyzeProgress2, setAnalyzeProgress2] = useState(0);
   const [analyzeIdx, setAnalyzeIdx] = useState(0);
 
   const persona = useMemo(() => getPersona(q1, q2), [q1, q2]);
   const recommendedReps = Q4_REPS[Math.max(0, q4)] ?? 10;
 
-  // Navigation
   const next = () => setStepIdx(s => Math.min(s + 1, STEPS.length - 1));
   const back = () => {
-    // Skip back over auto-advance screens
     if (currentStep === 'outcome' || currentStep === 'summary') {
-      setStepIdx(s => s - 2); // skip persona or outcome
+      setStepIdx(s => s - 2);
     } else {
       setStepIdx(s => Math.max(s - 1, 0));
     }
   };
 
-  // Sync alarm settings when reaching create-alarm
   useEffect(() => {
     if (currentStep === 'create-alarm') {
       setAlarmTime(wakeTime);
@@ -132,17 +122,22 @@ export default function OnboardingScreen() {
     }
   }, [currentStep]);
 
-  // Analyzing auto-advance
   useEffect(() => {
     if (currentStep !== 'analyzing') return;
     analyzeProgress.setValue(0);
+    setAnalyzeProgress2(0);
     setAnalyzeIdx(0);
+    const listener = analyzeProgress.addListener(({value}) => setAnalyzeProgress2(value));
     const anim = Animated.timing(analyzeProgress, {
       toValue: 1, duration: 3600, useNativeDriver: false,
     });
     anim.start(({finished}) => { if (finished) setStepIdx(s => s + 1); });
     const ticker = setInterval(() => setAnalyzeIdx(i => (i + 1) % ANALYZE_TEXTS.length), 900);
-    return () => { anim.stop(); clearInterval(ticker); };
+    return () => {
+      anim.stop();
+      clearInterval(ticker);
+      analyzeProgress.removeListener(listener);
+    };
   }, [currentStep]);
 
   const handleComplete = async () => {
@@ -161,137 +156,177 @@ export default function OnboardingScreen() {
   const toggleRewardGoal = (i: number) =>
     setRewardGoals(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
 
-  // ─── Step content ────────────────────────────────────────────────────────────
+  // ─── Step renders ─────────────────────────────────────────────────────────────
 
   const renderContent = () => {
     switch (currentStep) {
 
       case 'welcome':
         return (
-          <View style={styles.centerContent}>
-            <Text style={styles.appName}>PushRise</Text>
-            <Text style={styles.heroHeading}>The snooze button{'\n'}is making you weak.</Text>
-            <Text style={styles.heroSub}>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text variant="labelLarge" style={{color: theme.colors.primary, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 32}}>
+              PushRise
+            </Text>
+            <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
+              The snooze button{'\n'}is making you weak.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
               Every morning you give in, you train yourself to quit.{'\n'}It's time to train yourself to win.
             </Text>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>I'm ready to change →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              I'm ready to change →
+            </Button>
           </View>
         );
 
       case 'founder':
         return (
-          <View style={styles.content}>
-            <View style={styles.founderCard}>
-              <Text style={styles.founderHeading}>A note from the founder</Text>
-              <Text style={styles.founderBody}>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Surface elevation={1} style={{borderRadius: 20, padding: 24, marginBottom: 24}}>
+              <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16}}>
+                A note from the founder
+              </Text>
+              <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic'}}>
                 {"Hey,\n\nI built PushRise because I was you.\n\nSix alarms. Snoozed every single one. Then spent the rest of the day feeling behind before it even started.\n\nThe problem wasn't my alarm. It was me.\n\nI needed something that wouldn't let me off the hook. So I built it.\n\nNow I wake up every morning knowing I already won.\n\nYou can too.\n\n— Syreese"}
               </Text>
-            </View>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>Let's do this →</Text>
-            </TouchableOpacity>
+            </Surface>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              Let's do this →
+            </Button>
           </View>
         );
 
       case 'social':
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>Real people. Real results.</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 20}}>
+              Real people. Real results.
+            </Text>
             {TESTIMONIALS.map((t, i) => (
-              <View key={i} style={styles.testimonialCard}>
-                <Text style={styles.stars}>{'★'.repeat(t.stars)}</Text>
-                <Text style={styles.testimonialTxt}>{t.text}</Text>
-                <Text style={styles.testimonialName}>— {t.name}</Text>
-              </View>
+              <Surface key={i} elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 12}}>
+                <Text style={{color: theme.colors.primary, fontSize: 14, marginBottom: 10}}>
+                  {'★'.repeat(t.stars)}
+                </Text>
+                <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontStyle: 'italic', marginBottom: 10}}>
+                  {t.text}
+                </Text>
+                <Text variant="labelMedium" style={{color: theme.colors.outline}}>— {t.name}</Text>
+              </Surface>
             ))}
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>Continue →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} style={{marginTop: 8}} contentStyle={{paddingVertical: 8}}>
+              Continue →
+            </Button>
           </View>
         );
 
       case 'quiz-intro':
         return (
-          <View style={styles.centerContent}>
-            <Text style={styles.heroHeading}>Let's be honest{'\n'}with each other.</Text>
-            <Text style={styles.heroSub}>A few questions so we can build your plan.</Text>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>Let's go →</Text>
-            </TouchableOpacity>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
+              Let's be honest{'\n'}with each other.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
+              A few questions so we can build your plan.
+            </Text>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              Let's go →
+            </Button>
           </View>
         );
 
       case 'q1':
         return (
-          <View style={styles.content}>
-            <Text style={styles.quizQ}>How bad is the snooze problem — really?</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
+              How bad is the snooze problem — really?
+            </Text>
             {Q1_OPTIONS.map((opt, i) => (
-              <TouchableOpacity key={i} style={styles.answerCard} onPress={() => { setQ1(i); next(); }}>
-                <Text style={styles.answerTxt}>{opt}</Text>
-              </TouchableOpacity>
+              <TouchableRipple key={i} onPress={() => { setQ1(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                  <Text variant="bodyLarge" style={{color: theme.colors.onSurface}}>{opt}</Text>
+                </Surface>
+              </TouchableRipple>
             ))}
           </View>
         );
 
       case 'q1-reflect':
         return (
-          <View style={styles.centerContent}>
-            <Text style={styles.reflectHeading}>You're not lazy.{'\n'}You're untrained.</Text>
-            <Text style={styles.heroSub}>There's a difference — and it's fixable.</Text>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>I get it →</Text>
-            </TouchableOpacity>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
+              You're not lazy.{'\n'}You're untrained.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
+              There's a difference — and it's fixable.
+            </Text>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              I get it →
+            </Button>
           </View>
         );
 
       case 'q2':
         return (
-          <View style={styles.content}>
-            <Text style={styles.quizQ}>What does your body look like right now? Be honest.</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
+              What does your body look like right now? Be honest.
+            </Text>
             {Q2_OPTIONS.map((opt, i) => (
-              <TouchableOpacity key={i} style={styles.answerCard} onPress={() => { setQ2(i); next(); }}>
-                <Text style={styles.answerTxt}>{opt}</Text>
-              </TouchableOpacity>
+              <TouchableRipple key={i} onPress={() => { setQ2(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                  <Text variant="bodyLarge">{opt}</Text>
+                </Surface>
+              </TouchableRipple>
             ))}
           </View>
         );
 
       case 'q3':
         return (
-          <View style={styles.content}>
-            <Text style={styles.quizQ}>Why did you really download this?</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
+              Why did you really download this?
+            </Text>
             {Q3_OPTIONS.map((opt, i) => (
-              <TouchableOpacity key={i} style={styles.answerCard} onPress={() => { setQ3(i); next(); }}>
-                <Text style={styles.answerTxt}>{opt}</Text>
-              </TouchableOpacity>
+              <TouchableRipple key={i} onPress={() => { setQ3(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                  <Text variant="bodyLarge">{opt}</Text>
+                </Surface>
+              </TouchableRipple>
             ))}
           </View>
         );
 
       case 'q4':
         return (
-          <View style={styles.content}>
-            <Text style={styles.quizQ}>No ego. How many push-ups can you actually do right now?</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
+              No ego. How many push-ups can you actually do right now?
+            </Text>
             {Q4_OPTIONS.map((opt, i) => (
-              <TouchableOpacity key={i} style={styles.answerCard} onPress={() => { setQ4(i); next(); }}>
-                <Text style={styles.answerTxt}>{opt}</Text>
-              </TouchableOpacity>
+              <TouchableRipple key={i} onPress={() => { setQ4(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                  <Text variant="bodyLarge">{opt}</Text>
+                </Surface>
+              </TouchableRipple>
             ))}
           </View>
         );
 
       case 'q56':
         return (
-          <View style={styles.content}>
-            <Text style={styles.quizQ}>When do you need to wake up?</Text>
-            <TouchableOpacity style={styles.timePickerBtn} onPress={() => setShowWakePicker(true)}>
-              <Text style={styles.timePickerTxt}>
-                {wakeTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-              </Text>
-              <Text style={styles.timePickerHint}>tap to change</Text>
-            </TouchableOpacity>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', marginBottom: 16}}>
+              When do you need to wake up?
+            </Text>
+            <TouchableRipple onPress={() => setShowWakePicker(true)} style={{alignItems: 'center', paddingVertical: 16, marginBottom: 8}}>
+              <View style={{alignItems: 'center'}}>
+                <Text style={{fontSize: 64, fontWeight: '200', letterSpacing: -2, color: theme.colors.onSurface}}>
+                  {wakeTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                </Text>
+                <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4}}>Tap to change</Text>
+              </View>
+            </TouchableRipple>
             {showWakePicker && (
               <DateTimePicker
                 value={wakeTime}
@@ -301,117 +336,147 @@ export default function OnboardingScreen() {
               />
             )}
 
-            <Text style={[styles.quizQ, {marginTop: 32}]}>What would make waking up worth it?</Text>
-            {REWARD_GOALS.map((g, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[styles.answerCard, rewardGoals.includes(i) && styles.answerCardActive]}
-                onPress={() => toggleRewardGoal(i)}>
-                <Text style={[styles.answerTxt, rewardGoals.includes(i) && styles.answerTxtActive]}>
-                  {rewardGoals.includes(i) ? '✓ ' : ''}{g}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <Text variant="headlineSmall" style={{fontWeight: '700', marginTop: 24, marginBottom: 16}}>
+              What would make waking up worth it?
+            </Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24}}>
+              {REWARD_GOALS.map((g, i) => (
+                <Chip
+                  key={i}
+                  selected={rewardGoals.includes(i)}
+                  onPress={() => toggleRewardGoal(i)}>
+                  {g}
+                </Chip>
+              ))}
+            </View>
 
-            <TouchableOpacity style={[styles.cta, {marginTop: 24}]} onPress={next}>
-              <Text style={styles.ctaTxt}>Continue →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              Continue →
+            </Button>
           </View>
         );
 
       case 'analyzing':
         return (
-          <View style={styles.centerContent}>
-            <Text style={styles.sectionHeading}>Building your plan…</Text>
-            <View style={styles.analyzeTrack}>
-              <Animated.View style={[styles.analyzeFill, {
-                width: analyzeProgress.interpolate({inputRange: [0, 1], outputRange: ['0%', '100%']}),
-              }]} />
-            </View>
-            <Text style={styles.analyzeSubtxt}>{ANALYZE_TEXTS[analyzeIdx]}</Text>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 32}}>
+              Building your plan…
+            </Text>
+            <ProgressBar progress={analyzeProgress2} color={theme.colors.primary} style={{height: 4, borderRadius: 2}} />
+            <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20}}>
+              {ANALYZE_TEXTS[analyzeIdx]}
+            </Text>
           </View>
         );
 
       case 'persona': {
         const p = PERSONA_DATA[persona];
         return (
-          <View style={styles.centerContent}>
-            <View style={styles.personaCard}>
-              <Text style={styles.personaLabel}>Your type</Text>
-              <Text style={styles.personaTitle}>{p.title}</Text>
-              <Text style={styles.personaBody}>{p.body}</Text>
-            </View>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>That's me →</Text>
-            </TouchableOpacity>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Surface elevation={2} style={{
+              borderRadius: 20, padding: 28,
+              borderWidth: 2, borderColor: theme.colors.primary,
+              marginBottom: 32,
+            }}>
+              <Text variant="labelLarge" style={{color: theme.colors.primary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8}}>
+                Your type
+              </Text>
+              <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 16}}>{p.title}</Text>
+              <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26}}>{p.body}</Text>
+            </Surface>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              That's me →
+            </Button>
           </View>
         );
       }
 
       case 'outcome':
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>In 30 days, you'll be a different person.</Text>
-            <Text style={styles.outcomeSub}>Push-ups per week</Text>
-            <View style={styles.chart}>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 20}}>
+              In 30 days, you'll be a different person.
+            </Text>
+            <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20}}>
+              Push-ups per week
+            </Text>
+            <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 12, height: 160, marginBottom: 24}}>
               {CHART_HEIGHTS.map((h, i) => (
-                <View key={i} style={styles.chartCol}>
-                  <View style={[styles.chartBar, {height: h * 140}]} />
-                  <Text style={styles.chartLabel}>Wk {i + 1}</Text>
+                <View key={i} style={{flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8}}>
+                  <Surface elevation={0} style={{
+                    width: '100%',
+                    height: h * 140,
+                    backgroundColor: theme.colors.primaryContainer,
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                  }}>
+                    <View style={{flex: 1, backgroundColor: theme.colors.primary, opacity: 0.85}} />
+                  </Surface>
+                  <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant}}>Wk {i + 1}</Text>
                 </View>
               ))}
             </View>
-            <Text style={styles.outcomeCaption}>
+            <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 22, marginBottom: 32}}>
               Users who complete 7 days don't quit. The first morning is the hardest. After that, it becomes who you are.
             </Text>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>I want that →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              I want that →
+            </Button>
           </View>
         );
 
       case 'summary': {
         const goalLabel = Q3_OPTIONS[Math.max(0, q3)] ?? 'Get better';
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>Here's your plan.</Text>
-            <View style={styles.summaryCard}>
-              {[
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 20}}>
+              Here's your plan.
+            </Text>
+            <Surface elevation={1} style={{borderRadius: 20, padding: 24, marginBottom: 24, gap: 20}}>
+              {([
                 ['⏰', 'Wake time', wakeTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})],
                 ['💪', 'Starting reps', `${recommendedReps} push-ups`],
                 ['🎯', 'Goal', goalLabel],
-              ].map(([icon, label, value]) => (
-                <View key={label} style={styles.summaryRow}>
-                  <Text style={styles.summaryIcon}>{icon}</Text>
-                  <View style={styles.summaryText}>
-                    <Text style={styles.summaryLabel}>{label}</Text>
-                    <Text style={styles.summaryValue}>{value}</Text>
+              ] as const).map(([icon, label, value]) => (
+                <View key={label} style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
+                  <Text style={{fontSize: 28}}>{icon}</Text>
+                  <View style={{flex: 1}}>
+                    <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5}}>
+                      {label}
+                    </Text>
+                    <Text variant="titleMedium" style={{marginTop: 2}}>{value}</Text>
                   </View>
                 </View>
               ))}
-            </View>
-            <Text style={styles.summaryFooter}>
+            </Surface>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, textAlign: 'center', marginBottom: 32}}>
               In 7 days, this won't feel like a choice.{'\n'}It'll feel like who you are.
             </Text>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>Set Your First Alarm →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              Set Your First Alarm →
+            </Button>
           </View>
         );
       }
 
       case 'create-alarm':
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>Set it. Don't overthink.</Text>
-            <Text style={styles.heroSub}>Pick a time you actually need to wake up.</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
+              Set it. Don't overthink.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 24}}>
+              Pick a time you actually need to wake up.
+            </Text>
 
-            <TouchableOpacity style={styles.timePickerBtn} onPress={() => setShowAlarmPicker(true)}>
-              <Text style={styles.timePickerTxt}>
-                {alarmTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-              </Text>
-              <Text style={styles.timePickerHint}>tap to change</Text>
-            </TouchableOpacity>
+            <TouchableRipple onPress={() => setShowAlarmPicker(true)} style={{alignItems: 'center', paddingVertical: 16, marginBottom: 8}}>
+              <View style={{alignItems: 'center'}}>
+                <Text style={{fontSize: 64, fontWeight: '200', letterSpacing: -2, color: theme.colors.onSurface}}>
+                  {alarmTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                </Text>
+                <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4}}>Tap to change</Text>
+              </View>
+            </TouchableRipple>
             {showAlarmPicker && (
               <DateTimePicker
                 value={alarmTime}
@@ -421,144 +486,187 @@ export default function OnboardingScreen() {
               />
             )}
 
-            <Text style={styles.fieldLabel}>Push-ups to dismiss</Text>
             <TextInput
-              style={styles.repsInput}
+              mode="outlined"
+              label="Push-ups to dismiss"
               value={alarmReps}
               onChangeText={setAlarmReps}
               keyboardType="number-pad"
               maxLength={3}
               selectTextOnFocus
+              contentStyle={{fontSize: 36, fontWeight: '300', color: theme.colors.primary}}
+              style={{width: 180, marginBottom: 32}}
             />
 
-            <TouchableOpacity style={[styles.cta, {marginTop: 32}]} onPress={next}>
-              <Text style={styles.ctaTxt}>Set My Alarm →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              Set My Alarm →
+            </Button>
           </View>
         );
 
       case 'commitment':
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>Before we go any further.</Text>
-            <Text style={styles.heroSub}>How committed are you to actually doing this?</Text>
-            {[
-              'Fully committed. No more excuses.',
-              "I'm ready to try",
-              "I'm still figuring it out",
-            ].map(opt => (
-              <TouchableOpacity key={opt} style={styles.answerCard} onPress={next}>
-                <Text style={styles.answerTxt}>{opt}</Text>
-              </TouchableOpacity>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
+              Before we go any further.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 24}}>
+              How committed are you to actually doing this?
+            </Text>
+            {['Fully committed. No more excuses.', "I'm ready to try", "I'm still figuring it out"].map(opt => (
+              <TouchableRipple key={opt} onPress={next} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                  <Text variant="bodyLarge">{opt}</Text>
+                </Surface>
+              </TouchableRipple>
             ))}
           </View>
         );
 
       case 'perm-warn':
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>Before we finish setup…</Text>
-            <Text style={styles.heroSub}>We need a couple permissions to make sure your alarm never fails.</Text>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
+              Before we finish setup…
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 24}}>
+              We need a couple permissions to make sure your alarm never fails.
+            </Text>
             {[
               {icon: '🔋', title: 'Battery access', sub: 'So your alarm fires even when your phone tries to save power'},
               {icon: '🔔', title: 'Notifications', sub: "So we warn you before your trial ends"},
             ].map(p => (
-              <View key={p.title} style={styles.permCard}>
-                <Text style={styles.permIcon}>{p.icon}</Text>
-                <View style={styles.permText}>
-                  <Text style={styles.permTitle}>{p.title}</Text>
-                  <Text style={styles.permSub}>{p.sub}</Text>
+              <Surface key={p.title} elevation={1} style={{borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 12}}>
+                <Text style={{fontSize: 28}}>{p.icon}</Text>
+                <View style={{flex: 1}}>
+                  <Text variant="titleMedium">{p.title}</Text>
+                  <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4, lineHeight: 20}}>
+                    {p.sub}
+                  </Text>
                 </View>
-              </View>
+              </Surface>
             ))}
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>Got it →</Text>
-            </TouchableOpacity>
+            <Button mode="contained" onPress={next} style={{marginTop: 8}} contentStyle={{paddingVertical: 8}}>
+              Got it →
+            </Button>
           </View>
         );
 
       case 'notif-perm':
         return (
-          <View style={styles.centerContent}>
-            <Text style={styles.sectionHeading}>Allow notifications</Text>
-            <Text style={styles.heroSub}>We'll only send alarm alerts and trial reminders. Nothing else.</Text>
-            <TouchableOpacity
-              style={styles.cta}
-              onPress={async () => { await requestNotificationPermission(); next(); }}>
-              <Text style={styles.ctaTxt}>Grant Access →</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.skipLink} onPress={next}>
-              <Text style={styles.skipLinkTxt}>Skip for now</Text>
-            </TouchableOpacity>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 16}}>
+              Allow notifications
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
+              We'll only send alarm alerts and trial reminders. Nothing else.
+            </Text>
+            <Button
+              mode="contained"
+              onPress={async () => { await requestNotificationPermission(); next(); }}
+              contentStyle={{paddingVertical: 8}}
+              style={{marginBottom: 12}}>
+              Grant Access →
+            </Button>
+            <Button mode="text" onPress={next}>Skip for now</Button>
           </View>
         );
 
       case 'battery':
         return (
-          <View style={styles.content}>
-            <Text style={styles.sectionHeading}>One more thing.</Text>
-            <Text style={[styles.heroSub, {color: '#FF6B00'}]}>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
+              One more thing.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.primary, marginBottom: 20}}>
               This is the most important step. Skip it and your alarm might not go off.
             </Text>
-            <View style={styles.batteryCard}>
-              <Text style={styles.batteryTitle}>Disable battery optimization for PushRise</Text>
+            <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 24, gap: 16}}>
+              <Text variant="titleMedium">Disable battery optimization for PushRise</Text>
               {[
                 'Open your phone\'s Settings',
                 'Go to Apps → PushRise',
                 'Tap Battery',
                 'Select "Unrestricted" or "Don\'t optimize"',
               ].map((step, i) => (
-                <View key={i} style={styles.batteryStep}>
-                  <View style={styles.batteryNum}>
-                    <Text style={styles.batteryNumTxt}>{i + 1}</Text>
+                <View key={i} style={{flexDirection: 'row', alignItems: 'center', gap: 14}}>
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 14,
+                    backgroundColor: theme.colors.primary,
+                    justifyContent: 'center', alignItems: 'center',
+                  }}>
+                    <Text variant="labelMedium" style={{color: theme.colors.onPrimary, fontWeight: '700'}}>
+                      {i + 1}
+                    </Text>
                   </View>
-                  <Text style={styles.batteryStepTxt}>{step}</Text>
+                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, flex: 1}}>
+                    {step}
+                  </Text>
                 </View>
               ))}
-            </View>
-            <TouchableOpacity style={styles.cta} onPress={next}>
-              <Text style={styles.ctaTxt}>Done →</Text>
-            </TouchableOpacity>
+            </Surface>
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+              Done →
+            </Button>
           </View>
         );
 
       case 'paywall':
         return (
-          <View style={styles.content}>
-            <View style={styles.priceCompare}>
-              <Text style={styles.priceCompareRow}>☕  One coffee: $5–7. Lasts 20 minutes.</Text>
-              <Text style={[styles.priceCompareRow, {color: '#FF6B00'}]}>
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 28, gap: 10}}>
+              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
+                ☕  One coffee: $5–7. Lasts 20 minutes.
+              </Text>
+              <Text variant="bodyMedium" style={{color: theme.colors.primary}}>
                 💪  PushRise: $2.99/month. Lasts forever.
               </Text>
-            </View>
+            </Surface>
 
-            <Text style={styles.paywallHeading}>Start Free.{'\n'}Stay Because It Works.</Text>
-            <Text style={styles.paywallSub}>7 days. Full access. No credit card required.</Text>
-
-            <TouchableOpacity style={styles.planCardPrimary} onPress={handleComplete}>
-              <View>
-                <Text style={styles.planBadge}>MOST POPULAR</Text>
-                <Text style={styles.planName}>Monthly</Text>
-                <Text style={styles.planPrice}>$2.99 / month</Text>
-              </View>
-              <Text style={styles.planArrow}>→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.planCardAlt} onPress={handleComplete}>
-              <View>
-                <Text style={styles.planName}>Lifetime</Text>
-                <Text style={styles.planPrice}>$14.99 one-time</Text>
-              </View>
-              <Text style={styles.planArrow}>→</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.paywallFooter}>
-              No charge today. No charge until Day 8.{'\n'}Cancel before then and pay nothing.
+            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 40, marginBottom: 10}}>
+              Start Free.{'\n'}Stay Because It Works.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
+              7 days. Full access. No credit card required.
             </Text>
 
-            <View style={styles.trustRow}>
+            <TouchableRipple onPress={handleComplete} borderless style={{borderRadius: 16, marginBottom: 12}}>
+              <Surface elevation={2} style={{
+                borderRadius: 16, padding: 20,
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                backgroundColor: theme.colors.primary,
+              }}>
+                <View>
+                  <Text variant="labelLarge" style={{color: 'rgba(255,255,255,0.7)', letterSpacing: 1, marginBottom: 4}}>
+                    MOST POPULAR
+                  </Text>
+                  <Text variant="titleLarge" style={{color: '#fff', fontWeight: '700'}}>Monthly</Text>
+                  <Text variant="bodyMedium" style={{color: 'rgba(255,255,255,0.8)', marginTop: 2}}>
+                    $2.99 / month
+                  </Text>
+                </View>
+                <Text variant="headlineSmall" style={{color: '#fff'}}>→</Text>
+              </Surface>
+            </TouchableRipple>
+
+            <TouchableRipple onPress={handleComplete} borderless style={{borderRadius: 16, marginBottom: 20}}>
+              <Surface elevation={1} style={{borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+                <View>
+                  <Text variant="titleLarge" style={{fontWeight: '700'}}>Lifetime</Text>
+                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
+                    $14.99 one-time
+                  </Text>
+                </View>
+                <Text variant="headlineSmall" style={{color: theme.colors.onSurfaceVariant}}>→</Text>
+              </Surface>
+            </TouchableRipple>
+
+            <Text variant="bodySmall" style={{color: theme.colors.outline, textAlign: 'center', lineHeight: 20, marginBottom: 20}}>
+              No charge today. No charge until Day 8.{'\n'}Cancel before then and pay nothing.
+            </Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center'}}>
               {['Camera detection', 'Reward banking', 'Streak tracking', 'No ads'].map(t => (
-                <Text key={t} style={styles.trustItem}>✓ {t}</Text>
+                <Text key={t} variant="labelSmall" style={{color: theme.colors.outline}}>✓ {t}</Text>
               ))}
             </View>
           </View>
@@ -572,22 +680,22 @@ export default function OnboardingScreen() {
   // ─── Shell ───────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
-
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, {width: `${progress * 100}%`}]} />
-      </View>
+    <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <ProgressBar
+        progress={progress}
+        color={theme.colors.primary}
+        style={{height: 3}}
+      />
 
       {!HIDE_BACK.has(currentStep) && stepIdx > 0 && (
-        <TouchableOpacity style={styles.backBtn} onPress={back}>
-          <Text style={styles.backTxt}>←</Text>
-        </TouchableOpacity>
+        <Button mode="text" onPress={back} style={{alignSelf: 'flex-start', marginLeft: 8}}>
+          ← Back
+        </Button>
       )}
 
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        style={{flex: 1}}
+        contentContainerStyle={{flexGrow: 1, paddingBottom: 48}}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         {renderContent()}
@@ -595,154 +703,3 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#0a0a0a'},
-  progressTrack: {height: 2, backgroundColor: '#1a1a1a'},
-  progressFill: {height: 2, backgroundColor: '#FF6B00'},
-  backBtn: {paddingHorizontal: 20, paddingVertical: 12},
-  backTxt: {fontSize: 22, color: '#555'},
-  scroll: {flex: 1},
-  scrollContent: {flexGrow: 1, paddingBottom: 48},
-
-  // Layouts
-  content: {paddingHorizontal: 24, paddingTop: 32},
-  centerContent: {flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'},
-
-  // Typography
-  appName: {fontSize: 15, fontWeight: '700', color: '#FF6B00', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 32},
-  heroHeading: {fontSize: 36, fontWeight: '800', color: '#fff', lineHeight: 44, letterSpacing: -0.5, marginBottom: 16},
-  heroSub: {fontSize: 17, color: '#666', lineHeight: 26, marginBottom: 40},
-  sectionHeading: {fontSize: 28, fontWeight: '800', color: '#fff', lineHeight: 36, letterSpacing: -0.5, marginBottom: 20},
-  quizQ: {fontSize: 22, fontWeight: '700', color: '#fff', lineHeight: 30, marginBottom: 20},
-  fieldLabel: {fontSize: 13, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, marginTop: 24},
-
-  // CTA
-  cta: {backgroundColor: '#FF6B00', borderRadius: 40, paddingVertical: 18, alignItems: 'center'},
-  ctaTxt: {fontSize: 17, fontWeight: '700', color: '#fff'},
-  skipLink: {alignItems: 'center', paddingVertical: 16},
-  skipLinkTxt: {fontSize: 14, color: '#444'},
-
-  // Answer cards
-  answerCard: {
-    backgroundColor: '#141414', borderWidth: 1, borderColor: '#1e1e1e',
-    borderRadius: 14, padding: 18, marginBottom: 10,
-  },
-  answerCardActive: {borderColor: '#FF6B00', backgroundColor: '#1a0d00'},
-  answerTxt: {fontSize: 16, color: '#aaa', fontWeight: '500'},
-  answerTxtActive: {color: '#FF6B00'},
-
-  // Founder note
-  founderCard: {
-    backgroundColor: '#111', borderRadius: 20, padding: 24,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 24,
-  },
-  founderHeading: {fontSize: 13, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16},
-  founderBody: {fontSize: 16, color: '#999', lineHeight: 28, fontStyle: 'italic'},
-
-  // Testimonials
-  testimonialCard: {
-    backgroundColor: '#111', borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 12,
-  },
-  stars: {color: '#FF6B00', fontSize: 14, marginBottom: 10},
-  testimonialTxt: {fontSize: 15, color: '#888', lineHeight: 24, fontStyle: 'italic', marginBottom: 10},
-  testimonialName: {fontSize: 13, color: '#555'},
-
-  // Time picker
-  timePickerBtn: {alignItems: 'center', paddingVertical: 20, marginBottom: 8},
-  timePickerTxt: {fontSize: 64, fontWeight: '200', color: '#fff', letterSpacing: -2},
-  timePickerHint: {fontSize: 13, color: '#444', marginTop: 4},
-
-  // Reflection
-  reflectHeading: {fontSize: 36, fontWeight: '800', color: '#fff', lineHeight: 44, letterSpacing: -0.5, marginBottom: 16},
-
-  // Analyzing
-  analyzeTrack: {width: '100%', height: 3, backgroundColor: '#1a1a1a', borderRadius: 2, marginVertical: 32},
-  analyzeFill: {height: 3, backgroundColor: '#FF6B00', borderRadius: 2},
-  analyzeSubtxt: {fontSize: 15, color: '#555', textAlign: 'center'},
-
-  // Persona
-  personaCard: {
-    backgroundColor: '#141414', borderRadius: 20, padding: 28,
-    borderWidth: 1, borderColor: '#FF6B00', marginBottom: 32,
-  },
-  personaLabel: {fontSize: 12, color: '#FF6B00', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8},
-  personaTitle: {fontSize: 30, fontWeight: '800', color: '#fff', marginBottom: 16},
-  personaBody: {fontSize: 16, color: '#888', lineHeight: 26},
-
-  // Dream outcome chart
-  outcomeSub: {fontSize: 13, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20},
-  chart: {flexDirection: 'row', alignItems: 'flex-end', gap: 12, height: 160, marginBottom: 24},
-  chartCol: {flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8},
-  chartBar: {width: '100%', backgroundColor: '#FF6B00', borderRadius: 6, opacity: 0.85},
-  chartLabel: {fontSize: 12, color: '#555'},
-  outcomeCaption: {fontSize: 14, color: '#555', lineHeight: 22, marginBottom: 32},
-
-  // Journey summary
-  summaryCard: {
-    backgroundColor: '#141414', borderRadius: 20, padding: 24,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 24, gap: 20,
-  },
-  summaryRow: {flexDirection: 'row', alignItems: 'center', gap: 16},
-  summaryIcon: {fontSize: 28},
-  summaryText: {flex: 1},
-  summaryLabel: {fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5},
-  summaryValue: {fontSize: 18, fontWeight: '600', color: '#fff', marginTop: 2},
-  summaryFooter: {fontSize: 16, color: '#555', lineHeight: 26, textAlign: 'center', marginBottom: 32},
-
-  // Create alarm
-  repsInput: {fontSize: 56, fontWeight: '300', color: '#FF6B00', borderBottomWidth: 1, borderBottomColor: '#333', width: 120},
-
-  // Permissions
-  permCard: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 16,
-    backgroundColor: '#141414', borderRadius: 16, padding: 18,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 12,
-  },
-  permIcon: {fontSize: 28},
-  permText: {flex: 1},
-  permTitle: {fontSize: 16, fontWeight: '600', color: '#fff'},
-  permSub: {fontSize: 13, color: '#555', marginTop: 4, lineHeight: 20},
-
-  // Battery optimization
-  batteryCard: {
-    backgroundColor: '#141414', borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 24, gap: 16,
-  },
-  batteryTitle: {fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 4},
-  batteryStep: {flexDirection: 'row', alignItems: 'center', gap: 14},
-  batteryNum: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#FF6B00',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  batteryNumTxt: {fontSize: 13, fontWeight: '700', color: '#fff'},
-  batteryStepTxt: {fontSize: 15, color: '#888', flex: 1},
-
-  // Paywall
-  priceCompare: {
-    backgroundColor: '#111', borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 28, gap: 10,
-  },
-  priceCompareRow: {fontSize: 15, color: '#666', lineHeight: 22},
-  paywallHeading: {fontSize: 32, fontWeight: '800', color: '#fff', lineHeight: 40, letterSpacing: -0.5, marginBottom: 10},
-  paywallSub: {fontSize: 16, color: '#666', marginBottom: 28},
-  planCardPrimary: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#FF6B00', borderRadius: 16, padding: 20, marginBottom: 12,
-  },
-  planCardAlt: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#141414', borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: '#1e1e1e', marginBottom: 20,
-  },
-  planBadge: {fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 1, marginBottom: 4},
-  planName: {fontSize: 18, fontWeight: '700', color: '#fff'},
-  planPrice: {fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2},
-  planArrow: {fontSize: 22, color: '#fff'},
-  paywallFooter: {fontSize: 13, color: '#444', textAlign: 'center', lineHeight: 20, marginBottom: 20},
-  trustRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center'},
-  trustItem: {fontSize: 12, color: '#555'},
-});

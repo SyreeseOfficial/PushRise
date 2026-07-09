@@ -378,6 +378,37 @@ All require accounts + Supabase backend. Build after launch.
 
 ---
 
+## Design System
+
+All UI follows **Google Material Design 3 (M3)**. Every design decision — color, typography, spacing, shape, components — must conform to M3 spec.
+
+### Color
+- Seed color: `#FF6B00` (orange) — generates the full M3 tonal palette
+- Light and dark schemes both derived from the same seed via M3 HCT color system
+- User can choose Light / Dark / Follow System in app settings (gear icon, Alarms tab)
+- Never use hardcoded hex in screens — always reference `theme.colors.*` from `react-native-paper`'s `useTheme()`
+- Exception: AlarmFiringScreen and BankCameraScreen always force dark theme (camera/alarm context)
+
+### Typography
+- Use Paper's `Text` component with `variant` prop for all text: `displaySmall`, `headlineMedium`, `titleLarge`, `bodyLarge`, `labelMedium`, etc.
+- No custom font sizes unless a specific display element requires it (e.g., large clock face in alarm screens)
+
+### Shape
+- Cards / surfaces: `borderRadius: 16` (M3 "large") by default
+- Bottom sheets: `borderTopLeftRadius: 28, borderTopRightRadius: 28` (M3 "extra large")
+- FABs: `borderRadius: 16` (M3 "large")
+- Chips: `borderRadius: 8` (M3 "small")
+
+### Components
+- `react-native-paper` v5 for all M3 components: `Appbar.Header`, `FAB`, `Button`, `Card`, `Surface`, `TextInput`, `Switch`, `Chip`, `SegmentedButtons`, `RadioButton`, `Dialog`, `ProgressBar`, `Divider`, `TouchableRipple`
+- All buttons use Paper's `Button` with `mode="contained"` (filled), `mode="contained-tonal"` (tonal), `mode="outlined"`, or `mode="text"`
+- FABs use Paper's `FAB` with `variant="primary"`
+- Tab bar icons: `MaterialCommunityIcons` from `react-native-vector-icons`
+
+### Elevation
+- Use Paper's `Surface elevation={n}` for elevated containers (M3 tonal surface elevation)
+- Navigation bar: `elevation: 3`
+
 ## Tech Stack
 
 | Piece | Choice | Notes |
@@ -386,9 +417,11 @@ All require accounts + Supabase backend. Build after launch.
 | Push-up detection | MediaPipe | Unvalidated — test Week 1 |
 | Alarm | `AlarmManager.setAlarmClock()` + foreground service | Required for OEM reliability |
 | Billing | RevenueCat | Handles Android + eventual iOS, anonymous users, free tier |
+| UI library | react-native-paper v5 | Full M3 implementation for React Native |
+| Icons | react-native-vector-icons (MaterialCommunityIcons) | Required by react-native-paper |
 | Backend | Supabase | Post-MVP only — when social ships |
 | Auth | Google Sign-In | Post-MVP only — when accounts are required |
-| Accent color | Warm orange / amber | Energy, urgency, action |
+| Accent color | Warm orange / amber (`#FF6B00` seed) | Energy, urgency, action |
 | Privacy policy | Placeholder URL | Replace with real hosted URL before Play Store submission |
 
 **Test devices:** Personal Android phone + tablet. No Xiaomi/Samsung — source or use BrowserStack.

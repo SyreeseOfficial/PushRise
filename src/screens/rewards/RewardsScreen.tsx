@@ -1,18 +1,9 @@
 import React, {useState, useEffect} from 'react';
+import {FlatList, View, Modal, KeyboardAvoidingView, Platform, Alert} from 'react-native';
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+  Appbar, FAB, Text, Button, Surface, TextInput,
+  TouchableRipple, useTheme, Divider,
+} from 'react-native-paper';
 import {useBankStore, Reward} from '../../store/bankStore';
 
 const EMOJIS = [
@@ -22,163 +13,151 @@ const EMOJIS = [
   '👕','👟','🎒','💵','💳',
   '💪','🔥','😴','🛋️','🏖️',
 ];
-const DEFAULT_EMOJI = '🏆';
 
-interface FormState {
-  emoji: string;
-  title: string;
-  cost: string;
-}
+interface FormState {emoji: string; title: string; cost: string}
 
-function RewardModal({
-  visible,
-  initial,
-  modalTitle,
-  onSave,
-  onClose,
-}: {
+function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   visible: boolean;
   initial?: Reward;
   modalTitle: string;
   onSave: (data: Omit<Reward, 'id'>) => void;
   onClose: () => void;
 }) {
-  const [form, setForm] = useState<FormState>({
-    emoji: DEFAULT_EMOJI,
-    title: '',
-    cost: '',
-  });
+  const theme = useTheme();
+  const [form, setForm] = useState<FormState>({emoji: '🏆', title: '', cost: ''});
 
   useEffect(() => {
     if (visible) {
-      setForm({
-        emoji: initial?.emoji ?? DEFAULT_EMOJI,
-        title: initial?.title ?? '',
-        cost: initial?.cost?.toString() ?? '',
-      });
+      setForm({emoji: initial?.emoji ?? '🏆', title: initial?.title ?? '', cost: initial?.cost?.toString() ?? ''});
     }
   }, [visible, initial]);
 
   const save = () => {
     const cost = parseInt(form.cost, 10);
-    if (!form.title.trim()) {Alert.alert('Name your reward'); return;}
-    if (!cost || cost < 1) {Alert.alert('Set a push-up cost'); return;}
+    if (!form.title.trim()) return;
+    if (!cost || cost < 1) return;
     onSave({emoji: form.emoji, title: form.title.trim(), cost});
+  };
+
+  const sheetBg = {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalBackdrop}>
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-              <Text style={styles.modalClose}>✕</Text>
-            </TouchableOpacity>
+        style={{flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.backdrop}}>
+        <View style={sheetBg}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24}}>
+            <Text variant="titleLarge">{modalTitle}</Text>
+            <Button onPress={onClose} mode="text">Close</Button>
           </View>
 
-          <Text style={styles.fieldLabel}>Emoji</Text>
-          <View style={styles.emojiGrid}>
+          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 10}}>
+            Emoji
+          </Text>
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24}}>
             {EMOJIS.map(e => (
-              <TouchableOpacity
+              <TouchableRipple
                 key={e}
-                style={[styles.emojiBtn, form.emoji === e && styles.emojiBtnActive]}
-                onPress={() => setForm(f => ({...f, emoji: e}))}>
-                <Text style={styles.emojiTxt}>{e}</Text>
-              </TouchableOpacity>
+                onPress={() => setForm(f => ({...f, emoji: e}))}
+                borderless
+                style={{borderRadius: 12}}>
+                <Surface
+                  elevation={form.emoji === e ? 2 : 0}
+                  style={{
+                    width: 48, height: 48, borderRadius: 12,
+                    alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: form.emoji === e ? theme.colors.secondaryContainer : theme.colors.surfaceVariant,
+                  }}>
+                  <Text style={{fontSize: 24}}>{e}</Text>
+                </Surface>
+              </TouchableRipple>
             ))}
           </View>
 
-          <Text style={styles.fieldLabel}>Reward name</Text>
           <TextInput
-            style={styles.input}
+            mode="outlined"
+            label="Reward name"
             value={form.title}
             onChangeText={t => setForm(f => ({...f, title: t}))}
             placeholder="e.g. TV Time, New Shoes…"
-            placeholderTextColor="#333"
             maxLength={40}
+            style={{marginBottom: 16}}
           />
-
-          <Text style={styles.fieldLabel}>Push-ups required</Text>
           <TextInput
-            style={[styles.input, styles.inputNarrow]}
+            mode="outlined"
+            label="Push-ups required"
             value={form.cost}
             onChangeText={t => setForm(f => ({...f, cost: t.replace(/[^0-9]/g, '')}))}
             placeholder="50"
-            placeholderTextColor="#333"
             keyboardType="number-pad"
             maxLength={5}
+            style={{width: 160, marginBottom: 24}}
           />
-
-          <TouchableOpacity style={styles.saveBtn} onPress={save} activeOpacity={0.85}>
-            <Text style={styles.saveBtnTxt}>Save Reward</Text>
-          </TouchableOpacity>
+          <Button mode="contained" onPress={save} contentStyle={{paddingVertical: 8}}>
+            Save Reward
+          </Button>
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-function RewardCard({
-  reward,
-  totalReps,
-  onRedeem,
-  onLongPress,
-}: {
+function RewardCard({reward, totalReps, onRedeem, onLongPress}: {
   reward: Reward;
   totalReps: number;
   onRedeem: () => void;
   onLongPress: () => void;
 }) {
+  const theme = useTheme();
   const canAfford = totalReps >= reward.cost;
   const needed = reward.cost - totalReps;
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onLongPress={onLongPress}
-      activeOpacity={0.9}
-      delayLongPress={400}>
-      <View style={styles.cardLeft}>
-        <Text style={styles.cardEmoji}>{reward.emoji}</Text>
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>{reward.title}</Text>
-          <Text style={styles.cardCost}>{reward.cost.toLocaleString()} push-ups</Text>
+    <TouchableRipple onLongPress={onLongPress} borderless style={{borderRadius: 16, marginBottom: 10}}>
+      <Surface elevation={1} style={{borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center'}}>
+        <Text style={{fontSize: 34, marginRight: 14}}>{reward.emoji}</Text>
+        <View style={{flex: 1}}>
+          <Text variant="titleMedium">{reward.title}</Text>
+          <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 3}}>
+            {reward.cost.toLocaleString()} push-ups
+          </Text>
         </View>
-      </View>
-      <TouchableOpacity
-        style={[styles.redeemBtn, !canAfford && styles.redeemBtnLocked]}
-        onPress={canAfford ? onRedeem : undefined}
-        activeOpacity={canAfford ? 0.75 : 1}
-        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-        <Text style={[styles.redeemTxt, !canAfford && styles.redeemTxtLocked]}>
+        <Button
+          mode={canAfford ? 'contained' : 'outlined'}
+          onPress={canAfford ? onRedeem : undefined}
+          compact
+          style={{borderRadius: 24}}>
           {canAfford ? 'Redeem' : `+${needed.toLocaleString()}`}
-        </Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+        </Button>
+      </Surface>
+    </TouchableRipple>
   );
 }
 
 export default function RewardsScreen() {
+  const theme = useTheme();
   const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward} = useBankStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
 
-  const openAdd = () => {setEditing(undefined); setModalOpen(true);};
-  const openEdit = (r: Reward) => {setEditing(r); setModalOpen(true);};
+  const openAdd = () => { setEditing(undefined); setModalOpen(true); };
+  const openEdit = (r: Reward) => { setEditing(r); setModalOpen(true); };
 
   const handleSave = (data: Omit<Reward, 'id'>) => {
-    if (editing) {
-      editReward(editing.id, data);
-    } else {
-      addReward(data);
-    }
+    if (editing) editReward(editing.id, data);
+    else addReward(data);
     setModalOpen(false);
   };
 
   const handleLongPress = (r: Reward) => {
+    // ponytail: native Alert is fine — no need for a Paper Dialog just for this
     Alert.alert(r.title, 'What do you want to do?', [
       {text: 'Edit', onPress: () => openEdit(r)},
       {text: 'Delete', style: 'destructive', onPress: () => deleteReward(r.id)},
@@ -198,13 +177,19 @@ export default function RewardsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Rewards</Text>
+    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <Appbar.Header>
+        <Appbar.Content title="Rewards" />
+      </Appbar.Header>
 
-      <View style={styles.bankBar}>
-        <Text style={styles.bankNum}>{totalReps.toLocaleString()}</Text>
-        <Text style={styles.bankLabel}> push-ups banked</Text>
+      <View style={{flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 20, paddingBottom: 16}}>
+        <Text style={{fontSize: 28, fontWeight: '700', color: theme.colors.primary}}>
+          {totalReps.toLocaleString()}
+        </Text>
+        <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant}}> push-ups banked</Text>
       </View>
+
+      <Divider />
 
       <FlatList
         data={rewards}
@@ -217,19 +202,27 @@ export default function RewardsScreen() {
             onLongPress={() => handleLongPress(item)}
           />
         )}
-        contentContainerStyle={[styles.list, rewards.length === 0 && styles.listEmpty]}
+        contentContainerStyle={[
+          {paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100},
+          rewards.length === 0 && {flex: 1},
+        ]}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTxt}>No rewards yet.</Text>
-            <Text style={styles.emptySub}>Tap + to create your first one.</Text>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80}}>
+            <Text variant="titleMedium" style={{color: theme.colors.onSurfaceVariant}}>No rewards yet</Text>
+            <Text variant="bodyMedium" style={{color: theme.colors.outline, marginTop: 8}}>
+              Tap + to create your first one
+            </Text>
           </View>
         }
         showsVerticalScrollIndicator={false}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={openAdd} activeOpacity={0.85}>
-        <Text style={styles.fabTxt}>+</Text>
-      </TouchableOpacity>
+      <FAB
+        icon="plus"
+        variant="primary"
+        style={{position: 'absolute', bottom: 88, right: 24}}
+        onPress={openAdd}
+      />
 
       <RewardModal
         visible={modalOpen}
@@ -238,109 +231,6 @@ export default function RewardsScreen() {
         onSave={handleSave}
         onClose={() => setModalOpen(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#0a0a0a'},
-  header: {fontSize: 32, fontWeight: '700', color: '#fff', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4},
-
-  bankBar: {flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 20, paddingBottom: 20},
-  bankNum: {fontSize: 28, fontWeight: '700', color: '#FF6B00'},
-  bankLabel: {fontSize: 15, color: '#555'},
-
-  list: {paddingHorizontal: 16, paddingBottom: 100},
-  listEmpty: {flex: 1},
-  empty: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80},
-  emptyTxt: {fontSize: 18, color: '#333', fontWeight: '600'},
-  emptySub: {fontSize: 14, color: '#2a2a2a', marginTop: 8},
-
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#141414',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-    padding: 18,
-    marginBottom: 10,
-  },
-  cardLeft: {flexDirection: 'row', alignItems: 'center', flex: 1, gap: 14},
-  cardEmoji: {fontSize: 34},
-  cardInfo: {flex: 1},
-  cardTitle: {fontSize: 17, fontWeight: '600', color: '#fff'},
-  cardCost: {fontSize: 13, color: '#555', marginTop: 3},
-
-  redeemBtn: {
-    backgroundColor: '#FF6B00',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 24,
-  },
-  redeemBtnLocked: {backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a'},
-  redeemTxt: {fontSize: 14, fontWeight: '700', color: '#fff'},
-  redeemTxtLocked: {color: '#444'},
-
-  fab: {
-    position: 'absolute',
-    bottom: 32,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FF6B00',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-  },
-  fabTxt: {fontSize: 32, color: '#fff', lineHeight: 36},
-
-  // Modal
-  modalBackdrop: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)'},
-  modalSheet: {
-    backgroundColor: '#141414',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalHeader: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24},
-  modalTitle: {fontSize: 20, fontWeight: '700', color: '#fff'},
-  modalClose: {fontSize: 18, color: '#555'},
-
-  fieldLabel: {fontSize: 12, fontWeight: '600', color: '#555', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10},
-
-  emojiGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24},
-  emojiBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#1e1e1e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emojiBtnActive: {backgroundColor: '#2a1a00', borderWidth: 2, borderColor: '#FF6B00'},
-  emojiTxt: {fontSize: 24},
-
-  input: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    color: '#fff',
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 20,
-  },
-  inputNarrow: {width: 120},
-
-  saveBtn: {
-    backgroundColor: '#FF6B00',
-    borderRadius: 40,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  saveBtnTxt: {fontSize: 17, fontWeight: '700', color: '#fff'},
-});

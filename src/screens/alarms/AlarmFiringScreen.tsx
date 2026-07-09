@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Vibration, StatusBar, Alert, NativeModules} from 'react-native';
+import {View, Vibration, StatusBar, Alert, NativeModules} from 'react-native';
+import {Button, Text} from 'react-native-paper';
 import Sound from 'react-native-sound';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useRoute, useNavigation} from '@react-navigation/native';
@@ -9,9 +10,13 @@ import {cancelAlarm, dismissFiredAlarm, scheduleAlarm} from '../../utils/notifee
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
+import {DarkTheme} from '../../theme';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
 const {PoseDetection} = NativeModules;
+
+// ponytail: always dark regardless of user theme — alarm fires in the dark
+const c = DarkTheme.colors;
 
 Sound.setCategory('Alarm');
 
@@ -19,14 +24,19 @@ function ManualCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
   const [count, setCount] = useState(0);
   useEffect(() => { if (count >= reps) onDone(); }, [count, reps, onDone]);
   return (
-    <View style={styles.manualArea}>
-      <Text style={styles.manualHint}>Tap once per push-up</Text>
-      <TouchableOpacity style={styles.repBtn} onPress={() => setCount(c => c + 1)} activeOpacity={0.7}>
-        <Text style={styles.repBtnTxt}>{count} / {reps}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onSkip} style={styles.skipBtn}>
-        <Text style={styles.skipTxt}>Skip (no push-ups)</Text>
-      </TouchableOpacity>
+    <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 24}}>
+      <Text variant="bodyMedium" style={{color: c.onSurfaceVariant}}>Tap once per push-up</Text>
+      <Button
+        mode="contained"
+        onPress={() => setCount(n => n + 1)}
+        contentStyle={{width: 180, height: 180, borderRadius: 90}}
+        style={{borderRadius: 90}}
+        labelStyle={{fontSize: 24, fontWeight: '900'}}>
+        {count} / {reps}
+      </Button>
+      <Button mode="text" textColor={c.onSurfaceVariant} onPress={onSkip}>
+        Skip (no push-ups)
+      </Button>
     </View>
   );
 }
@@ -66,7 +76,7 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
           phaseRef.current = newPhase;
         }
       } catch {
-        // frame failed — skip it
+        // frame failed — skip
       } finally {
         processingRef.current = false;
       }
@@ -77,18 +87,24 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
   if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} />;
 
   return (
-    <View style={styles.cameraArea}>
-      <Camera ref={cameraRef} style={styles.camera} device={device} isActive photo />
-      <View style={styles.cameraOverlay}>
-        <Text style={styles.countNum}>{count}</Text>
-        <Text style={styles.countOf}>/ {reps} push-ups</Text>
+    <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
+      <Camera ref={cameraRef} style={{width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'}} device={device} isActive photo />
+      <View style={{position: 'absolute', bottom: 80, alignItems: 'center'}}>
+        <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
+          {count}
+        </Text>
+        <Text variant="titleLarge" style={{color: '#fff', marginTop: -8}}>
+          / {reps} push-ups
+        </Text>
         {debugAngle !== null && (
-          <Text style={styles.debugAngle}>elbow angle: {debugAngle}°  phase: {phaseRef.current}</Text>
+          <Text variant="labelSmall" style={{color: c.primary, marginTop: 4, opacity: 0.8}}>
+            elbow angle: {debugAngle}°  phase: {phaseRef.current}
+          </Text>
         )}
       </View>
-      <TouchableOpacity onPress={onSkip} style={styles.skipBtn}>
-        <Text style={styles.skipTxt}>Skip (no push-ups)</Text>
-      </TouchableOpacity>
+      <Button mode="text" textColor={c.onSurfaceVariant} onPress={onSkip} style={{position: 'absolute', bottom: 24}}>
+        Skip (no push-ups)
+      </Button>
     </View>
   );
 }
@@ -122,20 +138,12 @@ export default function AlarmFiringScreen() {
   const cleanup = useCallback(async (completed: boolean) => {
     Vibration.cancel();
     soundRef.current?.stop();
-
     if (alarm && alarm.days.length > 0 && alarm.enabled) {
-      // Recurring: schedule next occurrence, then only dismiss tray notification.
-      // cancelAlarm would kill the newly-scheduled trigger, so we use dismissFiredAlarm.
-      await scheduleAlarm({
-        ...alarm,
-        volume: alarm.volume ?? 1.0,
-        sound: alarm.sound ?? 'alarm.mp3',
-      });
+      await scheduleAlarm({...alarm, volume: alarm.volume ?? 1.0, sound: alarm.sound ?? 'alarm.mp3'});
       await dismissFiredAlarm(alarmId);
     } else {
       await cancelAlarm(alarmId);
     }
-
     if (completed) addReps(reps);
     navigation.goBack();
   }, [alarm, alarmId, reps, addReps, navigation]);
@@ -157,24 +165,32 @@ export default function AlarmFiringScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{flex: 1, backgroundColor: c.background, alignItems: 'center', paddingTop: 80, paddingHorizontal: 24}}>
       <StatusBar hidden />
-      <Text style={styles.time}>{new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</Text>
-      <Text style={styles.label}>Time to wake up.</Text>
+      <Text style={{fontSize: 64, fontWeight: '200', color: c.onBackground, letterSpacing: -2}}>
+        {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+      </Text>
+      <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginTop: -4, marginBottom: 32}}>
+        Time to wake up.
+      </Text>
 
       {mode === 'idle' && (
-        <View style={styles.idleArea}>
-          <Text style={styles.repsNeeded}>{reps}</Text>
-          <Text style={styles.repsSubtitle}>push-ups to silence this alarm</Text>
-          <TouchableOpacity style={styles.startBtn} onPress={startCamera}>
-            <Text style={styles.startTxt}>I'm Ready</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setMode('manual')} style={styles.manualLink}>
-            <Text style={styles.manualLinkTxt}>Use manual count instead</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={dismiss} style={styles.skipBtn}>
-            <Text style={styles.skipTxt}>Skip (no push-ups)</Text>
-          </TouchableOpacity>
+        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 16}}>
+          <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
+            {reps}
+          </Text>
+          <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+            push-ups to silence this alarm
+          </Text>
+          <Button mode="contained" onPress={startCamera} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+            I'm Ready
+          </Button>
+          <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
+            Use manual count instead
+          </Button>
+          <Button mode="text" textColor={c.outline} onPress={dismiss}>
+            Skip (no push-ups)
+          </Button>
         </View>
       )}
 
@@ -183,28 +199,3 @@ export default function AlarmFiringScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center', paddingTop: 80, paddingHorizontal: 24},
-  time: {fontSize: 64, fontWeight: '200', color: '#fff', letterSpacing: -2},
-  label: {fontSize: 18, color: '#555', marginTop: -8, marginBottom: 32},
-  idleArea: {alignItems: 'center', flex: 1, justifyContent: 'center', gap: 12},
-  repsNeeded: {fontSize: 96, fontWeight: '700', color: '#FF6B00', lineHeight: 96},
-  repsSubtitle: {fontSize: 16, color: '#555', marginBottom: 24},
-  startBtn: {backgroundColor: '#FF6B00', paddingHorizontal: 48, paddingVertical: 18, borderRadius: 40},
-  startTxt: {fontSize: 20, fontWeight: '700', color: '#fff'},
-  manualLink: {paddingVertical: 8},
-  manualLinkTxt: {fontSize: 14, color: '#444'},
-  manualArea: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24},
-  manualHint: {fontSize: 14, color: '#555'},
-  repBtn: {width: 180, height: 180, borderRadius: 90, backgroundColor: '#FF6B00', justifyContent: 'center', alignItems: 'center', elevation: 8},
-  repBtnTxt: {fontSize: 24, fontWeight: '900', color: '#fff'},
-  cameraArea: {flex: 1, width: '100%', alignItems: 'center'},
-  camera: {width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'},
-  cameraOverlay: {position: 'absolute', bottom: 80, alignItems: 'center'},
-  countNum: {fontSize: 96, fontWeight: '700', color: '#FF6B00', lineHeight: 96},
-  countOf: {fontSize: 18, color: '#fff', marginTop: -8},
-  skipBtn: {paddingVertical: 16},
-  skipTxt: {fontSize: 14, color: '#333'},
-  debugAngle: {fontSize: 12, color: '#FF6B00', marginTop: 4, opacity: 0.8},
-});

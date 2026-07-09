@@ -1,6 +1,9 @@
 import React, {useState, useRef} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, TextInput, Switch, ScrollView} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {View, ScrollView} from 'react-native';
+import {
+  Appbar, Button, Text, TextInput, Switch, Chip,
+  SegmentedButtons, RadioButton, TouchableRipple, useTheme, Divider,
+} from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Sound from 'react-native-sound';
 import {useNavigation} from '@react-navigation/native';
@@ -10,23 +13,23 @@ Sound.setCategory('Alarm');
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const VOLUME_LEVELS = [
-  {value: 0,    label: '🔇'},
-  {value: 0.25, label: '🔈'},
-  {value: 0.5,  label: '🔉'},
-  {value: 0.75, label: '🔊'},
-  {value: 1.0,  label: '🔊+'},
+const VOLUME_BUTTONS = [
+  {value: '0',    label: '🔇'},
+  {value: '0.25', label: '🔈'},
+  {value: '0.5',  label: '🔉'},
+  {value: '0.75', label: '🔊'},
+  {value: '1.0',  label: '🔊+'},
 ];
 
-// Add audio files to android/app/src/main/assets/ to unlock additional sounds
 const SOUNDS = [
-  {id: 'alarm.mp3',  label: 'Classic'},
+  {id: 'alarm.mp3',   label: 'Classic'},
   {id: 'digital.mp3', label: 'Digital'},
   {id: 'gentle.mp3',  label: 'Gentle Rise'},
 ];
 
 export default function AddAlarmScreen() {
   const navigation = useNavigation();
+  const theme = useTheme();
   const {addAlarm} = useAlarmStore();
   const previewRef = useRef<Sound | null>(null);
 
@@ -41,7 +44,7 @@ export default function AddAlarmScreen() {
   const [label, setLabel] = useState('');
   const [recurring, setRecurring] = useState(false);
   const [days, setDays] = useState<number[]>([]);
-  const [volume, setVolume] = useState(1.0);
+  const [volume, setVolume] = useState('1.0');
   const [sound, setSound] = useState('alarm.mp3');
 
   const toggleDay = (d: number) =>
@@ -52,7 +55,7 @@ export default function AddAlarmScreen() {
     previewRef.current?.release();
     const s = new Sound(filename, Sound.MAIN_BUNDLE, err => {
       if (!err) {
-        s.setVolume(volume);
+        s.setVolume(parseFloat(volume));
         s.play(() => s.release());
         previewRef.current = s;
       }
@@ -67,31 +70,32 @@ export default function AddAlarmScreen() {
       reps: parseInt(reps, 10) || 10,
       label,
       days: recurring ? days : [],
-      volume,
+      volume: parseFloat(volume),
       sound,
     });
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.cancel}>Cancel</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>New Alarm</Text>
-        <TouchableOpacity onPress={save}>
-          <Text style={styles.saveBtn}>Save</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <Appbar.Header>
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title="New Alarm" />
+        <Appbar.Action icon="check" onPress={save} />
+      </Appbar.Header>
 
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        <TouchableOpacity style={styles.timeDisplay} onPress={() => setShowPicker(true)}>
-          <Text style={styles.timeDisplayTxt}>
-            {time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-          </Text>
-          <Text style={styles.timeDisplayHint}>tap to change</Text>
-        </TouchableOpacity>
+      <ScrollView contentContainerStyle={{paddingBottom: 40}}>
+        {/* Time display */}
+        <TouchableRipple onPress={() => setShowPicker(true)} style={{alignItems: 'center', paddingVertical: 28}}>
+          <View style={{alignItems: 'center'}}>
+            <Text style={{fontSize: 72, fontWeight: '200', letterSpacing: -2, color: theme.colors.onSurface}}>
+              {time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+            </Text>
+            <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4}}>
+              Tap to change
+            </Text>
+          </View>
+        </TouchableRipple>
 
         {showPicker && (
           <DateTimePicker
@@ -105,180 +109,91 @@ export default function AddAlarmScreen() {
           />
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Push-ups to dismiss</Text>
+        <Divider />
+
+        {/* Push-ups */}
+        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
           <TextInput
-            style={styles.repsInput}
+            mode="outlined"
+            label="Push-ups to dismiss"
             value={reps}
             onChangeText={setReps}
             keyboardType="number-pad"
             maxLength={3}
             selectTextOnFocus
+            contentStyle={{fontSize: 36, fontWeight: '300', color: theme.colors.primary}}
+            style={{width: 180}}
           />
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Volume</Text>
-          <View style={styles.segRow}>
-            {VOLUME_LEVELS.map(l => (
-              <TouchableOpacity
-                key={l.value}
-                style={[styles.segBtn, volume === l.value && styles.segBtnActive]}
-                onPress={() => setVolume(l.value)}>
-                <Text style={[styles.segTxt, volume === l.value && styles.segTxtActive]}>
-                  {l.label}
-                </Text>
-              </TouchableOpacity>
+        <Divider />
+
+        {/* Volume */}
+        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
+          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 12}}>
+            Volume
+          </Text>
+          <SegmentedButtons
+            value={volume}
+            onValueChange={setVolume}
+            buttons={VOLUME_BUTTONS}
+          />
+        </View>
+
+        <Divider />
+
+        {/* Sound */}
+        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
+          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 4}}>
+            Sound
+          </Text>
+          <RadioButton.Group
+            value={sound}
+            onValueChange={v => { setSound(v); previewSound(v); }}>
+            {SOUNDS.map(s => (
+              <RadioButton.Item key={s.id} label={s.label} value={s.id} />
             ))}
-          </View>
+          </RadioButton.Group>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Sound</Text>
-          {SOUNDS.map(s => (
-            <TouchableOpacity
-              key={s.id}
-              style={styles.soundRow}
-              onPress={() => { setSound(s.id); previewSound(s.id); }}
-              activeOpacity={0.75}>
-              <View style={styles.soundLeft}>
-                <View style={[styles.radioOuter, sound === s.id && styles.radioOuterActive]}>
-                  {sound === s.id && <View style={styles.radioInner} />}
-                </View>
-                <Text style={[styles.soundLabel, sound === s.id && styles.soundLabelActive]}>
-                  {s.label}
-                </Text>
-              </View>
-              <Text style={styles.soundPlay}>▶</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Divider />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Label (optional)</Text>
+        {/* Label */}
+        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
           <TextInput
-            style={styles.labelInput}
+            mode="outlined"
+            label="Label (optional)"
             value={label}
             onChangeText={setLabel}
             placeholder="Morning grind…"
-            placeholderTextColor="#444"
           />
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.row}>
-            <Text style={styles.sectionLabel}>Repeat</Text>
-            <Switch
-              value={recurring}
-              onValueChange={setRecurring}
-              trackColor={{false: '#333', true: '#FF6B00'}}
-              thumbColor="#fff"
-            />
+        <Divider />
+
+        {/* Repeat */}
+        <View style={{paddingHorizontal: 20, paddingVertical: 16}}>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: recurring ? 16 : 0}}>
+            <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant}}>
+              Repeat
+            </Text>
+            <Switch value={recurring} onValueChange={setRecurring} />
           </View>
           {recurring && (
-            <View style={styles.daysRow}>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
               {DAYS.map((d, i) => (
-                <TouchableOpacity
+                <Chip
                   key={d}
-                  style={[styles.dayBtn, days.includes(i) && styles.dayBtnActive]}
-                  onPress={() => toggleDay(i)}>
-                  <Text style={[styles.dayTxt, days.includes(i) && styles.dayTxtActive]}>
-                    {d}
-                  </Text>
-                </TouchableOpacity>
+                  selected={days.includes(i)}
+                  onPress={() => toggleDay(i)}
+                  compact>
+                  {d}
+                </Chip>
               ))}
             </View>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#0a0a0a'},
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
-  },
-  cancel: {fontSize: 16, color: '#666'},
-  title: {fontSize: 17, fontWeight: '600', color: '#fff'},
-  saveBtn: {fontSize: 16, color: '#FF6B00', fontWeight: '700'},
-  body: {flex: 1},
-  bodyContent: {paddingBottom: 40},
-  timeDisplay: {alignItems: 'center', paddingVertical: 28},
-  timeDisplayTxt: {fontSize: 72, fontWeight: '200', color: '#fff', letterSpacing: -2},
-  timeDisplayHint: {fontSize: 13, color: '#444', marginTop: 4},
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
-  },
-  sectionLabel: {fontSize: 13, color: '#666', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5},
-  repsInput: {
-    fontSize: 48,
-    fontWeight: '300',
-    color: '#FF6B00',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    width: 100,
-  },
-
-  // Volume segmented control
-  segRow: {flexDirection: 'row', gap: 8},
-  segBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#1a1a1a',
-    alignItems: 'center',
-  },
-  segBtnActive: {backgroundColor: '#FF6B00'},
-  segTxt: {fontSize: 18, color: '#555'},
-  segTxtActive: {color: '#fff'},
-
-  // Sound picker
-  soundRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#111',
-  },
-  soundLeft: {flexDirection: 'row', alignItems: 'center', gap: 12},
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioOuterActive: {borderColor: '#FF6B00'},
-  radioInner: {width: 10, height: 10, borderRadius: 5, backgroundColor: '#FF6B00'},
-  soundLabel: {fontSize: 16, color: '#555'},
-  soundLabelActive: {color: '#fff'},
-  soundPlay: {fontSize: 12, color: '#333'},
-
-  labelInput: {
-    fontSize: 16,
-    color: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    paddingVertical: 8,
-  },
-  row: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
-  daysRow: {flexDirection: 'row', gap: 8, marginTop: 12},
-  dayBtn: {paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#1a1a1a'},
-  dayBtnActive: {backgroundColor: '#FF6B00'},
-  dayTxt: {fontSize: 12, color: '#555', fontWeight: '600'},
-  dayTxtActive: {color: '#fff'},
-});

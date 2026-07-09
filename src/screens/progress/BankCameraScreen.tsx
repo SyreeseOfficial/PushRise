@@ -1,11 +1,16 @@
 import React, {useEffect, useRef, useState, useCallback} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, StatusBar, NativeModules} from 'react-native';
+import {View, StyleSheet, StatusBar, NativeModules} from 'react-native';
+import {Button, Text} from 'react-native-paper';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useNavigation} from '@react-navigation/native';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
+import {DarkTheme} from '../../theme';
 
 const {PoseDetection} = NativeModules;
+
+// ponytail: always dark — camera overlay screen
+const c = DarkTheme.colors;
 
 export default function BankCameraScreen() {
   const navigation = useNavigation();
@@ -43,7 +48,7 @@ export default function BankCameraScreen() {
           phaseRef.current = newPhase;
         }
       } catch {
-        // frame failed — skip it
+        // frame failed — skip
       } finally {
         processingRef.current = false;
       }
@@ -58,59 +63,49 @@ export default function BankCameraScreen() {
 
   if (!device) {
     return (
-      <View style={[styles.container, styles.centered]}>
+      <View style={{flex: 1, backgroundColor: c.background, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24}}>
         <StatusBar hidden />
-        <Text style={styles.errorTxt}>Camera not available</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.doneBtn}>
-          <Text style={styles.doneTxt}>Go Back</Text>
-        </TouchableOpacity>
+        <Text variant="bodyLarge" style={{color: c.onSurfaceVariant, marginBottom: 32}}>
+          Camera not available
+        </Text>
+        <Button mode="contained" onPress={() => navigation.goBack()}>
+          Go Back
+        </Button>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={{flex: 1, backgroundColor: c.background}}>
       <StatusBar hidden />
       <Camera ref={cameraRef} style={StyleSheet.absoluteFill} device={device} isActive photo />
-      <View style={styles.overlay}>
-        <View style={styles.countBox}>
-          <Text style={styles.countNum}>{count}</Text>
-          <Text style={styles.countLabel}>push-ups</Text>
+      <View style={{
+        ...StyleSheet.absoluteFill,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: 80,
+        paddingBottom: 64,
+      }}>
+        <View style={{alignItems: 'center'}}>
+          <Text style={{fontSize: 128, fontWeight: '700', color: c.primary, lineHeight: 128}}>
+            {count}
+          </Text>
+          <Text variant="titleLarge" style={{color: '#fff', letterSpacing: 1, marginTop: -4}}>
+            push-ups
+          </Text>
           {debugAngle !== null && (
-            <Text style={styles.debugAngle}>elbow: {debugAngle}°  phase: {phaseRef.current}</Text>
+            <Text variant="labelSmall" style={{color: c.primary, opacity: 0.7, marginTop: 8}}>
+              elbow: {debugAngle}°  phase: {phaseRef.current}
+            </Text>
           )}
         </View>
-        <TouchableOpacity style={styles.doneBtn} onPress={done} activeOpacity={0.85}>
-          <Text style={styles.doneTxt}>
-            {count > 0 ? `Done  ·  +${count} banked` : 'Done'}
-          </Text>
-        </TouchableOpacity>
+        <Button
+          mode="contained"
+          onPress={done}
+          contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+          {count > 0 ? `Done  ·  +${count} banked` : 'Done'}
+        </Button>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#0a0a0a'},
-  centered: {alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24},
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingBottom: 64,
-  },
-  countBox: {alignItems: 'center'},
-  countNum: {fontSize: 128, fontWeight: '700', color: '#FF6B00', lineHeight: 128},
-  countLabel: {fontSize: 20, color: '#fff', letterSpacing: 1, marginTop: -4},
-  debugAngle: {fontSize: 12, color: '#FF6B00', opacity: 0.7, marginTop: 8},
-  doneBtn: {
-    backgroundColor: '#FF6B00',
-    paddingHorizontal: 48,
-    paddingVertical: 18,
-    borderRadius: 40,
-    elevation: 6,
-  },
-  doneTxt: {fontSize: 18, fontWeight: '700', color: '#fff'},
-  errorTxt: {fontSize: 16, color: '#555', marginBottom: 32},
-});

@@ -6,7 +6,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ## Before Coding Starts
 
-- [ ] Fill out `pre-build.md` completely — DONE (screens, copy, voice, rewards, badges)
+- [x] Fill out `pre-build.md` completely — DONE (screens, copy, voice, rewards, badges)
 - [ ] Decide: Xiaomi/Samsung testing — borrow a device or use BrowserStack (real device cloud)
 - [ ] Set up RevenueCat account and create products (monthly + lifetime) in Google Play Console
 - [ ] Set up bare React Native project scaffold
