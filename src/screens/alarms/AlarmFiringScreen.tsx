@@ -10,6 +10,7 @@ import {cancelAlarm, dismissFiredAlarm, scheduleAlarm} from '../../utils/notifee
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
+import {useSettingsStore} from '../../store/settingsStore';
 import {DarkTheme} from '../../theme';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
@@ -20,15 +21,26 @@ const c = DarkTheme.colors;
 
 Sound.setCategory('Alarm');
 
-function ManualCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void; onSkip: () => void}) {
+function ManualCounter({
+  reps, onDone, onSkip, hapticOnRep,
+}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean}) {
   const [count, setCount] = useState(0);
-  useEffect(() => { if (count >= reps) onDone(); }, [count, reps, onDone]);
+
+  const tap = () => {
+    if (hapticOnRep) Vibration.vibrate(40);
+    setCount(n => {
+      const next = n + 1;
+      if (next >= reps) onDone();
+      return next;
+    });
+  };
+
   return (
     <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 24}}>
       <Text variant="bodyMedium" style={{color: c.onSurfaceVariant}}>Tap once per push-up</Text>
       <Button
         mode="contained"
-        onPress={() => setCount(n => n + 1)}
+        onPress={tap}
         contentStyle={{width: 180, height: 180, borderRadius: 90}}
         style={{borderRadius: 90}}
         labelStyle={{fontSize: 24, fontWeight: '900'}}>
@@ -41,8 +53,10 @@ function ManualCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
   );
 }
 
-function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void; onSkip: () => void}) {
-  const device = useCameraDevice('front');
+function CameraCounter({
+  reps, onDone, onSkip, hapticOnRep, preferFrontCamera,
+}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; preferFrontCamera: boolean}) {
+  const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const cameraRef = useRef<Camera>(null);
   const phaseRef = useRef<RepPhase>('up');
   const pendingPhaseRef = useRef<RepPhase>('up');
@@ -71,6 +85,7 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
           if (phaseRef.current === 'down' && newPhase === 'up') {
             countRef.current += 1;
             setCount(countRef.current);
+            if (hapticOnRep) Vibration.vibrate(40);
             if (countRef.current >= reps) onDone();
           }
           phaseRef.current = newPhase;
@@ -82,9 +97,9 @@ function CameraCounter({reps, onDone, onSkip}: {reps: number; onDone: () => void
       }
     }, 200);
     return () => clearInterval(interval);
-  }, [reps, onDone]);
+  }, [reps, onDone, hapticOnRep]);
 
-  if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} />;
+  if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} hapticOnRep={hapticOnRep} />;
 
   return (
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
@@ -115,11 +130,16 @@ export default function AlarmFiringScreen() {
   const {alarmId, reps, sound, volume} = route.params;
   const {addReps} = useBankStore();
   const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));
-  const [mode, setMode] = useState<'idle' | 'camera' | 'manual'>('idle');
+  const {
+    vibrateOnAlarm, muteAudioDuringPushups, autoCompleteAlarm,
+    hapticOnRep, keepScreenOn, preferFrontCamera,
+  } = useSettingsStore();
+
+  const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
   const soundRef = useRef<Sound | null>(null);
 
   useEffect(() => {
-    Vibration.vibrate([0, 500, 300, 500], true);
+    if (vibrateOnAlarm) Vibration.vibrate([0, 500, 300, 500], true);
     const s = new Sound(sound ?? 'alarm.mp3', Sound.MAIN_BUNDLE, err => {
       if (!err) {
         s.setVolume(volume ?? 1.0);
@@ -133,7 +153,23 @@ export default function AlarmFiringScreen() {
       s.stop();
       s.release();
     };
-  }, [sound, volume]);
+  }, [sound, volume, vibrateOnAlarm]);
+
+  useEffect(() => {
+    if (keepScreenOn) {
+      PoseDetection.keepScreenOn();
+      return () => PoseDetection.allowScreenOff();
+    }
+  }, [keepScreenOn]);
+
+  // Mute alarm sound when camera/manual counting starts
+  useEffect(() => {
+    if (muteAudioDuringPushups && mode !== 'idle' && mode !== 'done') {
+      soundRef.current?.setVolume(0);
+    } else if (mode === 'idle') {
+      soundRef.current?.setVolume(volume ?? 1.0);
+    }
+  }, [mode, muteAudioDuringPushups, volume]);
 
   const cleanup = useCallback(async (completed: boolean) => {
     Vibration.cancel();
@@ -148,7 +184,16 @@ export default function AlarmFiringScreen() {
     navigation.goBack();
   }, [alarm, alarmId, reps, addReps, navigation]);
 
-  const complete = useCallback(() => cleanup(true), [cleanup]);
+  const complete = useCallback(() => {
+    if (autoCompleteAlarm) {
+      cleanup(true);
+    } else {
+      Vibration.cancel();
+      soundRef.current?.stop();
+      setMode('done');
+    }
+  }, [autoCompleteAlarm, cleanup]);
+
   const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
   const startCamera = async () => {
@@ -194,8 +239,38 @@ export default function AlarmFiringScreen() {
         </View>
       )}
 
-      {mode === 'camera' && <CameraCounter reps={reps} onDone={complete} onSkip={dismiss} />}
-      {mode === 'manual' && <ManualCounter reps={reps} onDone={complete} onSkip={dismiss} />}
+      {mode === 'camera' && (
+        <CameraCounter
+          reps={reps}
+          onDone={complete}
+          onSkip={dismiss}
+          hapticOnRep={hapticOnRep}
+          preferFrontCamera={preferFrontCamera}
+        />
+      )}
+      {mode === 'manual' && (
+        <ManualCounter
+          reps={reps}
+          onDone={complete}
+          onSkip={dismiss}
+          hapticOnRep={hapticOnRep}
+        />
+      )}
+
+      {mode === 'done' && (
+        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 20}}>
+          <Text style={{fontSize: 64}}>💪🏽</Text>
+          <Text variant="headlineMedium" style={{color: c.primary, fontWeight: '800', textAlign: 'center'}}>
+            Done! {reps} reps banked.
+          </Text>
+          <Button
+            mode="contained"
+            onPress={() => cleanup(true)}
+            contentStyle={{paddingHorizontal: 40, paddingVertical: 10}}>
+            Dismiss Alarm
+          </Button>
+        </View>
+      )}
     </View>
   );
 }

@@ -1,10 +1,11 @@
 import React, {useEffect, useRef, useState, useCallback} from 'react';
-import {View, StyleSheet, StatusBar, NativeModules} from 'react-native';
+import {View, StyleSheet, StatusBar, NativeModules, Vibration} from 'react-native';
 import {Button, Text} from 'react-native-paper';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useNavigation} from '@react-navigation/native';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
+import {useSettingsStore} from '../../store/settingsStore';
 import {DarkTheme} from '../../theme';
 
 const {PoseDetection} = NativeModules;
@@ -14,7 +15,8 @@ const c = DarkTheme.colors;
 
 export default function BankCameraScreen() {
   const navigation = useNavigation();
-  const device = useCameraDevice('front');
+  const {hapticOnRep, keepScreenOn, preferFrontCamera} = useSettingsStore();
+  const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const {addReps} = useBankStore();
   const cameraRef = useRef<Camera>(null);
   const phaseRef = useRef<RepPhase>('up');
@@ -24,6 +26,13 @@ export default function BankCameraScreen() {
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
   const [debugAngle, setDebugAngle] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (keepScreenOn) {
+      PoseDetection.keepScreenOn();
+      return () => PoseDetection.allowScreenOff();
+    }
+  }, [keepScreenOn]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -44,6 +53,7 @@ export default function BankCameraScreen() {
           if (phaseRef.current === 'down' && newPhase === 'up') {
             countRef.current += 1;
             setCount(countRef.current);
+            if (hapticOnRep) Vibration.vibrate(40);
           }
           phaseRef.current = newPhase;
         }
@@ -54,7 +64,7 @@ export default function BankCameraScreen() {
       }
     }, 200);
     return () => clearInterval(interval);
-  }, []);
+  }, [hapticOnRep]);
 
   const done = useCallback(() => {
     if (countRef.current > 0) addReps(countRef.current);

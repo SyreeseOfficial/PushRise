@@ -1,8 +1,9 @@
 import React, {useState} from 'react';
 import {View, Modal, KeyboardAvoidingView, Platform} from 'react-native';
 import {
-  Appbar, Text, Button, Surface, TextInput, TouchableRipple, useTheme,
+  Appbar, Text, Button, Surface, TextInput, TouchableRipple, useTheme, ProgressBar,
 } from 'react-native-paper';
+import {useSettingsStore} from '../../store/settingsStore';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useBankStore} from '../../store/bankStore';
@@ -14,7 +15,8 @@ type Sheet = 'closed' | 'intro' | 'mode' | 'manual';
 export default function ProgressScreen() {
   const navigation = useNavigation<Nav>();
   const theme = useTheme();
-  const {totalReps, currentStreak, longestStreak, hasSeenBankIntro, markIntroSeen, addReps} = useBankStore();
+  const {totalReps, todayReps, currentStreak, longestStreak, hasSeenBankIntro, markIntroSeen, addReps} = useBankStore();
+  const {dailyGoal} = useSettingsStore();
   const [sheet, setSheet] = useState<Sheet>('closed');
   const [manualInput, setManualInput] = useState('');
 
@@ -100,6 +102,27 @@ export default function ProgressScreen() {
         <Text variant="labelSmall" style={{color: theme.colors.outline, textAlign: 'center', marginTop: 12}}>
           Best: {longestStreak} day{longestStreak !== 1 ? 's' : ''}
         </Text>
+      )}
+
+      {dailyGoal > 0 && (
+        <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginHorizontal: 16, marginTop: 12}}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10}}>
+            <Text variant="titleSmall" style={{fontWeight: '700'}}>Today's Goal</Text>
+            <Text variant="labelMedium" style={{color: theme.colors.onSurfaceVariant}}>
+              {todayReps} / {dailyGoal}
+            </Text>
+          </View>
+          <ProgressBar
+            progress={Math.min(todayReps / dailyGoal, 1)}
+            color={todayReps >= dailyGoal ? theme.colors.primary : theme.colors.secondary}
+            style={{height: 8, borderRadius: 4}}
+          />
+          {todayReps >= dailyGoal && (
+            <Text variant="labelSmall" style={{color: theme.colors.primary, marginTop: 8, fontWeight: '700'}}>
+              🎉 Goal crushed!
+            </Text>
+          )}
+        </Surface>
       )}
 
       {/* Bottom sheet via RN Modal for slide animation */}

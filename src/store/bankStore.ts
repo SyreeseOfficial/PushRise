@@ -19,6 +19,8 @@ export interface Reward {
 
 interface BankStore {
   totalReps: number;
+  todayReps: number;
+  todayDate: string; // 'YYYY-MM-DD', used to reset todayReps each day
   currentStreak: number;
   longestStreak: number;
   lastCompletedDate: string | null; // 'YYYY-MM-DD'
@@ -31,6 +33,7 @@ interface BankStore {
   editReward: (id: string, data: Omit<Reward, 'id'>) => void;
   deleteReward: (id: string) => void;
   redeemReward: (id: string) => void;
+  reset: () => void;
 }
 
 const DEFAULT_REWARDS: Reward[] = [
@@ -76,21 +79,33 @@ function computeStreak(s: BankStore, today: string): Partial<BankStore> {
   return {currentStreak: 1, lastCompletedDate: today, graceUsedAt: null};
 }
 
-export const useBankStore = create<BankStore>()(persist((set, get) => ({
+const BANK_DEFAULTS = {
   totalReps: 0,
+  todayReps: 0,
+  todayDate: '',
   currentStreak: 0,
   longestStreak: 0,
-  lastCompletedDate: null,
-  graceUsedAt: null,
+  lastCompletedDate: null as string | null,
+  graceUsedAt: null as string | null,
   hasSeenBankIntro: false,
   rewards: DEFAULT_REWARDS,
+};
+
+export const useBankStore = create<BankStore>()(persist((set, get) => ({
+  ...BANK_DEFAULTS,
 
   addReps: (n) => {
     if (n <= 0) return;
-    set(s => ({
-      totalReps: s.totalReps + n,
-      ...computeStreak(s, toDateStr(new Date())),
-    }));
+    const today = toDateStr(new Date());
+    set(s => {
+      const isNewDay = s.todayDate !== today;
+      return {
+        totalReps: s.totalReps + n,
+        todayReps: (isNewDay ? 0 : s.todayReps) + n,
+        todayDate: today,
+        ...computeStreak(s, today),
+      };
+    });
   },
 
   markIntroSeen: () => set({hasSeenBankIntro: true}),
@@ -116,4 +131,6 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       rewards: reward.oneTime ? rewards.filter(r => r.id !== id) : rewards,
     });
   },
+
+  reset: () => set({...BANK_DEFAULTS, rewards: DEFAULT_REWARDS}),
 }), {name: 'bank', storage: mmkvStorage}));

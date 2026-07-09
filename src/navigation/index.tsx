@@ -11,6 +11,7 @@ import ProgressScreen from '../screens/progress/ProgressScreen';
 import BankCameraScreen from '../screens/progress/BankCameraScreen';
 import RewardsScreen from '../screens/rewards/RewardsScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
+import PermissionsScreen from '../screens/settings/PermissionsScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import {useOnboardingStore} from '../store/onboardingStore';
 
@@ -111,6 +112,11 @@ export default function RootNavigator() {
               name="BankCamera"
               component={BankCameraScreen}
               options={{presentation: 'fullScreenModal', gestureEnabled: false}}
+            />
+            <Stack.Screen
+              name="Permissions"
+              component={PermissionsScreen}
+              options={{presentation: 'modal'}}
             />
           </>
         )}

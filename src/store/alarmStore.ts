@@ -27,6 +27,7 @@ interface AlarmStore {
   addAlarm: (data: Omit<Alarm, 'id' | 'enabled'>) => Promise<void>;
   toggleAlarm: (id: string) => Promise<void>;
   deleteAlarm: (id: string) => Promise<void>;
+  reset: () => Promise<void>;
 }
 
 export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
@@ -61,5 +62,11 @@ export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
   deleteAlarm: async id => {
     await cancelAlarm(id);
     set(s => ({alarms: s.alarms.filter(a => a.id !== id)}));
+  },
+
+  reset: async () => {
+    const {alarms} = get();
+    await Promise.all(alarms.map(a => cancelAlarm(a.id)));
+    set({alarms: []});
   },
 }), {name: 'alarms', storage: mmkvStorage}));

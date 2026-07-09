@@ -1,6 +1,7 @@
 package com.pushrise
 
 import android.graphics.BitmapFactory
+import android.view.WindowManager
 import com.facebook.react.bridge.*
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
@@ -20,6 +21,20 @@ class PoseDetectionModule(reactContext: ReactApplicationContext) :
             .setPreferredHardwareConfigs(PoseDetectorOptions.CPU_GPU)
             .build()
     )
+
+    @ReactMethod
+    fun keepScreenOn() {
+        reactApplicationContext.currentActivity?.runOnUiThread {
+            reactApplicationContext.currentActivity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    @ReactMethod
+    fun allowScreenOff() {
+        reactApplicationContext.currentActivity?.runOnUiThread {
+            reactApplicationContext.currentActivity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     @ReactMethod
     fun detectFromFile(filePath: String, promise: Promise) {
