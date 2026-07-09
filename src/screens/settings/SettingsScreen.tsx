@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
-import {View, ScrollView, Linking, Alert} from 'react-native';
+import {View, ScrollView, Linking, Alert, TouchableOpacity} from 'react-native';
 import {
-  Appbar, Text, List, Switch, Divider, Portal, Dialog, Button,
-  RadioButton, TextInput, useTheme, Icon,
+  Text, Switch, Portal, Dialog, Button,
+  RadioButton, TextInput, useTheme, Icon, Divider,
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
@@ -10,6 +10,7 @@ import {useThemeStore, ThemeMode} from '../../store/themeStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
+import {cardShadow} from '../../theme';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -46,288 +47,274 @@ export default function SettingsScreen() {
   };
   const close = () => setDialog(null);
 
-  const saveReps = () => {
-    const n = parseInt(tempReps, 10);
-    if (n >= 1) settings.update({defaultReps: n});
-    close();
-  };
-
-  const saveGoal = () => {
-    const n = parseInt(tempGoal, 10);
-    settings.update({dailyGoal: n > 0 ? n : 0});
-    close();
-  };
-
+  const saveReps = () => { const n = parseInt(tempReps, 10); if (n >= 1) settings.update({defaultReps: n}); close(); };
+  const saveGoal = () => { const n = parseInt(tempGoal, 10); settings.update({dailyGoal: n > 0 ? n : 0}); close(); };
   const saveTheme = () => { setMode(tempTheme); close(); };
-
   const handleResetSettings = () => { settings.reset(); close(); };
-
-  const handleResetAll = async () => {
-    settings.reset();
-    resetBank();
-    await resetAlarms();
-    close();
-  };
+  const handleResetAll = async () => { settings.reset(); resetBank(); await resetAlarms(); close(); };
 
   const themeLabel = THEME_OPTIONS.find(o => o.value === mode)?.label ?? 'System';
 
-  const sectionHeader = (label: string, color?: string) => (
-    <List.Subheader style={{
-      color: color ?? c.primary,
-      fontWeight: '700',
-      fontSize: 12,
-      letterSpacing: 0.8,
-      paddingTop: 24,
-      paddingBottom: 4,
+  // iOS-grouped card container
+  const Card = ({children}: {children: React.ReactNode}) => (
+    <View style={[{
+      backgroundColor: c.surface,
+      borderRadius: 16,
+      marginHorizontal: 16,
+      overflow: 'hidden',
+    }, theme.dark ? {} : cardShadow]}>
+      {children}
+    </View>
+  );
+
+  const SectionLabel = ({label, color}: {label: string; color?: string}) => (
+    <Text style={{
+      fontSize: 12, fontWeight: '600', letterSpacing: 0.5,
+      color: color ?? c.onSurfaceVariant,
+      paddingHorizontal: 28, paddingTop: 28, paddingBottom: 8,
+      textTransform: 'uppercase',
     }}>
-      {label.toUpperCase()}
-    </List.Subheader>
+      {label}
+    </Text>
   );
 
   const SettingIcon = ({icon, bg, fg}: {icon: string; bg?: string; fg?: string}) => (
     <View style={{
-      width: 40, height: 40, borderRadius: 12,
+      width: 36, height: 36, borderRadius: 10,
       backgroundColor: bg ?? c.secondaryContainer,
       alignItems: 'center', justifyContent: 'center',
-      marginLeft: 4,
     }}>
-      <Icon source={icon} size={22} color={fg ?? c.onSecondaryContainer} />
+      <Icon source={icon} size={20} color={fg ?? c.onSecondaryContainer} />
     </View>
   );
 
+  // Row with trailing chevron / value
+  const TapRow = ({
+    icon, iconBg, iconFg, title, value, onPress, last = false,
+  }: {
+    icon: string; iconBg?: string; iconFg?: string;
+    title: string; value?: string;
+    onPress: () => void; last?: boolean;
+  }) => (
+    <>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={{
+        flexDirection: 'row', alignItems: 'center',
+        paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+      }}>
+        <SettingIcon icon={icon} bg={iconBg} fg={iconFg} />
+        <Text style={{flex: 1, fontSize: 15, color: c.onSurface}}>{title}</Text>
+        {value && <Text style={{fontSize: 14, color: c.onSurfaceVariant}}>{value}</Text>}
+        <Icon source="chevron-right" size={18} color={c.onSurfaceVariant} />
+      </TouchableOpacity>
+      {!last && <Divider style={{marginLeft: 64}} />}
+    </>
+  );
+
+  // Row with trailing switch
   const SwitchRow = ({
-    icon, iconBg, iconFg, title, description, value, onChange,
+    icon, iconBg, iconFg, title, description, value, onChange, last = false,
   }: {
     icon: string; iconBg?: string; iconFg?: string;
     title: string; description?: string;
-    value: boolean; onChange: (v: boolean) => void;
+    value: boolean; onChange: (v: boolean) => void; last?: boolean;
   }) => (
-    <List.Item
-      title={title}
-      description={description}
-      titleStyle={{fontSize: 15}}
-      descriptionStyle={{fontSize: 12, marginTop: 1}}
-      descriptionNumberOfLines={2}
-      left={() => (
-        <View style={{justifyContent: 'center', paddingLeft: 16}}>
-          <SettingIcon icon={icon} bg={iconBg} fg={iconFg} />
+    <>
+      <TouchableOpacity onPress={() => onChange(!value)} activeOpacity={0.6} style={{
+        flexDirection: 'row', alignItems: 'center',
+        paddingHorizontal: 16, paddingVertical: 12, gap: 12,
+      }}>
+        <SettingIcon icon={icon} bg={iconBg} fg={iconFg} />
+        <View style={{flex: 1}}>
+          <Text style={{fontSize: 15, color: c.onSurface}}>{title}</Text>
+          {description && (
+            <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{description}</Text>
+          )}
         </View>
-      )}
-      right={() => (
-        <View style={{justifyContent: 'center', paddingRight: 8}}>
-          <Switch value={value} onValueChange={onChange} />
-        </View>
-      )}
-      onPress={() => onChange(!value)}
-      style={{paddingVertical: 4}}
-    />
+        <Switch value={value} onValueChange={onChange} />
+      </TouchableOpacity>
+      {!last && <Divider style={{marginLeft: 64}} />}
+    </>
+  );
+
+  // Danger tap row (no icon box, red text)
+  const DangerRow = ({title, description, onPress, last = false}: {
+    title: string; description?: string; onPress: () => void; last?: boolean;
+  }) => (
+    <>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={{
+        paddingHorizontal: 16, paddingVertical: 14,
+      }}>
+        <Text style={{fontSize: 15, color: c.error, fontWeight: '600'}}>{title}</Text>
+        {description && (
+          <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{description}</Text>
+        )}
+      </TouchableOpacity>
+      {!last && <Divider />}
+    </>
   );
 
   return (
-    <View style={{flex: 1, backgroundColor: c.background}}>
-      <Appbar.Header>
-        <Appbar.Content title="Settings" />
-      </Appbar.Header>
+    <View style={{flex: 1, backgroundColor: theme.dark ? c.background : c.surfaceVariant}}>
+      {/* Large title */}
+      <View style={{paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8}}>
+        <Text style={{fontSize: 34, fontWeight: '800', color: c.onBackground, letterSpacing: -0.5}}>
+          Settings
+        </Text>
+      </View>
 
-      <ScrollView contentContainerStyle={{paddingBottom: 40}}>
+      <ScrollView contentContainerStyle={{paddingBottom: 48}} showsVerticalScrollIndicator={false}>
 
-        {/* ── APPEARANCE ── */}
-        {sectionHeader('Appearance')}
-        <List.Item
-          title="Theme"
-          description={themeLabel}
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="palette-outline" /></View>}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => open('theme')}
-          style={{paddingVertical: 4}}
-        />
+        <SectionLabel label="Appearance" />
+        <Card>
+          <TapRow
+            icon="palette-outline"
+            title="Theme"
+            value={themeLabel}
+            onPress={() => open('theme')}
+            last
+          />
+        </Card>
 
-        <Divider style={{marginTop: 8}} />
+        <SectionLabel label="Alarm Defaults" />
+        <Card>
+          <TapRow
+            icon="counter"
+            title="Default push-ups"
+            value={`${settings.defaultReps} reps`}
+            onPress={() => open('defaultReps')}
+            last
+          />
+        </Card>
 
-        {/* ── ALARM DEFAULTS ── */}
-        {sectionHeader('Alarm Defaults')}
-        <List.Item
-          title="Default push-ups"
-          description={`${settings.defaultReps} reps per new alarm`}
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="counter" /></View>}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => open('defaultReps')}
-          style={{paddingVertical: 4}}
-        />
+        <SectionLabel label="Alarm Behavior" />
+        <Card>
+          <SwitchRow
+            icon="check-circle-outline"
+            title="Auto-dismiss when done"
+            description="Alarm closes the moment you finish your reps"
+            value={settings.autoCompleteAlarm}
+            onChange={v => settings.update({autoCompleteAlarm: v})}
+          />
+          <SwitchRow
+            icon="volume-mute"
+            title="Mute alarm during push-ups"
+            description="Silences alarm sound once camera counting starts"
+            value={settings.muteAudioDuringPushups}
+            onChange={v => settings.update({muteAudioDuringPushups: v})}
+          />
+          <SwitchRow
+            icon="vibrate"
+            title="Vibrate on alarm"
+            description="Phone vibrates when alarm fires"
+            value={settings.vibrateOnAlarm}
+            onChange={v => settings.update({vibrateOnAlarm: v})}
+            last
+          />
+        </Card>
 
-        <Divider style={{marginTop: 8}} />
+        <SectionLabel label="Push-up Session" />
+        <Card>
+          <SwitchRow
+            icon="hand-wave-outline"
+            title="Haptic feedback per rep"
+            description="Phone buzzes briefly each time a rep is counted"
+            value={settings.hapticOnRep}
+            onChange={v => settings.update({hapticOnRep: v})}
+          />
+          <SwitchRow
+            icon="music-note"
+            title="Audio cue per rep"
+            description="Plays a short sound when each rep is counted"
+            value={settings.audioCueOnRep}
+            onChange={v => settings.update({audioCueOnRep: v})}
+          />
+          <SwitchRow
+            icon="monitor-shimmer"
+            title="Keep screen on"
+            description="Prevents screen from sleeping during a push-up session"
+            value={settings.keepScreenOn}
+            onChange={v => settings.update({keepScreenOn: v})}
+          />
+          <SwitchRow
+            icon="camera-flip-outline"
+            title="Use front camera"
+            description="Off = use rear camera instead"
+            value={settings.preferFrontCamera}
+            onChange={v => settings.update({preferFrontCamera: v})}
+            last
+          />
+        </Card>
 
-        {/* ── ALARM BEHAVIOR ── */}
-        {sectionHeader('Alarm Behavior')}
-        <SwitchRow
-          icon="check-circle-outline"
-          title="Auto-dismiss when done"
-          description="Alarm closes the moment you finish your reps"
-          value={settings.autoCompleteAlarm}
-          onChange={v => settings.update({autoCompleteAlarm: v})}
-        />
-        <Divider leftInset />
-        <SwitchRow
-          icon="volume-mute"
-          title="Mute alarm during push-ups"
-          description="Silences alarm sound once camera counting starts"
-          value={settings.muteAudioDuringPushups}
-          onChange={v => settings.update({muteAudioDuringPushups: v})}
-        />
-        <Divider leftInset />
-        <SwitchRow
-          icon="vibrate"
-          title="Vibrate on alarm"
-          description="Phone vibrates when alarm fires"
-          value={settings.vibrateOnAlarm}
-          onChange={v => settings.update({vibrateOnAlarm: v})}
-        />
+        <SectionLabel label="Goals" />
+        <Card>
+          <TapRow
+            icon="flag-outline"
+            title="Daily push-up goal"
+            value={settings.dailyGoal > 0 ? `${settings.dailyGoal} reps` : 'Off'}
+            onPress={() => open('dailyGoal')}
+            last
+          />
+        </Card>
 
-        <Divider style={{marginTop: 8}} />
+        <SectionLabel label="App" />
+        <Card>
+          <TapRow
+            icon="shield-check-outline"
+            title="Permissions"
+            onPress={() => navigation.navigate('Permissions')}
+          />
+          <TapRow
+            icon="star-outline"
+            iconBg={c.tertiaryContainer}
+            iconFg={c.onTertiaryContainer}
+            title="Rate PushRise"
+            onPress={() =>
+              Linking.openURL('https://play.google.com/store/apps/details?id=com.pushrise').catch(() =>
+                Alert.alert('Not yet', 'The app is not on the Play Store yet.'),
+              )
+            }
+          />
+          <TapRow
+            icon="file-document-outline"
+            title="Privacy Policy"
+            onPress={() => Alert.alert('Coming Soon', 'Privacy policy will be available before launch.')}
+          />
+          <TapRow
+            icon="email-outline"
+            title="Contact Support"
+            onPress={() =>
+              Linking.openURL('mailto:syreeseofficial@gmail.com?subject=PushRise%20Support').catch(() => {})
+            }
+          />
+          <TapRow
+            icon="information-outline"
+            title="About"
+            value={`v${APP_VERSION}`}
+            onPress={() => open('about')}
+            last
+          />
+        </Card>
 
-        {/* ── PUSH-UP SESSION ── */}
-        {sectionHeader('Push-up Session')}
-        <SwitchRow
-          icon="hand-wave-outline"
-          title="Haptic feedback per rep"
-          description="Phone buzzes briefly each time a rep is counted"
-          value={settings.hapticOnRep}
-          onChange={v => settings.update({hapticOnRep: v})}
-        />
-        <Divider leftInset />
-        <SwitchRow
-          icon="music-note"
-          title="Audio cue per rep"
-          description="Plays a short sound when each rep is counted"
-          value={settings.audioCueOnRep}
-          onChange={v => settings.update({audioCueOnRep: v})}
-        />
-        <Divider leftInset />
-        <SwitchRow
-          icon="monitor-shimmer"
-          title="Keep screen on"
-          description="Prevents screen from sleeping during a push-up session"
-          value={settings.keepScreenOn}
-          onChange={v => settings.update({keepScreenOn: v})}
-        />
-        <Divider leftInset />
-        <SwitchRow
-          icon="camera-flip-outline"
-          title="Use front camera"
-          description="Off = use rear camera instead"
-          value={settings.preferFrontCamera}
-          onChange={v => settings.update({preferFrontCamera: v})}
-        />
+        <SectionLabel label="Danger Zone" color={c.error} />
+        <Card>
+          <DangerRow
+            title="Reset Settings"
+            description="Restore all settings to defaults"
+            onPress={() => open('resetSettings')}
+          />
+          <DangerRow
+            title="Reset All Data"
+            description="Delete all alarms, rewards, progress, and settings"
+            onPress={() => open('resetAll')}
+            last
+          />
+        </Card>
 
-        <Divider style={{marginTop: 8}} />
-
-        {/* ── GOALS ── */}
-        {sectionHeader('Goals')}
-        <List.Item
-          title="Daily push-up goal"
-          description={settings.dailyGoal > 0 ? `${settings.dailyGoal} push-ups per day` : 'Off'}
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="flag-outline" /></View>}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => open('dailyGoal')}
-          style={{paddingVertical: 4}}
-        />
-
-        <Divider style={{marginTop: 8}} />
-
-        {/* ── APP ── */}
-        {sectionHeader('App')}
-        <List.Item
-          title="Permissions"
-          description="Camera, notifications, battery & more"
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="shield-check-outline" /></View>}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => navigation.navigate('Permissions')}
-          style={{paddingVertical: 4}}
-        />
-        <Divider leftInset />
-        <List.Item
-          title="Rate PushRise"
-          description="Enjoying it? Leave a review"
-          left={() => (
-            <View style={{justifyContent: 'center', paddingLeft: 16}}>
-              <SettingIcon icon="star-outline" bg={c.tertiaryContainer} fg={c.onTertiaryContainer} />
-            </View>
-          )}
-          right={p => <List.Icon {...p} icon="open-in-new" />}
-          onPress={() =>
-            Linking.openURL('https://play.google.com/store/apps/details?id=com.pushrise').catch(() =>
-              Alert.alert('Not yet', 'The app is not on the Play Store yet.'),
-            )
-          }
-          style={{paddingVertical: 4}}
-        />
-        <Divider leftInset />
-        <List.Item
-          title="Privacy Policy"
-          description="How we handle your data"
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="file-document-outline" /></View>}
-          right={p => <List.Icon {...p} icon="open-in-new" />}
-          onPress={() => Alert.alert('Coming Soon', 'Privacy policy will be available before launch.')}
-          style={{paddingVertical: 4}}
-        />
-        <Divider leftInset />
-        <List.Item
-          title="Contact Support"
-          description="syreeseofficial@gmail.com"
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="email-outline" /></View>}
-          right={p => <List.Icon {...p} icon="open-in-new" />}
-          onPress={() =>
-            Linking.openURL('mailto:syreeseofficial@gmail.com?subject=PushRise%20Support').catch(() => {})
-          }
-          style={{paddingVertical: 4}}
-        />
-        <Divider leftInset />
-        <List.Item
-          title="About"
-          description={`PushRise v${APP_VERSION}`}
-          left={() => <View style={{justifyContent: 'center', paddingLeft: 16}}><SettingIcon icon="information-outline" /></View>}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => open('about')}
-          style={{paddingVertical: 4}}
-        />
-
-        <Divider style={{marginTop: 8}} />
-
-        {/* ── RESET ── */}
-        {sectionHeader('Reset', c.error)}
-        <List.Item
-          title="Reset Settings"
-          description="Restore all settings to defaults"
-          titleStyle={{color: c.error}}
-          left={() => (
-            <View style={{justifyContent: 'center', paddingLeft: 16}}>
-              <SettingIcon icon="restore" bg={c.errorContainer} fg={c.onErrorContainer} />
-            </View>
-          )}
-          onPress={() => open('resetSettings')}
-          style={{paddingVertical: 4}}
-        />
-        <Divider leftInset />
-        <List.Item
-          title="Reset All Data"
-          description="Delete all alarms, rewards, progress, and settings"
-          titleStyle={{color: c.error, fontWeight: '700'}}
-          left={() => (
-            <View style={{justifyContent: 'center', paddingLeft: 16}}>
-              <SettingIcon icon="delete-forever-outline" bg={c.errorContainer} fg={c.onErrorContainer} />
-            </View>
-          )}
-          onPress={() => open('resetAll')}
-          style={{paddingVertical: 4}}
-        />
-
-        <View style={{height: 16}} />
+        <View style={{height: 8}} />
       </ScrollView>
 
-      {/* ── DIALOGS ── */}
+      {/* Dialogs */}
       <Portal>
-
-        {/* Theme picker */}
         <Dialog visible={dialog === 'theme'} onDismiss={close}>
           <Dialog.Title>Theme</Dialog.Title>
           <Dialog.Content>
@@ -343,7 +330,6 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Default reps */}
         <Dialog visible={dialog === 'defaultReps'} onDismiss={close}>
           <Dialog.Title>Default Push-ups</Dialog.Title>
           <Dialog.Content>
@@ -368,7 +354,6 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Daily goal */}
         <Dialog visible={dialog === 'dailyGoal'} onDismiss={close}>
           <Dialog.Title>Daily Push-up Goal</Dialog.Title>
           <Dialog.Content>
@@ -394,7 +379,6 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {/* About */}
         <Dialog visible={dialog === 'about'} onDismiss={close} style={{borderRadius: 28}}>
           <Dialog.Content style={{paddingTop: 28, alignItems: 'center'}}>
             <View style={{
@@ -429,7 +413,6 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Reset Settings confirmation */}
         <Dialog visible={dialog === 'resetSettings'} onDismiss={close}>
           <Dialog.Title>Reset Settings?</Dialog.Title>
           <Dialog.Content>
@@ -443,7 +426,6 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Reset All confirmation */}
         <Dialog visible={dialog === 'resetAll'} onDismiss={close}>
           <Dialog.Icon icon="alert-circle-outline" color={c.error} />
           <Dialog.Title style={{textAlign: 'center'}}>Reset Everything?</Dialog.Title>
@@ -458,7 +440,6 @@ export default function SettingsScreen() {
             <Button textColor={c.error} onPress={handleResetAll}>Delete Everything</Button>
           </Dialog.Actions>
         </Dialog>
-
       </Portal>
     </View>
   );

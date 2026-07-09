@@ -1,12 +1,10 @@
 import React, {useState, useEffect} from 'react';
-import {FlatList, View, Modal, KeyboardAvoidingView, Platform, Alert} from 'react-native';
-import {
-  Appbar, FAB, Text, Button, Surface, TextInput,
-  TouchableRipple, useTheme, Divider, Switch, Snackbar,
-} from 'react-native-paper';
+import {FlatList, View, Modal, KeyboardAvoidingView, Platform, Alert, TouchableOpacity} from 'react-native';
+import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme} from 'react-native-paper';
+import LinearGradient from 'react-native-linear-gradient';
 import {useBankStore, Reward} from '../../store/bankStore';
+import {BRAND_GRADIENT, cardShadow} from '../../theme';
 
-// 4 rows × 5 columns = 20 default emojis
 const EMOJIS = [
   '🏆','🎁','🎉','⭐','💫',
   '📺','🎮','🎬','🎵','🎧',
@@ -32,6 +30,7 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   onClose: () => void;
 }) {
   const theme = useTheme();
+  const c = theme.colors;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   useEffect(() => {
@@ -48,72 +47,55 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
 
   const save = () => {
     const cost = parseInt(form.cost, 10);
-    if (!form.title.trim()) return;
-    if (!cost || cost < 1) return;
+    if (!form.title.trim() || !cost || cost < 1) return;
     onSave({emoji: form.emoji, title: form.title.trim(), cost, oneTime: form.oneTime});
-  };
-
-  const selectGridEmoji = (e: string) => setForm(f => ({...f, emoji: e, customEmoji: ''}));
-
-  const sheetBg = {
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{flex: 1, justifyContent: 'flex-end', backgroundColor: theme.colors.backdrop}}>
-        <View style={sheetBg}>
+        style={{flex: 1, justifyContent: 'flex-end', backgroundColor: c.backdrop}}>
+        <View style={{
+          backgroundColor: c.surface,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          padding: 28,
+          paddingBottom: 48,
+        }}>
+          <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 24}} />
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
-            <Text variant="titleLarge">{modalTitle}</Text>
+            <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, letterSpacing: -0.3}}>{modalTitle}</Text>
             <Button onPress={onClose} mode="text">Close</Button>
           </View>
 
-          {/* Emoji grid — 4 rows */}
-          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 10}}>
+          <Text style={{fontSize: 12, fontWeight: '600', color: c.onSurfaceVariant, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5}}>
             Emoji
           </Text>
           <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12}}>
             {EMOJIS.map(e => (
-              <TouchableRipple
-                key={e}
-                onPress={() => selectGridEmoji(e)}
-                borderless
-                style={{borderRadius: 12}}>
-                <Surface
-                  elevation={0}
-                  style={{
-                    width: 48, height: 48, borderRadius: 12,
-                    alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: form.emoji === e && !form.customEmoji
-                      ? theme.colors.secondaryContainer
-                      : theme.colors.surfaceVariant,
-                  }}>
+              <TouchableRipple key={e} onPress={() => setForm(f => ({...f, emoji: e, customEmoji: ''}))} borderless style={{borderRadius: 12}}>
+                <View style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: form.emoji === e && !form.customEmoji ? c.primaryContainer : c.surfaceVariant,
+                }}>
                   <Text style={{fontSize: 24}}>{e}</Text>
-                </Surface>
+                </View>
               </TouchableRipple>
             ))}
           </View>
 
-          {/* Custom emoji input */}
           <TextInput
             mode="outlined"
             label="Or type a custom emoji"
             value={form.customEmoji}
-            onChangeText={v => {
-              setForm(f => ({...f, customEmoji: v, emoji: v || f.emoji}));
-            }}
+            onChangeText={v => setForm(f => ({...f, customEmoji: v, emoji: v || f.emoji}))}
             placeholder="🏅"
             maxLength={8}
             style={{marginBottom: 16}}
           />
 
-          {/* Reward name */}
           <TextInput
             mode="outlined"
             label="Reward name"
@@ -124,7 +106,6 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             style={{marginBottom: 16}}
           />
 
-          {/* Cost */}
           <TextInput
             mode="outlined"
             label="Push-ups required"
@@ -136,12 +117,11 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             style={{width: 160, marginBottom: 16}}
           />
 
-          {/* One-time toggle */}
-          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24}}>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28}}>
             <View style={{flex: 1, marginRight: 12}}>
-              <Text variant="labelLarge">One-time reward</Text>
-              <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
-                Removes from list after you redeem it. Off = repeatable.
+              <Text style={{fontSize: 15, fontWeight: '600', color: c.onSurface}}>One-time reward</Text>
+              <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
+                Removes after redeeming. Off = repeatable.
               </Text>
             </View>
             <Switch value={form.oneTime} onValueChange={v => setForm(f => ({...f, oneTime: v}))} />
@@ -163,31 +143,40 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
   onLongPress: () => void;
 }) {
   const theme = useTheme();
+  const c = theme.colors;
   const canAfford = totalReps >= reward.cost;
   const needed = reward.cost - totalReps;
 
   return (
-    <TouchableRipple onLongPress={onLongPress} borderless style={{borderRadius: 16, marginBottom: 10}}>
-      <Surface elevation={1} style={{borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center'}}>
-        <View style={{marginRight: 14}}>
-          <Text style={{fontSize: 34}}>{reward.emoji}</Text>
+    <TouchableRipple onLongPress={onLongPress} borderless style={[{
+      borderRadius: 20,
+      marginBottom: 12,
+      backgroundColor: c.surface,
+    }, theme.dark ? {} : cardShadow]}>
+      <View style={{borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14}}>
+        <View style={{
+          width: 52, height: 52, borderRadius: 14,
+          backgroundColor: canAfford ? c.primaryContainer : c.surfaceVariant,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={{fontSize: 28}}>{reward.emoji}</Text>
         </View>
         <View style={{flex: 1}}>
-          <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-            <Text variant="titleMedium">{reward.title}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap'}}>
+            <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}}>{reward.title}</Text>
             {reward.oneTime && (
-              <Text variant="labelSmall" style={{
-                color: theme.colors.onSecondaryContainer,
-                backgroundColor: theme.colors.secondaryContainer,
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                borderRadius: 4,
+              <Text style={{
+                fontSize: 10, fontWeight: '700',
+                color: c.onSecondaryContainer,
+                backgroundColor: c.secondaryContainer,
+                paddingHorizontal: 6, paddingVertical: 2,
+                borderRadius: 4, textTransform: 'uppercase', letterSpacing: 0.4,
               }}>
                 one-time
               </Text>
             )}
           </View>
-          <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 3}}>
+          <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 4, fontWeight: '500'}}>
             {reward.cost.toLocaleString()} push-ups
           </Text>
         </View>
@@ -198,13 +187,14 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
           style={{borderRadius: 24}}>
           {canAfford ? 'Redeem' : `+${needed.toLocaleString()}`}
         </Button>
-      </Surface>
+      </View>
     </TouchableRipple>
   );
 }
 
 export default function RewardsScreen() {
   const theme = useTheme();
+  const c = theme.colors;
   const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward} = useBankStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
@@ -229,8 +219,7 @@ export default function RewardsScreen() {
 
   const handleTryRedeem = (r: Reward) => {
     if (totalReps < r.cost) {
-      const needed = r.cost - totalReps;
-      setSnackbar(`You need ${needed.toLocaleString()} more push-ups to unlock this.`);
+      setSnackbar(`You need ${(r.cost - totalReps).toLocaleString()} more push-ups to unlock this.`);
       return;
     }
     Alert.alert(
@@ -244,19 +233,34 @@ export default function RewardsScreen() {
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
-      <Appbar.Header>
-        <Appbar.Content title="Rewards" />
-      </Appbar.Header>
-
-      <View style={{flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 20, paddingBottom: 16}}>
-        <Text style={{fontSize: 28, fontWeight: '700', color: theme.colors.primary}}>
-          {totalReps.toLocaleString()}
+    <View style={{flex: 1, backgroundColor: c.background}}>
+      {/* Header */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingTop: 60,
+        paddingBottom: 20,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+      }}>
+        <Text style={{fontSize: 34, fontWeight: '800', color: c.onBackground, letterSpacing: -0.5}}>
+          Rewards
         </Text>
-        <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant}}> push-ups banked</Text>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: c.surfaceVariant,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 100,
+          gap: 4,
+        }}>
+          <Text style={{fontSize: 16}}>💪🏽</Text>
+          <Text style={{fontSize: 14, fontWeight: '700', color: c.onBackground}}>
+            {totalReps.toLocaleString()}
+          </Text>
+        </View>
       </View>
-
-      <Divider />
 
       <FlatList
         data={rewards}
@@ -270,31 +274,42 @@ export default function RewardsScreen() {
           />
         )}
         contentContainerStyle={[
-          {paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100},
+          {paddingHorizontal: 16, paddingTop: 4, paddingBottom: 120},
           rewards.length === 0 && {flex: 1},
         ]}
         ListEmptyComponent={
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80}}>
-            <Text variant="titleMedium" style={{color: theme.colors.onSurfaceVariant}}>No rewards yet</Text>
-            <Text variant="bodyMedium" style={{color: theme.colors.outline, marginTop: 8}}>
-              Tap + to create your first one
-            </Text>
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 8}}>
+            <Text style={{fontSize: 48}}>🏆</Text>
+            <Text style={{fontSize: 17, fontWeight: '600', color: c.onSurfaceVariant}}>No rewards yet</Text>
+            <Text style={{fontSize: 14, color: c.outline}}>Tap + to create your first one</Text>
           </View>
         }
         showsVerticalScrollIndicator={false}
       />
 
-      <FAB
-        icon="plus"
-        variant="primary"
-        style={{position: 'absolute', bottom: 88, right: 24}}
+      {/* Gradient FAB */}
+      <TouchableOpacity
         onPress={openAdd}
-      />
+        activeOpacity={0.85}
+        style={{position: 'absolute', bottom: 100, right: 24}}>
+        <LinearGradient
+          colors={BRAND_GRADIENT.colors}
+          start={BRAND_GRADIENT.start}
+          end={BRAND_GRADIENT.end}
+          style={{
+            width: 60, height: 60, borderRadius: 18,
+            alignItems: 'center', justifyContent: 'center',
+            shadowColor: '#FF4500',
+            shadowOffset: {width: 0, height: 6},
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            elevation: 8,
+          }}>
+          <Icon source="plus" size={28} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
-      <Snackbar
-        visible={!!snackbar}
-        onDismiss={() => setSnackbar('')}
-        duration={3000}>
+      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000}>
         {snackbar}
       </Snackbar>
 
