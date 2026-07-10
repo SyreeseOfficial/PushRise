@@ -1,14 +1,9 @@
 import {create} from 'zustand';
-import {persist, createJSONStorage} from 'zustand/middleware';
-import {createMMKV} from 'react-native-mmkv';
+import {persist} from 'zustand/middleware';
 import {getBonus, checkMilestone, getWeekStart} from '../utils/engagement';
+import {makeMMKVStorage} from './mmkvStorage';
 
-const storage = createMMKV();
-const mmkvStorage = createJSONStorage(() => ({
-  getItem: (key: string) => storage.getString(key) ?? null,
-  setItem: (key: string, value: string) => storage.set(key, value),
-  removeItem: (key: string) => storage.delete(key),
-}));
+const mmkvStorage = makeMMKVStorage();
 
 export interface Reward {
   id: string;
@@ -58,10 +53,6 @@ const DEFAULT_REWARDS: Reward[] = [
   {id: 'd4', emoji: '👕', title: 'New Fit', cost: 200},
   {id: 'd5', emoji: '💵', title: '$10 Spending Money', cost: 150},
 ];
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 function daysBetween(a: string, b: string): number {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
@@ -118,7 +109,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
     if (n <= 0) return;
     const s = get();
     const now = new Date();
-    const today = toDateStr(now);
+    const today = now.toISOString().slice(0, 10);
     const weekStart = getWeekStart();
     const hour = now.getHours();
 

@@ -193,7 +193,3 @@ export async function scheduleRivalNotif(userReps: number) {
   );
 }
 
-export async function cancelRivalNotif() {
-  await notifee.cancelTriggerNotification(RIVAL_NOTIF_ID);
-  await notifee.cancelNotification(RIVAL_NOTIF_ID);
-}

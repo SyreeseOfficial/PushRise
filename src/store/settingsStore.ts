@@ -1,13 +1,8 @@
-import {createMMKV} from 'react-native-mmkv';
 import {create} from 'zustand';
-import {persist, createJSONStorage} from 'zustand/middleware';
+import {persist} from 'zustand/middleware';
+import {makeMMKVStorage} from './mmkvStorage';
 
-const storage = createMMKV({id: 'pushrise-settings'});
-const mmkvStorage = createJSONStorage(() => ({
-  getItem: (key: string) => storage.getString(key) ?? null,
-  setItem: (key: string, value: string) => storage.set(key, value),
-  removeItem: (key: string) => storage.delete(key),
-}));
+const mmkvStorage = makeMMKVStorage('pushrise-settings');
 
 export const SETTINGS_DEFAULTS = {
   defaultReps: 10,

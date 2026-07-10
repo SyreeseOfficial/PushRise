@@ -1,4 +1,4 @@
-export const BONUS_CHANCE = 0.15;
+const BONUS_CHANCE = 0.15;
 
 export function getBonus(): number {
   if (Math.random() >= BONUS_CHANCE) return 0;
@@ -99,7 +99,7 @@ const FAKE_NAMES = [
   'Camila R.', 'Diego F.', 'Valeria M.', 'Javier T.', 'Lucia C.',
 ];
 
-export interface LeaderboardEntry {
+interface LeaderboardEntry {
   name: string;
   weekReps: number;
   isUser: boolean;
@@ -129,7 +129,7 @@ export function getLeaderboard(userWeekReps: number): LeaderboardEntry[] {
 
 // ─── Boss Battle ───────────────────────────────────────────────────────────
 
-export interface Boss {
+interface Boss {
   name: string;
   weekReps: number; // their fixed rep count for the week, grows day by day
   isDefeated: boolean;

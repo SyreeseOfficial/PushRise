@@ -13,7 +13,7 @@ import {useSettingsStore} from '../../store/settingsStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
-  getBoss, getCommunityGoal,
+  getBoss, getCommunityGoal, getWeekStart,
 } from '../../utils/engagement';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
@@ -380,7 +380,7 @@ export default function ProgressScreen() {
   const [communityGoal, setCommunityGoal] = useState(getCommunityGoal);
   const [showBossWin, setShowBossWin] = useState(false);
 
-  const weekStart = useBankStore(s => s.weekStartDate) || require('../../utils/engagement').getWeekStart();
+  const weekStart = useBankStore(s => s.weekStartDate) || getWeekStart();
   const boss = getBoss(weekReps, weekStart, bossDefeatedWeek);
 
   // Refresh community goal number every 30s for live feel
