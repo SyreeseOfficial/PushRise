@@ -7,6 +7,9 @@ export type RootStackParamList = {
   AddAlarm: undefined;
   BankCamera: undefined;
   Permissions: undefined;
+  Paywall: undefined;
+  Downsell1: undefined;
+  Downsell2: undefined;
 };
 
 export const navigationRef =

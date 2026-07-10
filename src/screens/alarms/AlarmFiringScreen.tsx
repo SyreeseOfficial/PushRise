@@ -5,12 +5,16 @@ import Sound from 'react-native-sound';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import type {RouteProp} from '@react-navigation/native';
+import type {StackNavigationProp} from '@react-navigation/stack';
 import type {RootStackParamList} from '../../navigation/navigationRef';
+import InAppReview from 'react-native-in-app-review';
 import {cancelAlarm, dismissFiredAlarm, scheduleAlarm, scheduleRivalNotif} from '../../utils/notifee';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
+import {useSubscriptionStore, isTrialExpired} from '../../store/subscriptionStore';
+import {useOnboardingStore} from '../../store/onboardingStore';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
 const {PoseDetection} = NativeModules;
@@ -124,7 +128,7 @@ function CameraCounter({
 
 export default function AlarmFiringScreen() {
   const route = useRoute<Route>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const {colors: c} = useTheme();
   const {alarmId, reps, sound, volume} = route.params;
   const {addReps, totalReps} = useBankStore();
@@ -133,6 +137,9 @@ export default function AlarmFiringScreen() {
     vibrateOnAlarm, muteAudioDuringPushups, autoCompleteAlarm,
     hapticOnRep, keepScreenOn, preferFrontCamera,
   } = useSettingsStore();
+  const {trialStartedAt, isSubscribed} = useSubscriptionStore();
+  const isLocked = !isSubscribed && isTrialExpired(trialStartedAt);
+  const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
   const soundRef = useRef<Sound | null>(null);
@@ -182,9 +189,13 @@ export default function AlarmFiringScreen() {
     if (completed) {
       addReps(reps);
       scheduleRivalNotif(totalReps + reps);
+      if (!hasPromptedReview && InAppReview.isAvailable()) {
+        markReviewPrompted();
+        InAppReview.RequestInAppReview();
+      }
     }
     navigation.goBack();
-  }, [alarm, alarmId, reps, addReps, totalReps, navigation]);
+  }, [alarm, alarmId, reps, addReps, totalReps, navigation, hasPromptedReview, markReviewPrompted]);
 
   const complete = useCallback(() => {
     if (autoCompleteAlarm) {
@@ -229,12 +240,26 @@ export default function AlarmFiringScreen() {
           <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
             push-ups to silence this alarm
           </Text>
-          <Button mode="contained" onPress={startCamera} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
-            I'm Ready
-          </Button>
-          <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
-            Use manual count instead
-          </Button>
+          {isLocked ? (
+            <>
+              <Text style={{fontSize: 32}}>🔒</Text>
+              <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 16}}>
+                Your trial has ended. Upgrade to dismiss alarms with push-ups.
+              </Text>
+              <Button mode="contained" onPress={() => navigation.navigate('Paywall')} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+                Upgrade Now
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button mode="contained" onPress={startCamera} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+                I'm Ready
+              </Button>
+              <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
+                Use manual count instead
+              </Button>
+            </>
+          )}
           <Button mode="text" textColor={c.outline} onPress={dismiss}>
             Skip (no push-ups)
           </Button>

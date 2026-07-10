@@ -161,6 +161,32 @@ export async function cancelNudge() {
   await notifee.cancelNotification(NUDGE_NOTIF_ID);
 }
 
+// ─── Trial Warning Notifications ─────────────────────────────────────────────
+
+export async function scheduleTrialWarnings(trialStartedAt: number) {
+  const warnings = [
+    {id: 'trial-warn-5', daysOffset: 5, title: '2 days left on your trial.', body: 'Keep dismissing alarms with push-ups — upgrade to lock it in.'},
+    {id: 'trial-warn-7', daysOffset: 7, title: 'Your trial ends today.', body: 'Upgrade now to keep the push-up mechanic.'},
+  ] as const;
+
+  for (const {id, daysOffset, title, body} of warnings) {
+    const target = new Date(trialStartedAt + daysOffset * 86_400_000);
+    target.setHours(9, 0, 0, 0);
+    if (target.getTime() <= Date.now()) continue;
+
+    await notifee.cancelTriggerNotification(id);
+    await notifee.createTriggerNotification(
+      {id, title, body, android: {channelId: NUDGE_CHANNEL_ID}},
+      {type: TriggerType.TIMESTAMP, timestamp: target.getTime(), alarmManager: {type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE}} as TimestampTrigger,
+    );
+  }
+}
+
+export async function cancelTrialWarnings() {
+  await notifee.cancelTriggerNotification('trial-warn-5');
+  await notifee.cancelTriggerNotification('trial-warn-7');
+}
+
 // ─── Anonymous Rival ─────────────────────────────────────────────────────────
 
 const RIVAL_NAMES = [

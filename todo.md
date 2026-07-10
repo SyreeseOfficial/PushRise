@@ -24,7 +24,21 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 - [x] Fill out `pre-build.md` completely — DONE (screens, copy, voice, rewards, badges)
 - [ ] Decide: Xiaomi/Samsung testing — borrow a device or use BrowserStack (real device cloud)
-- [ ] Set up RevenueCat account and create products (monthly + lifetime) in Google Play Console
+- [x] Set up RevenueCat account and create products (monthly + lifetime) in Google Play Console
+  - [x] RevenueCat account created
+  - [x] Entitlement created: `PushRise Pro`
+  - [x] Packages created: `monthly` and `lifetime`
+  - [ ] **BLOCKED: Google Play identity verification pending** — once verified:
+    - [ ] Create subscription product in Play Console: ID `monthly`, price $2.99/mo, base plan ID `monthly-base`
+    - [ ] Create one-time product in Play Console: ID `lifetime`, price $14.99
+    - [ ] Create discounted subscription: ID `monthly-discounted`, price $1.49/mo, base plan ID `monthly-discounted-base`
+    - [ ] Import all 3 products into RevenueCat (Product catalog → Products → + New product)
+    - [ ] Attach `monthly` and `lifetime` to `PushRise Pro` entitlement (already set up)
+    - [ ] Attach `monthly-discounted` to `PushRise Pro` entitlement
+    - [ ] In RevenueCat Offerings: create `default` offering with `$rc_monthly` (→ monthly) and `$rc_lifetime` (→ lifetime) packages; mark as Default
+    - [ ] In RevenueCat Offerings: create `downsell` offering with `$rc_monthly` (→ monthly-discounted) package
+    - [ ] Rename "Test Store" app to "PushRise" in RevenueCat (Project settings → Apps)
+    - [ ] Wire `Downsell1Screen.handleBuy` to purchase `downsell` offering (see code comment in that file)
 - [x] Set up bare React Native project scaffold
 
 ---
@@ -45,17 +59,17 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - [x] Camera push-up detection (ML Kit, not MediaPipe — snapshot-based, no network needed)
 - [x] Manual fallback mode (hold-button-per-rep)
 - [x] **Outside-alarm push-up logging** — Progress tab Bank Push-ups CTA; camera or manual; all reps count toward bank
-- [ ] Battery optimization onboarding screen (OEM-specific instructions framed as "make your alarm bulletproof") — Permissions screen exists but doesn't walk through OEM steps yet
+- [x] Battery optimization onboarding screen (OEM-specific instructions framed as "make your alarm bulletproof") — Samsung and Xiaomi extra steps shown only on matching devices
 - [x] Notification permission onboarding screen (Permissions screen in settings + onboarding)
 - [x] Onboarding flow — 5 steps: welcome, create-alarm, daily-goal, grinding-for commitment, complete (simplified from 20-screen PRD; revisit pre-launch)
 - [x] Reward banking — 5 default rewards pre-loaded; user-created custom rewards; emoji picker; Paper Dialog redemption; confetti on redeem
 - [x] Streak tracking (goal-completion only, 1 grace day per 7-day rolling window)
-- [ ] RevenueCat paywall integration (7-day trial → monthly or lifetime)
-- [ ] Trial warning notifications (Day 5, Day 7)
-- [ ] Post-trial state: push-up mechanic locked, alarm still fires (user sees what they're missing)
-- [ ] Downsell screen 1: discounted price + real 15-min countdown timer
-- [ ] Downsell screen 2: 3-day trial extension (one-time, non-repeatable)
-- [ ] Review prompt — fires after first alarm successfully dismissed with push-ups (NOT during onboarding)
+- [x] RevenueCat paywall integration (7-day trial → monthly or lifetime)
+- [x] Trial warning notifications (Day 5, Day 7)
+- [x] Post-trial state: push-up mechanic locked, alarm still fires (user sees what they're missing)
+- [x] Downsell screen 1: discounted price + real 15-min countdown timer
+- [x] Downsell screen 2: 3-day trial extension (one-time, non-repeatable)
+- [x] Review prompt — fires after first alarm successfully dismissed with push-ups (NOT during onboarding)
 
 ---
 
@@ -64,10 +78,10 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - [ ] App icon (512×512 PNG)
 - [ ] Feature graphic (1024×500)
 - [ ] Screenshots (min. 2, aim for 6–8, phone + tablet)
-- [ ] Store listing copy (title, short description, full description)
-- [ ] Privacy policy — write and host at a real URL (replace placeholder links currently in app)
+- [x] Store listing copy — saved in `store-listing.md` (**delete file before submission**)
+- [ ] Privacy policy — copy drafted (see below), needs to go live at syreese.com/pushrise/privacy-policy
 - [ ] Camera permission justification statement for Play Store review
-- [ ] Subscription terms clearly displayed in-app (Play Store requirement)
+- [x] Subscription terms copy — saved in `subscription-terms.md` (**delete file before submission**); still needs to be wired into the paywall UI near the purchase buttons
 - [ ] Test full purchase flow end-to-end on a real device with a test account
 
 ---

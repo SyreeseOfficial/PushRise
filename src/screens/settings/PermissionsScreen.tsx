@@ -4,6 +4,12 @@ import {Appbar, Text, Button, Surface, Icon, useTheme} from 'react-native-paper'
 import {useNavigation} from '@react-navigation/native';
 import {useFocusEffect} from '@react-navigation/native';
 
+const {Brand = '', Manufacturer = ''} = (Platform.constants as any) ?? {};
+const brand = (Brand as string).toLowerCase();
+const mfr = (Manufacturer as string).toLowerCase();
+const isSamsung = brand === 'samsung' || mfr === 'samsung';
+const isXiaomi = ['xiaomi', 'redmi', 'poco'].includes(brand) || mfr === 'xiaomi';
+
 type PermStatus = 'granted' | 'denied' | 'auto' | 'manual';
 
 interface PermState {
@@ -168,6 +174,88 @@ export default function PermissionsScreen() {
           }
           grantLabel="Disable Optimization"
         />
+
+        {(isSamsung || isXiaomi) && (
+          <Surface elevation={1} style={{borderRadius: 16, marginBottom: 12, padding: 18}}>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14}}>
+              <View style={{
+                width: 48, height: 48, borderRadius: 14,
+                backgroundColor: c.tertiaryContainer,
+                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Icon source="shield-alert-outline" size={26} color={c.onTertiaryContainer} />
+              </View>
+              <View style={{flex: 1}}>
+                <Text variant="titleSmall" style={{fontWeight: '600'}}>
+                  {isSamsung ? 'Samsung Extra Step' : 'Xiaomi Extra Step'}
+                </Text>
+                <Text variant="bodySmall" style={{color: c.onSurfaceVariant, marginTop: 3, lineHeight: 18}}>
+                  {isSamsung
+                    ? 'Samsung One UI aggressively kills background apps. One more step to make alarms bulletproof.'
+                    : 'MIUI blocks apps from auto-starting by default. This must be enabled manually.'}
+                </Text>
+              </View>
+            </View>
+
+            {isSamsung && (
+              <View style={{gap: 6, marginBottom: 14}}>
+                {[
+                  'Open Settings → Apps → PushRise → Battery',
+                  'Set to "Unrestricted"',
+                  'Then: Settings → Battery and device care → Battery → Background usage limits',
+                  'Add PushRise to "Never sleeping apps"',
+                ].map((step, i) => (
+                  <View key={i} style={{flexDirection: 'row', gap: 10, alignItems: 'flex-start'}}>
+                    <View style={{
+                      width: 20, height: 20, borderRadius: 10,
+                      backgroundColor: c.primaryContainer,
+                      alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0,
+                    }}>
+                      <Text style={{fontSize: 11, fontWeight: '800', color: c.onPrimaryContainer}}>{i + 1}</Text>
+                    </View>
+                    <Text variant="bodySmall" style={{color: c.onSurfaceVariant, flex: 1, lineHeight: 18}}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {isXiaomi && (
+              <View style={{gap: 6, marginBottom: 14}}>
+                {[
+                  'Open the Security app on your phone',
+                  'Tap "Permissions" → "Autostart"',
+                  'Enable the toggle for PushRise',
+                  'Also: Settings → Apps → Manage apps → PushRise → Battery saver → "No restrictions"',
+                ].map((step, i) => (
+                  <View key={i} style={{flexDirection: 'row', gap: 10, alignItems: 'flex-start'}}>
+                    <View style={{
+                      width: 20, height: 20, borderRadius: 10,
+                      backgroundColor: c.primaryContainer,
+                      alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0,
+                    }}>
+                      <Text style={{fontSize: 11, fontWeight: '800', color: c.onPrimaryContainer}}>{i + 1}</Text>
+                    </View>
+                    <Text variant="bodySmall" style={{color: c.onSurfaceVariant, flex: 1, lineHeight: 18}}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Button
+              mode="contained-tonal"
+              onPress={() => {
+                const intent = isSamsung
+                  ? 'com.samsung.android.lool'
+                  : 'com.miui.securitycenter';
+                Linking.openURL(`intent://#Intent;package=${intent};end`)
+                  .catch(() => Linking.openSettings());
+              }}
+              compact
+              style={{borderRadius: 100, alignSelf: 'flex-end'}}>
+              {isSamsung ? 'Open Device Care' : 'Open Security App'}
+            </Button>
+          </Surface>
+        )}
 
         <Text variant="labelLarge" style={{color: c.primary, marginTop: 8, marginBottom: 12, fontWeight: '700'}}>
           Recommended

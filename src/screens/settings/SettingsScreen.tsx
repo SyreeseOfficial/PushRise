@@ -7,6 +7,7 @@ import {
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
+import RevenueCatUI from 'react-native-purchases-ui';
 import {useThemeStore, ThemeMode} from '../../store/themeStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useBankStore} from '../../store/bankStore';
@@ -283,6 +284,21 @@ export default function SettingsScreen() {
             title="What are you grinding for?"
             value={settings.grindingFor ? '✓' : 'Not set'}
             onPress={() => open('grindingFor')}
+            last
+          />
+        </Card>
+
+        <SectionLabel label="Subscription" />
+        <Card>
+          <TapRow
+            icon="crown-outline"
+            title="Upgrade to Pro"
+            onPress={() => navigation.navigate('Paywall')}
+          />
+          <TapRow
+            icon="account-cog-outline"
+            title="Manage Subscription"
+            onPress={() => RevenueCatUI.presentCustomerCenter()}
             last
           />
         </Card>

@@ -3,14 +3,19 @@ import {AppState, useColorScheme} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {PaperProvider} from 'react-native-paper';
 import notifee from '@notifee/react-native';
+import Purchases from 'react-native-purchases';
 import {
   setupNotifee,
   setupForegroundHandler,
   requestNotificationPermission,
   scheduleNudge,
   cancelNudge,
+  scheduleTrialWarnings,
+  cancelTrialWarnings,
   ALARM_CHANNEL_ID,
 } from './src/utils/notifee';
+import {initializePurchases, isPro} from './src/utils/revenuecat';
+import {useSubscriptionStore} from './src/store/subscriptionStore';
 import {navigate} from './src/navigation/navigationRef';
 import RootNavigator from './src/navigation';
 import {useThemeStore} from './src/store/themeStore';
@@ -46,6 +51,7 @@ export default function App() {
   const nudgeEnabled = useSettingsStore(s => s.nudgeEnabled);
   const nudgeHour = useSettingsStore(s => s.nudgeHour);
   const nudgeMinute = useSettingsStore(s => s.nudgeMinute);
+  const {trialStartedAt, isSubscribed} = useSubscriptionStore();
 
   useEffect(() => {
     if (!nudgeEnabled || todayReps > 0) {
@@ -54,6 +60,22 @@ export default function App() {
       scheduleNudge(nudgeHour, nudgeMinute);
     }
   }, [nudgeEnabled, nudgeHour, nudgeMinute, todayReps]);
+
+  useEffect(() => {
+    if (!trialStartedAt || isSubscribed) {
+      cancelTrialWarnings();
+    } else {
+      scheduleTrialWarnings(trialStartedAt);
+    }
+  }, [trialStartedAt, isSubscribed]);
+
+  useEffect(() => {
+    initializePurchases();
+    const unsub = Purchases.addCustomerInfoUpdateListener(info => {
+      setSubscribed(isPro(info));
+    });
+    return () => unsub.remove();
+  }, []);
 
   useEffect(() => {
     setupNotifee();

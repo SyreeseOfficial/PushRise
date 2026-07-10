@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 import {useSettingsStore} from '../../store/settingsStore';
+import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {requestNotificationPermission} from '../../utils/notifee';
 
 const STEPS = [
@@ -79,6 +80,7 @@ export default function OnboardingScreen() {
   const theme = useTheme();
   const {addAlarm} = useAlarmStore();
   const {completeOnboarding} = useOnboardingStore();
+  const {startTrial} = useSubscriptionStore();
   const settings = useSettingsStore();
 
   const [stepIdx, setStepIdx] = useState(0);
@@ -154,6 +156,7 @@ export default function OnboardingScreen() {
       volume: 1.0,
       sound: 'alarm.mp3',
     });
+    startTrial();
     completeOnboarding();
   };
 
