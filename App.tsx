@@ -7,11 +7,16 @@ import {
   setupNotifee,
   setupForegroundHandler,
   requestNotificationPermission,
+  scheduleNudge,
+  cancelNudge,
+  ALARM_CHANNEL_ID,
 } from './src/utils/notifee';
 import {navigate} from './src/navigation/navigationRef';
 import RootNavigator from './src/navigation';
 import {useThemeStore} from './src/store/themeStore';
 import {DarkTheme, LightTheme} from './src/theme';
+import {useBankStore} from './src/store/bankStore';
+import {useSettingsStore} from './src/store/settingsStore';
 
 function alarmParamsFromData(id: string, data?: Record<string, string>) {
   return {
@@ -24,8 +29,9 @@ function alarmParamsFromData(id: string, data?: Record<string, string>) {
 
 async function checkForActiveAlarm() {
   const displayed = await notifee.getDisplayedNotifications();
-  if (displayed.length > 0 && displayed[0].notification.id) {
-    const n = displayed[0].notification;
+  const alarm = displayed.find(n => n.notification.android?.channelId === ALARM_CHANNEL_ID);
+  if (alarm?.notification.id) {
+    const n = alarm.notification;
     navigate('AlarmFiring', alarmParamsFromData(n.id!, n.data as Record<string, string>));
   }
 }
@@ -35,6 +41,19 @@ export default function App() {
   const {mode} = useThemeStore();
   const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
   const theme = isDark ? DarkTheme : LightTheme;
+
+  const todayReps = useBankStore(s => s.todayReps);
+  const nudgeEnabled = useSettingsStore(s => s.nudgeEnabled);
+  const nudgeHour = useSettingsStore(s => s.nudgeHour);
+  const nudgeMinute = useSettingsStore(s => s.nudgeMinute);
+
+  useEffect(() => {
+    if (!nudgeEnabled || todayReps > 0) {
+      cancelNudge();
+    } else {
+      scheduleNudge(nudgeHour, nudgeMinute);
+    }
+  }, [nudgeEnabled, nudgeHour, nudgeMinute, todayReps]);
 
   useEffect(() => {
     setupNotifee();

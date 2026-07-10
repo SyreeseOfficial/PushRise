@@ -20,6 +20,46 @@ import type {RootStackParamList} from '../../navigation/navigationRef';
 type Nav = StackNavigationProp<RootStackParamList>;
 type Sheet = 'closed' | 'intro' | 'mode' | 'manual';
 
+function GhostCard({yesterdayHourlyReps, todayReps}: {yesterdayHourlyReps: number[]; todayReps: number}) {
+  const theme = useTheme();
+  const c = theme.colors;
+  const hour = new Date().getHours();
+  const ghostReps = Math.max(0, ...yesterdayHourlyReps.slice(0, hour + 1));
+
+  if (ghostReps === 0) return null;
+
+  const delta = todayReps - ghostReps;
+  const ahead = delta >= 0;
+
+  return (
+    <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 20}, theme.dark ? {} : cardShadow]}>
+      <Text style={{fontSize: 13, fontWeight: '700', color: c.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14}}>
+        👻 vs. Yesterday-You
+      </Text>
+      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+        <View style={{alignItems: 'center', gap: 3}}>
+          <Text style={{fontSize: 11, color: c.onSurfaceVariant, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4}}>Yesterday</Text>
+          <Text style={{fontSize: 34, fontWeight: '800', color: c.onSurfaceVariant, letterSpacing: -1}}>{ghostReps}</Text>
+          <Text style={{fontSize: 11, color: c.onSurfaceVariant}}>by now</Text>
+        </View>
+        <View style={{alignItems: 'center', gap: 2}}>
+          <Text style={{fontSize: 26, fontWeight: '800', color: ahead ? c.primary : c.error}}>
+            {ahead ? '▲' : '▼'} {Math.abs(delta)}
+          </Text>
+          <Text style={{fontSize: 11, fontWeight: '700', color: ahead ? c.primary : c.error, letterSpacing: 0.5}}>
+            {ahead ? 'AHEAD' : 'BEHIND'}
+          </Text>
+        </View>
+        <View style={{alignItems: 'center', gap: 3}}>
+          <Text style={{fontSize: 11, color: c.primary, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4}}>Today</Text>
+          <Text style={{fontSize: 34, fontWeight: '800', color: c.primary, letterSpacing: -1}}>{todayReps}</Text>
+          <Text style={{fontSize: 11, color: c.onSurfaceVariant}}>so far</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const RANK_MEDALS = ['🥇', '🥈', '🥉', '', ''];
 
 // ─── Sub-components ────────────────────────────────────────────────────────
@@ -329,6 +369,7 @@ export default function ProgressScreen() {
     hasSeenBankIntro, markIntroSeen, addReps,
     pendingCelebration, clearCelebration,
     bossDefeatedWeek, defeatBoss,
+    yesterdayHourlyReps,
   } = useBankStore();
   const {dailyGoal, grindingFor} = useSettingsStore();
 
@@ -520,7 +561,7 @@ export default function ProgressScreen() {
               {communityGoal.repsToGo.toLocaleString()}
             </Text>
             {' '}push-ups away from{' '}
-            <Text style={{fontWeight: '700', color: c.onSurface}}>1,000,000</Text>
+            <Text style={{fontWeight: '700', color: c.onSurface}}>{communityGoal.goal.toLocaleString()}</Text>
             {' '}this week.
           </Text>
           <View style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
@@ -584,6 +625,9 @@ export default function ProgressScreen() {
             </View>
           )}
         </View>
+
+        {/* Ghost mode */}
+        <GhostCard yesterdayHourlyReps={yesterdayHourlyReps} todayReps={todayReps} />
 
         {/* Leaderboard */}
         <LeaderboardCard weekReps={weekReps} />

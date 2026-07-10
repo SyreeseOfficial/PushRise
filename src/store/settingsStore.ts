@@ -20,6 +20,9 @@ export const SETTINGS_DEFAULTS = {
   preferFrontCamera: true,
   dailyGoal: 0,
   grindingFor: '',
+  nudgeEnabled: false,
+  nudgeHour: 20,
+  nudgeMinute: 0,
 };
 
 type SettingsData = typeof SETTINGS_DEFAULTS;

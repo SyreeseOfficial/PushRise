@@ -27,6 +27,8 @@ interface BankStore {
   totalReps: number;
   todayReps: number;
   todayDate: string;
+  todayHourlyReps: number[];
+  yesterdayHourlyReps: number[];
   weekReps: number;
   weekStartDate: string;
   currentStreak: number;
@@ -94,6 +96,8 @@ const BANK_DEFAULTS = {
   totalReps: 0,
   todayReps: 0,
   todayDate: '',
+  todayHourlyReps: new Array(24).fill(0) as number[],
+  yesterdayHourlyReps: new Array(24).fill(0) as number[],
   weekReps: 0,
   weekStartDate: '',
   currentStreak: 0,
@@ -113,8 +117,10 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
   addReps: (n) => {
     if (n <= 0) return;
     const s = get();
-    const today = toDateStr(new Date());
+    const now = new Date();
+    const today = toDateStr(now);
     const weekStart = getWeekStart();
+    const hour = now.getHours();
 
     const bonus = getBonus();
     const totalAdded = n + bonus;
@@ -128,10 +134,16 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
     const celebration: Celebration | null =
       bonus > 0 || milestone !== null ? {bonus, milestone} : null;
 
+    const newTodayReps = (isNewDay ? 0 : s.todayReps) + totalAdded;
+    const newHourlyReps = isNewDay ? new Array(24).fill(0) : [...s.todayHourlyReps];
+    newHourlyReps[hour] = newTodayReps;
+
     set({
       totalReps: newTotal,
-      todayReps: (isNewDay ? 0 : s.todayReps) + totalAdded,
+      todayReps: newTodayReps,
       todayDate: today,
+      todayHourlyReps: newHourlyReps,
+      yesterdayHourlyReps: isNewDay ? s.todayHourlyReps : s.yesterdayHourlyReps,
       weekReps: (isNewWeek ? 0 : s.weekReps) + totalAdded,
       weekStartDate: weekStart,
       seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,

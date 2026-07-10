@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
 import {View, ScrollView, Linking, Alert, TouchableOpacity} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   Text, Switch, Portal, Dialog, Button,
   RadioButton, TextInput, useTheme, Icon, Divider,
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
   const [tempGoal, setTempGoal] = useState('');
   const [tempGrinding, setTempGrinding] = useState('');
   const [tempTheme, setTempTheme] = useState<ThemeMode>('system');
+  const [showNudgePicker, setShowNudgePicker] = useState(false);
 
   const open = (key: DialogKey) => {
     if (key === 'defaultReps') setTempReps(String(settings.defaultReps));
@@ -248,6 +250,26 @@ export default function SettingsScreen() {
           />
         </Card>
 
+        <SectionLabel label="Notifications" />
+        <Card>
+          <SwitchRow
+            icon="bell-outline"
+            title="Daily Reminder"
+            description="Nudge if you haven't done any push-ups"
+            value={settings.nudgeEnabled}
+            onChange={v => settings.update({nudgeEnabled: v})}
+          />
+          {settings.nudgeEnabled && (
+            <TapRow
+              icon="clock-outline"
+              title="Reminder Time"
+              value={`${String(settings.nudgeHour).padStart(2, '0')}:${String(settings.nudgeMinute).padStart(2, '0')}`}
+              onPress={() => setShowNudgePicker(true)}
+              last
+            />
+          )}
+        </Card>
+
         <SectionLabel label="Goals" />
         <Card>
           <TapRow
@@ -321,6 +343,18 @@ export default function SettingsScreen() {
 
         <View style={{height: 8}} />
       </ScrollView>
+
+      {showNudgePicker && (
+        <DateTimePicker
+          value={(() => { const d = new Date(); d.setHours(settings.nudgeHour, settings.nudgeMinute, 0, 0); return d; })()}
+          mode="time"
+          is24Hour={false}
+          onChange={(_, date) => {
+            setShowNudgePicker(false);
+            if (date) settings.update({nudgeHour: date.getHours(), nudgeMinute: date.getMinutes()});
+          }}
+        />
+      )}
 
       {/* Dialogs */}
       <Portal>

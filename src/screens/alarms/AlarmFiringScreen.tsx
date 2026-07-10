@@ -6,7 +6,7 @@ import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import type {RouteProp} from '@react-navigation/native';
 import type {RootStackParamList} from '../../navigation/navigationRef';
-import {cancelAlarm, dismissFiredAlarm, scheduleAlarm} from '../../utils/notifee';
+import {cancelAlarm, dismissFiredAlarm, scheduleAlarm, scheduleRivalNotif} from '../../utils/notifee';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
@@ -127,7 +127,7 @@ export default function AlarmFiringScreen() {
   const navigation = useNavigation();
   const {colors: c} = useTheme();
   const {alarmId, reps, sound, volume} = route.params;
-  const {addReps} = useBankStore();
+  const {addReps, totalReps} = useBankStore();
   const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));
   const {
     vibrateOnAlarm, muteAudioDuringPushups, autoCompleteAlarm,
@@ -179,9 +179,12 @@ export default function AlarmFiringScreen() {
     } else {
       await cancelAlarm(alarmId);
     }
-    if (completed) addReps(reps);
+    if (completed) {
+      addReps(reps);
+      scheduleRivalNotif(totalReps + reps);
+    }
     navigation.goBack();
-  }, [alarm, alarmId, reps, addReps, navigation]);
+  }, [alarm, alarmId, reps, addReps, totalReps, navigation]);
 
   const complete = useCallback(() => {
     if (autoCompleteAlarm) {
