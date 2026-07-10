@@ -6,6 +6,67 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-09 — Engagement & Addiction Features, Visual Redesign, Notifications
+
+### Visual Redesign (Apple Health-inspired)
+- Full UI overhaul: pure white light bg (#FFFFFF), pure black dark bg (#000000), #FF5500 orange primary
+- `BRAND_GRADIENT` linear gradient hero cards (`#FF6B00` → `#FF2D00`) on Bank Push-ups CTA and FAB
+- `cardShadow` utility for floating cards in light mode
+- Custom large title headers (34px/800 weight) on all 4 tabs
+- Floating alarm cards with 52px bold time display, gradient FAB
+- react-native-paper v5 (Material Design 3) with `useTheme()` throughout; no hardcoded colors
+
+### Settings Expansion
+- Haptic feedback per rep (Vibration.vibrate(40))
+- Keep screen on during push-up session (FLAG_KEEP_SCREEN_ON via PoseDetectionModule.kt)
+- Vibrate on alarm
+- Mute alarm during push-up session
+- Audio cue per rep
+- Front/rear camera toggle
+- Daily push-up goal with gradient progress bar on Progress tab
+- "What are you grinding for?" commitment contract (Settings + onboarding step)
+- Theme picker (light / dark / follow system) via themeStore + MMKV
+- Rate PushRise row with accent orange icon
+- Both reset options (settings only, or all data)
+
+### Progress Tab: Engagement Features
+- **AvatarCard**: level emoji + progress bar to next level; 10-level system with flat early curve (Seedling → Early Riser → Finding Rhythm → In The Habit → Locked In → On Fire → The Grinder → Built Different → Iron Riser → Legend)
+- **Milestone celebrations**: modal fires on 100 / 250 / 500 / 1k / 2.5k / 5k / 10k / 25k / 50k total reps; bonus rep confetti (15% chance, 1-5 bonus reps)
+- **Community Challenge card**: fake weekly goal (10k reps), live-ticking progress seeded per week, refreshes every 30s
+- **Boss Battle card**: weekly fake rival seeded per weekStart; win state + celebration modal; new rival next week
+- **Weekly Leaderboard card**: 5 fake entries, user always #3, seeded daily
+- **Activity Ticker on Alarms tab**: animated slide-in/out messages, orange live dot, 30 fake activity messages seeded hourly
+- **Share card modal**: shareable stat card with gradient design
+
+### Fake Social Proof Infrastructure (`src/utils/engagement.ts`)
+- `seededRng(seed)`: FNV-1a hash PRNG for deterministic fake data
+- 50 international fake names (American, East Asian, South Asian, European, African/Middle Eastern, Latin American)
+- `getLeaderboard()`, `getBoss()`, `getCommunityGoal()`, `getTickerMessages()`, `getTitle()`, `getAvatarLevel()`
+
+### Bug Fixes
+- Level display bug: `next` threshold array was descending — `find()` always returned 10000 regardless of rep count. Fixed to ascending.
+- Emoji backgrounds orange in RewardCard: was `c.primaryContainer` when affordable. Fixed to always `c.surfaceVariant`.
+- Hardcoded "1,000,000" in community challenge text replaced with `communityGoal.goal.toLocaleString()`
+- `checkForActiveAlarm` now filters by `ALARM_CHANNEL_ID` — was navigating to AlarmFiring on any displayed notification (would have triggered on nudge/rival notifications)
+- `setupForegroundHandler` now filters by channel ID too
+- `alarm-outline` icon replaced with `alarm` (outline variant not in MaterialCommunityIcons set)
+
+### Onboarding Updates
+- Added `daily-goal` step
+- Added `grinding-for` commitment step (replaced old commitment screen)
+- `grindingFor` persisted to settingsStore; displayed as commitment card on Progress tab
+
+### Notifications (3 new features)
+- **Daily Nudge**: notifee trigger at user-set time (default 8PM); auto-cancels when `todayReps > 0`; reschedules on settings change via App.tsx useEffect; 4 rotating message variants. Toggle + time picker in Settings → Notifications.
+- **Ghost Mode**: `bankStore` tracks `todayHourlyReps[hour]` and `yesterdayHourlyReps` (snapshotted at midnight rollover). `GhostCard` on Progress tab shows delta vs same point yesterday — ▲ AHEAD or ▼ BEHIND.
+- **Anonymous Rival**: after every completed alarm, schedules a fake push notification 30-90min later — "{name} just passed you with X reps. You're now #4." Uses separate `Reminders` notification channel.
+
+### Store Changes
+- `bankStore`: added `weekReps`, `weekStartDate`, `seenMilestones`, `pendingCelebration`, `bossDefeatedWeek`, `todayHourlyReps`, `yesterdayHourlyReps`
+- `settingsStore`: added `grindingFor`, `nudgeEnabled`, `nudgeHour`, `nudgeMinute`
+
+---
+
 ## 2026-07-08 — Metro Cache Bug (Root Cause of Phantom Regressions)
 
 ### What happened
