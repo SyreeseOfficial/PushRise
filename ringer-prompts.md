@@ -16,7 +16,7 @@ Each prompt below is designed to be used with an image-to-image tool. Feed the A
 
 ---
 
-## 0. Text-to-Image Generation (Initial)
+## 0. Text-to-Image Generation (Initial) (Done)
 
 Use this prompt to generate Ringer from scratch for the first time.
 
@@ -42,7 +42,7 @@ His feet wear classic black-and-white Converse-style sneakers: black canvas with
 
 ---
 
-## 1. Idle / Cocky
+## 1. Idle / Cocky (Done)
 
 Using the previous Ringer illustration as a reference, generate the character in an idle, confident pose while keeping the design, colors, proportions, and art style identical.
 
@@ -52,7 +52,7 @@ Using the previous Ringer illustration as a reference, generate the character in
 
 ---
 
-## 2. Hype / Win
+## 2. Hype / Win (Done)
 
 Using the previous Ringer illustration as a reference, generate the character celebrating a victory while keeping the design, colors, proportions, and art style identical.
 
@@ -62,7 +62,7 @@ Using the previous Ringer illustration as a reference, generate the character ce
 
 ---
 
-## 3. Disappointed (Dad)
+## 3. Disappointed (Dad) (Done)
 
 Using the previous Ringer illustration as a reference, generate the character in a disappointed state while keeping the design, colors, proportions, and art style identical.
 
@@ -72,7 +72,7 @@ Using the previous Ringer illustration as a reference, generate the character in
 
 ---
 
-## 4. Ready / Aggressive
+## 4. Ready / Aggressive (Done)
 
 Using the previous Ringer illustration as a reference, generate the character in a pre-fight stance while keeping the design, colors, proportions, and art style identical.
 
@@ -82,7 +82,7 @@ Using the previous Ringer illustration as a reference, generate the character in
 
 ---
 
-## 5. Arms Crossed
+## 5. Arms Crossed (Done)
 
 Using the previous Ringer illustration as a reference, generate the character in a watchful stance while keeping the design, colors, proportions, and art style identical.
 
@@ -92,7 +92,7 @@ Using the previous Ringer illustration as a reference, generate the character in
 
 ---
 
-## 6. Pointing at You
+## 6. Pointing at You (Done)
 
 Using the previous Ringer illustration as a reference, generate the character pointing directly at the viewer while keeping the design, colors, proportions, and art style identical.
 
@@ -102,7 +102,7 @@ Using the previous Ringer illustration as a reference, generate the character po
 
 ---
 
-## 7. Tired / Disappointed (Beyond Disappointment)
+## 7. Tired / Disappointed (Beyond Disappointment) (Done)
 
 Using the previous Ringer illustration as a reference, generate the character in a state of complete exhaustion while keeping the design, colors, proportions, and art style identical.
 
@@ -112,7 +112,7 @@ Using the previous Ringer illustration as a reference, generate the character in
 
 ---
 
-## 8. Celebrating with Arms Out
+## 8. Celebrating with Arms Out (Done)
 
 Using the previous Ringer illustration as a reference, generate the character in a moment of massive celebration while keeping the design, colors, proportions, and art style identical.
 
