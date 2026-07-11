@@ -37,9 +37,15 @@ function ManualCounter({
     });
   };
 
+  const getRingerState = () => {
+    if (count === 0) return 'point-at-you';
+    if (count === reps - 1) return 'hype';
+    return 'arms-crossed';
+  };
+
   return (
     <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 24}}>
-      <Ringer state="point-at-you" size="medium" />
+      <Ringer state={getRingerState()} size="medium" />
       <Text variant="bodyMedium" style={{color: colors.onSurfaceVariant}}>Tap once per push-up</Text>
       <Button
         mode="contained"
@@ -105,11 +111,13 @@ function CameraCounter({
 
   if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} hapticOnRep={hapticOnRep} />;
 
+  const getRingerState = () => count >= reps * 0.75 ? 'tired' : 'aggressive';
+
   return (
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
       <Camera ref={cameraRef} style={{width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'}} device={device} isActive photo />
       <View style={{position: 'absolute', top: 40, left: 24}}>
-        <Ringer state="aggressive" size="medium" />
+        <Ringer state={getRingerState()} size="medium" />
       </View>
       <View style={{position: 'absolute', bottom: 80, alignItems: 'center'}}>
         <Text style={{fontSize: 96, fontWeight: '700', color: colors.primary, lineHeight: 96}}>
