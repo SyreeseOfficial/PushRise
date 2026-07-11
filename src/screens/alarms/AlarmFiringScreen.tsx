@@ -15,6 +15,7 @@ import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useSubscriptionStore, isTrialExpired} from '../../store/subscriptionStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
+import Ringer from '../../components/Ringer';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
 const {PoseDetection} = NativeModules;
@@ -38,6 +39,7 @@ function ManualCounter({
 
   return (
     <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 24}}>
+      <Ringer state="point-at-you" size="medium" />
       <Text variant="bodyMedium" style={{color: colors.onSurfaceVariant}}>Tap once per push-up</Text>
       <Button
         mode="contained"
@@ -106,6 +108,9 @@ function CameraCounter({
   return (
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
       <Camera ref={cameraRef} style={{width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'}} device={device} isActive photo />
+      <View style={{position: 'absolute', top: 40, left: 24}}>
+        <Ringer state="aggressive" size="medium" />
+      </View>
       <View style={{position: 'absolute', bottom: 80, alignItems: 'center'}}>
         <Text style={{fontSize: 96, fontWeight: '700', color: colors.primary, lineHeight: 96}}>
           {count}
@@ -234,15 +239,9 @@ export default function AlarmFiringScreen() {
 
       {mode === 'idle' && (
         <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 16}}>
-          <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
-            {reps}
-          </Text>
-          <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
-            push-ups to silence this alarm
-          </Text>
           {isLocked ? (
             <>
-              <Text style={{fontSize: 32}}>🔒</Text>
+              <Ringer state="disappointed" size="medium" style={{marginBottom: 8}} />
               <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 16}}>
                 Your trial has ended. Upgrade to dismiss alarms with push-ups.
               </Text>
@@ -252,6 +251,13 @@ export default function AlarmFiringScreen() {
             </>
           ) : (
             <>
+              <Ringer state="cocky" size="large" />
+              <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
+                {reps}
+              </Text>
+              <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+                push-ups to silence this alarm
+              </Text>
               <Button mode="contained" onPress={startCamera} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
                 I'm Ready
               </Button>
@@ -286,7 +292,7 @@ export default function AlarmFiringScreen() {
 
       {mode === 'done' && (
         <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 20}}>
-          <Text style={{fontSize: 64}}>💪🏽</Text>
+          <Ringer state="celebrating" size="large" />
           <Text variant="headlineMedium" style={{color: c.primary, fontWeight: '800', textAlign: 'center'}}>
             Done! {reps} reps banked.
           </Text>
