@@ -70,6 +70,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - [x] Downsell screen 1: discounted price + real 15-min countdown timer
 - [x] Downsell screen 2: 3-day trial extension (one-time, non-repeatable)
 - [x] Review prompt — fires after first alarm successfully dismissed with push-ups (NOT during onboarding)
+- [ ] **Ringer character integration** — wire 9 transparent PNG states into screens; use per narrative moments (defeat/hype/idle etc.)
 
 ---
 

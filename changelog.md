@@ -6,6 +6,25 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-11 — Ringer Character Assets
+
+### Ringer Images Generated
+- 9 PNG character states created: idle/cocky, hype, disappointed, aggressive, arms-crossed, pointing-at-you, tired, celebrating, + base
+- All images have transparent backgrounds (no contextual backgrounds)
+- Consistent with Cuphead/Fleischer Studios retro cartoon style (thick outlines, flat colors)
+- Art direction locked in `ringer-prompts.md`
+
+### Asset Integration Decision
+- **Transparent backgrounds chosen** — fits M3 light/dark theme system without variant backgrounds
+- Ringer is narrative/aesthetic (not interactive), so he works on any app background
+- One asset set, maximum reuse, no maintenance burden
+
+### Next step
+- Wire images into app: import PNGs from `/ringer-images/` into screens/components per narrative moments
+- Reference `ringer-prompts.md` for which state to use in each context
+
+---
+
 ## 2026-07-09 — Engagement & Addiction Features, Visual Redesign, Notifications
 
 ### Visual Redesign (Apple Health-inspired)
