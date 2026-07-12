@@ -6,6 +6,45 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-12 — App Icon Design Decision + Prompt
+
+### Decision
+- **Use Ringer's face as app icon** (like Duolingo's Duo)
+- Crop to extreme close-up: character fills entire frame, minimal background
+- Idle/Cocky state (confident smirk, one eyebrow raised)
+- Works at 48px+ for home screen, instantly recognizable
+
+### Prompt Generated
+AI image-to-image prompt created to transform reference Ringer image into tight-cropped icon-ready asset. Prompt emphasizes extreme zoom, character filling frame, and consistent design (thick outlines, flat colors, Cuphead style).
+
+### Next steps
+- Feed reference Ringer + prompt to AI image generator (DALL-E, Midjourney, etc.)
+- Export 512×512 PNG for Play Store submission
+- Add to android/app/src/main/res/mipmap/
+
+### Status
+Design locked. Asset generation pending.
+
+---
+
+## 2026-07-12 — Android Signing Key Generated & Configured
+
+### Setup Complete
+- Generated release keystore: `my-release-key.keystore` (stored in `android/app/`)
+- Configured `android/app/build.gradle` with release signing config
+- Updated `release` buildType to use release key (was incorrectly using debug key)
+- Added `android/app/.gitignore` to prevent keystore from being committed
+
+### Next steps
+- Complete RevenueCat products setup in Google Play Console (verification now complete)
+- Wire subscription terms copy into paywall UI
+- Test full purchase flow end-to-end
+
+### Status
+Ready to build release APK when needed. Still in active development; release build not required until pre-submission testing phase.
+
+---
+
 ## 2026-07-11 — Ringer Character Integration Complete
 
 ### Implementation

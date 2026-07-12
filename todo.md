@@ -28,7 +28,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
   - [x] RevenueCat account created
   - [x] Entitlement created: `PushRise Pro`
   - [x] Packages created: `monthly` and `lifetime`
-  - [ ] **BLOCKED: Google Play identity verification pending** — once verified:
+  - [x] **Google Play identity verification complete** — now ready to:
     - [ ] Create subscription product in Play Console: ID `monthly`, price $2.99/mo, base plan ID `monthly-base`
     - [ ] Create one-time product in Play Console: ID `lifetime`, price $14.99
     - [ ] Create discounted subscription: ID `monthly-discounted`, price $1.49/mo, base plan ID `monthly-discounted-base`
@@ -76,7 +76,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ## Play Store Submission (Week 5)
 
-- [ ] App icon (512×512 PNG)
+- [ ] App icon (512×512 PNG) — **design locked**: use Ringer face close-up (Idle/Cocky state); await AI generation + export
 - [ ] Feature graphic (1024×500)
 - [ ] Screenshots (min. 2, aim for 6–8, phone + tablet)
 - [x] Store listing copy — saved in `store-listing.md` (**delete file before submission**)
