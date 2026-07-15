@@ -10,14 +10,14 @@ import {useAlarmStore} from '../../store/alarmStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useSubscriptionStore} from '../../store/subscriptionStore';
-import {requestNotificationPermission} from '../../utils/notifee';
+import {requestNotificationPermission, scheduleNudge, cancelNudge} from '../../utils/notifee';
 
 const STEPS = [
   'welcome', 'founder', 'social',
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
   'create-alarm',
-  'daily-goal', 'commitment', 'perm-warn', 'notif-perm', 'battery', 'paywall',
+  'daily-goal', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall',
 ] as const;
 
 type Step = typeof STEPS[number];
@@ -102,6 +102,10 @@ export default function OnboardingScreen() {
   });
   const [showAlarmPicker, setShowAlarmPicker] = useState(false);
   const [alarmReps, setAlarmReps] = useState('10');
+  const [reminderTime, setReminderTime] = useState<Date>(() => {
+    const d = new Date(); d.setHours(21, 0, 0, 0); return d;
+  });
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [dailyGoalInput, setDailyGoalInput] = useState('');
   const [grindingFor, setGrindingFor] = useState('');
 
@@ -648,6 +652,60 @@ export default function OnboardingScreen() {
               Grant Access →
             </Button>
             <Button mode="text" onPress={next}>Skip for now</Button>
+          </View>
+        );
+
+      case 'streak-reminder':
+        return (
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text style={{fontSize: 13, fontWeight: '700', color: theme.colors.primary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12}}>
+              Protect your streak
+            </Text>
+            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 12}}>
+              We'll remind you{'\n'}before midnight.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 36}}>
+              If you haven't logged any push-ups, we'll send a reminder so your streak doesn't die quietly.
+            </Text>
+
+            <TouchableRipple onPress={() => setShowReminderPicker(true)} style={{alignItems: 'center', paddingVertical: 12, marginBottom: 4}}>
+              <View style={{alignItems: 'center'}}>
+                <Text style={{fontSize: 60, fontWeight: '200', letterSpacing: -2, color: theme.colors.onSurface}}>
+                  {reminderTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                </Text>
+                <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4}}>Tap to change</Text>
+              </View>
+            </TouchableRipple>
+            {showReminderPicker && (
+              <DateTimePicker
+                value={reminderTime}
+                mode="time"
+                display="default"
+                onChange={(e, d) => {
+                  setShowReminderPicker(false);
+                  if (e.type !== 'dismissed' && d) setReminderTime(d);
+                }}
+              />
+            )}
+
+            <Button
+              mode="contained"
+              onPress={async () => {
+                settings.update({nudgeEnabled: true, nudgeHour: reminderTime.getHours(), nudgeMinute: reminderTime.getMinutes()});
+                await scheduleNudge(reminderTime.getHours(), reminderTime.getMinutes());
+                next();
+              }}
+              contentStyle={{paddingVertical: 8}}
+              style={{marginTop: 20, marginBottom: 12}}>
+              Set Reminder →
+            </Button>
+            <Button mode="text" onPress={async () => {
+              settings.update({nudgeEnabled: false});
+              await cancelNudge();
+              next();
+            }}>
+              Skip
+            </Button>
           </View>
         );
 

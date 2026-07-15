@@ -26,19 +26,23 @@ export function checkMilestone(prevTotal: number, newTotal: number, seen: number
   return null;
 }
 
-const TITLES = [
-  {label: '5AM Club',       check: (_r: number, s: number) => s >= 14},
-  {label: 'Legend',         check: (r: number) => r >= 6000},
-  {label: 'Iron Riser',     check: (r: number) => r >= 3000},
-  {label: 'Built Different', check: (r: number) => r >= 1500},
-  {label: 'The Grinder',    check: (r: number) => r >= 750},
-  {label: 'Locked In',      check: (r: number) => r >= 200},
-  {label: 'Early Riser',    check: (r: number) => r >= 20},
-  {label: 'Newcomer',       check: () => true},
+export const TITLES = [
+  {label: '5AM Club',        unlock: '14-day streak',    check: (_r: number, s: number) => s >= 14},
+  {label: 'Legend',          unlock: '6,000 reps',       check: (r: number) => r >= 6000},
+  {label: 'Iron Riser',      unlock: '3,000 reps',       check: (r: number) => r >= 3000},
+  {label: 'Built Different', unlock: '1,500 reps',       check: (r: number) => r >= 1500},
+  {label: 'The Grinder',     unlock: '750 reps',         check: (r: number) => r >= 750},
+  {label: 'Locked In',       unlock: '200 reps',         check: (r: number) => r >= 200},
+  {label: 'Early Riser',     unlock: '20 reps',          check: (r: number) => r >= 20},
+  {label: 'Newcomer',        unlock: 'Always available', check: () => true},
 ];
 
 export function getTitle(totalReps: number, streak: number): string {
   return TITLES.find(t => t.check(totalReps, streak))?.label ?? 'Newcomer';
+}
+
+export function getUnlockedTitles(totalReps: number, streak: number) {
+  return TITLES.filter(t => t.check(totalReps, streak));
 }
 
 export const AVATAR_LEVELS = [

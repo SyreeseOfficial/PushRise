@@ -3,7 +3,7 @@ import {
   View, Modal, KeyboardAvoidingView, Platform,
   TouchableOpacity, ScrollView,
 } from 'react-native';
-import {Text, Button, TextInput, useTheme} from 'react-native-paper';
+import {Text, Button, TextInput, Snackbar, Icon, Divider, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
 import {useFocusEffect} from '@react-navigation/native';
@@ -14,12 +14,12 @@ import {useSubscriptionStore, isTrialExpired} from '../../store/subscriptionStor
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
-  getBoss, getCommunityGoal, getWeekStart,
+  getBoss, getCommunityGoal, getWeekStart, TITLES, getUnlockedTitles,
 } from '../../utils/engagement';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
-type Sheet = 'closed' | 'intro' | 'mode' | 'manual';
+type Sheet = 'closed' | 'intro' | 'mode' | 'manual' | 'titles';
 
 function GhostCard({yesterdayHourlyReps, todayReps}: {yesterdayHourlyReps: number[]; todayReps: number}) {
   const theme = useTheme();
@@ -85,11 +85,14 @@ function StatCard({value, label}: {value: string; label: string}) {
   );
 }
 
-function AvatarCard({totalReps, streak}: {totalReps: number; streak: number}) {
+function AvatarCard({totalReps, streak, freezeCount, equippedTitle, onPress}: {
+  totalReps: number; streak: number; freezeCount: number;
+  equippedTitle: string | null; onPress: () => void;
+}) {
   const theme = useTheme();
   const c = theme.colors;
   const avatar = getAvatarLevel(totalReps);
-  const title = getTitle(totalReps, streak);
+  const displayTitle = equippedTitle ?? getTitle(totalReps, streak);
 
   const next = [20, 50, 100, 200, 400, 750, 1500, 3000, 6000].find(t => totalReps < t) ?? null;
   const prevThreshold = avatar.minReps;
@@ -98,11 +101,13 @@ function AvatarCard({totalReps, streak}: {totalReps: number; streak: number}) {
     : 1;
 
   return (
-    <View style={[{
-      backgroundColor: c.surface, borderRadius: 20, padding: 20,
-      flexDirection: 'row', alignItems: 'center', gap: 16,
-    }, theme.dark ? {} : cardShadow]}>
-      {/* Avatar placeholder — replace with Image when assets are ready */}
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={[{
+        backgroundColor: c.surface, borderRadius: 20, padding: 20,
+        flexDirection: 'row', alignItems: 'center', gap: 16,
+      }, theme.dark ? {} : cardShadow]}>
       <View style={{
         width: 72, height: 72, borderRadius: 20,
         backgroundColor: c.primaryContainer,
@@ -119,9 +124,13 @@ function AvatarCard({totalReps, streak}: {totalReps: number; streak: number}) {
       </View>
 
       <View style={{flex: 1}}>
-        <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
-          {title}
-        </Text>
+        {/* Title row with tap hint */}
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+          <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
+            {displayTitle}
+          </Text>
+          <Icon source="pencil-outline" size={13} color={c.onSurfaceVariant} />
+        </View>
         <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2, fontWeight: '500'}}>
           {avatar.label}
         </Text>
@@ -142,8 +151,25 @@ function AvatarCard({totalReps, streak}: {totalReps: number; streak: number}) {
             </Text>
           )}
         </View>
+
+        {/* Freeze shields */}
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8}}>
+          <Text style={{fontSize: 11}}>❄️</Text>
+          {[0, 1, 2].map(i => (
+            <View
+              key={i}
+              style={{
+                width: 8, height: 8, borderRadius: 4,
+                backgroundColor: i < freezeCount ? '#4FC3F7' : c.surfaceVariant,
+              }}
+            />
+          ))}
+          <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginLeft: 2}}>
+            {freezeCount > 0 ? `${freezeCount}/3 freeze${freezeCount > 1 ? 's' : ''}` : 'earn at day 7'}
+          </Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -358,6 +384,44 @@ function CelebrationModal({visible, bonus, milestone, onClose}: {
   );
 }
 
+function FreezeEarnedModal({visible, freezeCount, onClose}: {
+  visible: boolean; freezeCount: number; onClose: () => void;
+}) {
+  const theme = useTheme();
+  const c = theme.colors;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 32}}>
+        <View style={[{backgroundColor: c.surface, borderRadius: 28, padding: 32, alignItems: 'center', width: '100%'}, theme.dark ? {} : cardShadow]}>
+          <Text style={{fontSize: 52, marginBottom: 12}}>🧊</Text>
+          <Text style={{
+            fontSize: 22, fontWeight: '800', color: c.onSurface,
+            textAlign: 'center', letterSpacing: -0.5, marginBottom: 8,
+          }}>
+            Freeze Earned!
+          </Text>
+          <Text style={{fontSize: 14, color: c.onSurfaceVariant, textAlign: 'center', lineHeight: 22, marginBottom: 20}}>
+            7-day streak. A freeze shield has been added to your bank — it'll save your streak if you miss a day.
+          </Text>
+          {/* Shield dots */}
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 28}}>
+            {[0, 1, 2].map(i => (
+              <View key={i} style={{
+                width: 16, height: 16, borderRadius: 8,
+                backgroundColor: i < freezeCount ? '#4FC3F7' : c.surfaceVariant,
+              }} />
+            ))}
+            <Text style={{fontSize: 12, color: c.onSurfaceVariant}}>{freezeCount}/3 banked</Text>
+          </View>
+          <Button mode="contained" onPress={onClose} contentStyle={{paddingHorizontal: 32, paddingVertical: 6}}>
+            Let's go 💪
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Main Screen ───────────────────────────────────────────────────────────
 
 export default function ProgressScreen() {
@@ -369,6 +433,9 @@ export default function ProgressScreen() {
     totalReps, todayReps, weekReps, currentStreak, longestStreak,
     hasSeenBankIntro, markIntroSeen, addReps,
     pendingCelebration, clearCelebration,
+    pendingFreezeEarned, clearFreezeEarned,
+    pendingFreezeUsed, clearFreezeUsed,
+    freezeCount, equippedTitle, setEquippedTitle,
     bossDefeatedWeek, defeatBoss,
     yesterdayHourlyReps,
   } = useBankStore();
@@ -380,6 +447,8 @@ export default function ProgressScreen() {
   const [manualInput, setManualInput] = useState('');
   const [showShare, setShowShare] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showFreezeEarned, setShowFreezeEarned] = useState(false);
+  const [showFreezeUsedSnack, setShowFreezeUsedSnack] = useState(false);
   const [communityGoal, setCommunityGoal] = useState(getCommunityGoal);
   const [showBossWin, setShowBossWin] = useState(false);
 
@@ -403,10 +472,10 @@ export default function ProgressScreen() {
   // Pick up any pending celebration (from camera screen or alarm firing)
   useFocusEffect(
     React.useCallback(() => {
-      if (pendingCelebration) {
-        setShowCelebration(true);
-      }
-    }, [pendingCelebration]),
+      if (pendingCelebration) setShowCelebration(true);
+      if (pendingFreezeEarned) setShowFreezeEarned(true);
+      if (pendingFreezeUsed) setShowFreezeUsedSnack(true);
+    }, [pendingCelebration, pendingFreezeEarned, pendingFreezeUsed]),
   );
 
   const dismissCelebration = () => {
@@ -472,7 +541,13 @@ export default function ProgressScreen() {
         showsVerticalScrollIndicator={false}>
 
         {/* Avatar + title */}
-        <AvatarCard totalReps={totalReps} streak={currentStreak} />
+        <AvatarCard
+          totalReps={totalReps}
+          streak={currentStreak}
+          freezeCount={freezeCount}
+          equippedTitle={equippedTitle}
+          onPress={() => setSheet('titles')}
+        />
 
         {/* Bank Push-ups hero */}
         <TouchableOpacity onPress={openBank} activeOpacity={0.9}>
@@ -705,6 +780,68 @@ export default function ProgressScreen() {
             </View>
           )}
 
+          {sheet === 'titles' && (() => {
+            const unlocked = getUnlockedTitles(totalReps, currentStreak);
+            const autoTitle = getTitle(totalReps, currentStreak);
+            return (
+              <View style={sheetBg}>
+                {handle}
+                <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 4, letterSpacing: -0.3}}>
+                  Choose Your Title
+                </Text>
+                <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
+                  Tap any title you've earned to equip it.
+                </Text>
+
+                {/* Auto option */}
+                <TouchableOpacity
+                  onPress={() => { setEquippedTitle(null); setSheet('closed'); }}
+                  activeOpacity={0.7}
+                  style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12}}>
+                  <View style={{flex: 1}}>
+                    <Text style={{fontSize: 16, fontWeight: '700', color: !equippedTitle ? c.primary : c.onSurface}}>
+                      Auto
+                    </Text>
+                    <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
+                      Always shows your highest earned title ({autoTitle})
+                    </Text>
+                  </View>
+                  {!equippedTitle && <Icon source="check" size={18} color={c.primary} />}
+                </TouchableOpacity>
+
+                <Divider />
+
+                {TITLES.map((title, i) => {
+                  const isUnlocked = unlocked.some(t => t.label === title.label);
+                  const isEquipped = equippedTitle === title.label;
+                  return (
+                    <React.Fragment key={title.label}>
+                      <TouchableOpacity
+                        onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); setSheet('closed'); } }}
+                        activeOpacity={isUnlocked ? 0.7 : 1}
+                        style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, opacity: isUnlocked ? 1 : 0.35}}>
+                        <View style={{flex: 1}}>
+                          <Text style={{fontSize: 16, fontWeight: '700', color: isEquipped ? c.primary : c.onSurface}}>
+                            {title.label}
+                          </Text>
+                          <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{title.unlock}</Text>
+                        </View>
+                        {isEquipped && <Icon source="check" size={18} color={c.primary} />}
+                        {!isEquipped && isUnlocked && <Icon source="check-outline" size={18} color={c.onSurfaceVariant} />}
+                        {!isUnlocked && <Icon source="lock-outline" size={16} color={c.onSurfaceVariant} />}
+                      </TouchableOpacity>
+                      {i < TITLES.length - 1 && <Divider />}
+                    </React.Fragment>
+                  );
+                })}
+
+                <Button mode="text" onPress={() => setSheet('closed')} style={{marginTop: 8}}>
+                  Cancel
+                </Button>
+              </View>
+            );
+          })()}
+
           {sheet === 'manual' && (
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{justifyContent: 'flex-end'}}>
               <View style={sheetBg}>
@@ -756,6 +893,23 @@ export default function ProgressScreen() {
           onClose={dismissCelebration}
         />
       )}
+
+      {/* Freeze earned celebration */}
+      <FreezeEarnedModal
+        visible={showFreezeEarned}
+        freezeCount={freezeCount}
+        onClose={() => { setShowFreezeEarned(false); clearFreezeEarned(); }}
+      />
+
+      {/* Freeze auto-used toast */}
+      <Snackbar
+        visible={showFreezeUsedSnack}
+        onDismiss={() => { setShowFreezeUsedSnack(false); clearFreezeUsed(); }}
+        duration={4000}
+        action={{label: 'OK', onPress: () => { setShowFreezeUsedSnack(false); clearFreezeUsed(); }}}
+        style={{marginBottom: 80}}>
+        ❄️  Freeze used — streak saved!
+      </Snackbar>
 
       {/* Boss defeated celebration */}
       <Modal visible={showBossWin} transparent animationType="fade" onRequestClose={() => setShowBossWin(false)}>

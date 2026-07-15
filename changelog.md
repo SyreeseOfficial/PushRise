@@ -6,6 +6,24 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-15 — Ringer Character Removed
+
+### Changes
+- Removed `src/components/Ringer.tsx` component
+- Deleted all Ringer image assets from `src/assets/images/ringer/`
+- Removed Ringer references from `AlarmFiringScreen.tsx`:
+  - Idle screen (cocky state)
+  - Manual counter (point-at-you, arms-crossed, hype states)
+  - Camera counter (aggressive, tired states)
+  - Done screen (celebrating state)
+  - Trial expired screen (disappointed state)
+- Deleted `ringer-prompts.md`
+
+### Status
+Ringer character completely removed. App icon and onboarding may need updates if they referenced Ringer.
+
+---
+
 ## 2026-07-12 — App Icon Design Decision + Prompt
 
 ### Decision

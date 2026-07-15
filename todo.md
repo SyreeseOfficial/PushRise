@@ -70,17 +70,16 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - [x] Downsell screen 1: discounted price + real 15-min countdown timer
 - [x] Downsell screen 2: 3-day trial extension (one-time, non-repeatable)
 - [x] Review prompt — fires after first alarm successfully dismissed with push-ups (NOT during onboarding)
-- [x] **Ringer character integration** — 8 of 9 states wired into AlarmFiringScreen; cycles through emotional states per narrative flow (idle/cocky → manual→point-at-you→arms-crossed→hype → camera→aggressive→tired → done→celebrating); also disappointed (trial locked)
 
 ---
 
 ## Play Store Submission (Week 5)
 
-- [ ] App icon (512×512 PNG) — **design locked**: use Ringer face close-up (Idle/Cocky state); await AI generation + export
+- [ ] App icon (512×512 PNG)
 - [ ] Feature graphic (1024×500)
 - [ ] Screenshots (min. 2, aim for 6–8, phone + tablet)
 - [x] Store listing copy — saved in `store-listing.md` (**delete file before submission**)
-- [ ] Privacy policy — copy drafted (see below), needs to go live at syreese.com/pushrise/privacy-policy
+- [x] Privacy policy — copy drafted (see below), needs to go live at syreese.com/pushrise/privacy-policy
 - [ ] Camera permission justification statement for Play Store review
 - [x] Subscription terms copy — saved in `subscription-terms.md` (**delete file before submission**); still needs to be wired into the paywall UI near the purchase buttons
 - [ ] Test full purchase flow end-to-end on a real device with a test account

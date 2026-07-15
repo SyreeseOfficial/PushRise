@@ -30,6 +30,10 @@ interface BankStore {
   longestStreak: number;
   lastCompletedDate: string | null;
   graceUsedAt: string | null;
+  freezeCount: number;
+  pendingFreezeEarned: boolean;
+  pendingFreezeUsed: boolean;
+  equippedTitle: string | null;
   hasSeenBankIntro: boolean;
   seenMilestones: number[];
   pendingCelebration: Celebration | null;
@@ -37,6 +41,9 @@ interface BankStore {
   rewards: Reward[];
   addReps: (n: number) => void;
   clearCelebration: () => void;
+  clearFreezeEarned: () => void;
+  clearFreezeUsed: () => void;
+  setEquippedTitle: (t: string | null) => void;
   defeatBoss: (weekStart: string) => void;
   markIntroSeen: () => void;
   addReward: (data: Omit<Reward, 'id'>) => void;
@@ -58,29 +65,33 @@ function daysBetween(a: string, b: string): number {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
 }
 
-function computeStreak(s: BankStore, today: string): Partial<BankStore> {
+function computeStreak(s: BankStore, today: string): {update: Partial<BankStore>; freezeUsed: boolean} {
   if (!s.lastCompletedDate) {
-    return {currentStreak: 1, longestStreak: Math.max(1, s.longestStreak), lastCompletedDate: today};
+    return {update: {currentStreak: 1, longestStreak: Math.max(1, s.longestStreak), lastCompletedDate: today}, freezeUsed: false};
   }
 
   const diff = daysBetween(s.lastCompletedDate, today);
 
-  if (diff === 0) return {};
+  if (diff === 0) return {update: {}, freezeUsed: false};
 
   if (diff === 1) {
     const next = s.currentStreak + 1;
-    return {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today};
+    return {update: {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today}, freezeUsed: false};
   }
 
   if (diff === 2) {
     const graceAvailable = !s.graceUsedAt || daysBetween(s.graceUsedAt, today) >= 7;
     if (graceAvailable) {
       const next = s.currentStreak + 1;
-      return {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today, graceUsedAt: today};
+      return {update: {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today, graceUsedAt: today}, freezeUsed: false};
+    }
+    if (s.freezeCount > 0) {
+      const next = s.currentStreak + 1;
+      return {update: {currentStreak: next, longestStreak: Math.max(next, s.longestStreak), lastCompletedDate: today}, freezeUsed: true};
     }
   }
 
-  return {currentStreak: 1, lastCompletedDate: today, graceUsedAt: null};
+  return {update: {currentStreak: 1, lastCompletedDate: today, graceUsedAt: null}, freezeUsed: false};
 }
 
 const BANK_DEFAULTS = {
@@ -95,6 +106,10 @@ const BANK_DEFAULTS = {
   longestStreak: 0,
   lastCompletedDate: null as string | null,
   graceUsedAt: null as string | null,
+  freezeCount: 0,
+  pendingFreezeEarned: false,
+  pendingFreezeUsed: false,
+  equippedTitle: null as string | null,
   hasSeenBankIntro: false,
   seenMilestones: [] as number[],
   pendingCelebration: null as Celebration | null,
@@ -129,6 +144,17 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
     const newHourlyReps = isNewDay ? new Array(24).fill(0) : [...s.todayHourlyReps];
     newHourlyReps[hour] = newTodayReps;
 
+    const {update: streakUpdate, freezeUsed} = computeStreak(s, today);
+    const newStreak = streakUpdate.currentStreak ?? s.currentStreak;
+
+    // Award a freeze at each new 7-day milestone (never when using one)
+    const awardFreeze = !freezeUsed &&
+      Math.floor(newStreak / 7) > Math.floor(s.currentStreak / 7) &&
+      s.freezeCount < 3;
+    const newFreezeCount = freezeUsed
+      ? s.freezeCount - 1
+      : awardFreeze ? s.freezeCount + 1 : s.freezeCount;
+
     set({
       totalReps: newTotal,
       todayReps: newTodayReps,
@@ -139,11 +165,17 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       weekStartDate: weekStart,
       seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,
       pendingCelebration: celebration,
-      ...computeStreak(s, today),
+      ...streakUpdate,
+      freezeCount: newFreezeCount,
+      pendingFreezeEarned: awardFreeze || s.pendingFreezeEarned,
+      pendingFreezeUsed: freezeUsed || s.pendingFreezeUsed,
     });
   },
 
   clearCelebration: () => set({pendingCelebration: null}),
+  clearFreezeEarned: () => set({pendingFreezeEarned: false}),
+  clearFreezeUsed: () => set({pendingFreezeUsed: false}),
+  setEquippedTitle: (t) => set({equippedTitle: t}),
   defeatBoss: (weekStart) => set({bossDefeatedWeek: weekStart}),
 
   markIntroSeen: () => set({hasSeenBankIntro: true}),

@@ -13,6 +13,7 @@ import {useSettingsStore} from '../../store/settingsStore';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
 import {cardShadow} from '../../theme';
+import {scheduleNudge, cancelNudge} from '../../utils/notifee';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -254,11 +255,15 @@ export default function SettingsScreen() {
         <SectionLabel label="Notifications" />
         <Card>
           <SwitchRow
-            icon="bell-outline"
-            title="Daily Reminder"
-            description="Nudge if you haven't done any push-ups"
+            icon="snowflake"
+            title="Streak Reminder"
+            description="Evening nudge if you haven't logged any push-ups"
             value={settings.nudgeEnabled}
-            onChange={v => settings.update({nudgeEnabled: v})}
+            onChange={async v => {
+              settings.update({nudgeEnabled: v});
+              if (v) { await scheduleNudge(settings.nudgeHour, settings.nudgeMinute); }
+              else { await cancelNudge(); }
+            }}
           />
           {settings.nudgeEnabled && (
             <TapRow
@@ -367,7 +372,11 @@ export default function SettingsScreen() {
           is24Hour={false}
           onChange={(_, date) => {
             setShowNudgePicker(false);
-            if (date) settings.update({nudgeHour: date.getHours(), nudgeMinute: date.getMinutes()});
+            if (date) {
+              const h = date.getHours(), m = date.getMinutes();
+              settings.update({nudgeHour: h, nudgeMinute: m});
+              if (settings.nudgeEnabled) scheduleNudge(h, m).catch(() => {});
+            }
           }}
         />
       )}
