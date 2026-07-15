@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
+import {Animated, Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
 import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import ConfettiCannon from 'react-native-confetti-cannon';
@@ -154,13 +154,42 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
   const canAfford = totalReps >= reward.cost;
   const needed = reward.cost - totalReps;
 
+  // #15 — scale bounce when reward becomes affordable
+  const unlockScale = useRef(new Animated.Value(1)).current;
+  const wasAffordable = useRef(canAfford);
+  useEffect(() => {
+    if (!wasAffordable.current && canAfford) {
+      Animated.sequence([
+        Animated.spring(unlockScale, {toValue: 1.05, useNativeDriver: true, speed: 25, bounciness: 14}),
+        Animated.spring(unlockScale, {toValue: 1, useNativeDriver: true, speed: 20}),
+      ]).start();
+    }
+    wasAffordable.current = canAfford;
+  }, [canAfford]);
+
+  // #14 — shimmer sweep on unaffordable (locked) cards
+  const shimmer = useRef(new Animated.Value(-1)).current;
+  useEffect(() => {
+    if (canAfford) return;
+    const anim = Animated.loop(
+      Animated.timing(shimmer, {toValue: 1, duration: 2200, useNativeDriver: true}),
+    );
+    anim.start();
+    return () => { anim.stop(); shimmer.setValue(-1); };
+  }, [canAfford]);
+  const shimmerTranslate = shimmer.interpolate({
+    inputRange: [-1, 1],
+    outputRange: [-SCREEN_WIDTH, SCREEN_WIDTH],
+  });
+
   return (
+    <Animated.View style={{transform: [{scale: unlockScale}]}}>
     <TouchableRipple onLongPress={onLongPress} borderless style={[{
       borderRadius: 20,
       marginBottom: 12,
       backgroundColor: c.surface,
     }, theme.dark ? {} : cardShadow]}>
-      <View style={{borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14}}>
+      <View style={{borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden'}}>
         <View style={{
           width: 52, height: 52, borderRadius: 14,
           backgroundColor: c.surfaceVariant,
@@ -194,8 +223,22 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
           style={{borderRadius: 24}}>
           {canAfford ? 'Redeem' : `+${needed.toLocaleString()}`}
         </Button>
+        {/* #14 — shimmer sweep while locked */}
+        {!canAfford && (
+          <Animated.View pointerEvents="none" style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            transform: [{translateX: shimmerTranslate}],
+          }}>
+            <LinearGradient
+              colors={['transparent', 'rgba(255,255,255,0.07)', 'transparent']}
+              start={{x: 0, y: 0.5}} end={{x: 1, y: 0.5}}
+              style={{flex: 1}}
+            />
+          </Animated.View>
+        )}
       </View>
     </TouchableRipple>
+    </Animated.View>
   );
 }
 

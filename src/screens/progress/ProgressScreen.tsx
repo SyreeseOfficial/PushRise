@@ -1,7 +1,7 @@
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View, Modal, KeyboardAvoidingView, Platform,
-  TouchableOpacity, ScrollView,
+  TouchableOpacity, ScrollView, Animated,
 } from 'react-native';
 import {Text, Button, TextInput, Snackbar, Icon, Divider, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
@@ -488,22 +488,44 @@ export default function ProgressScreen() {
 
   const handleCamera = () => {
     if (isCameraLocked) {
-      setSheet('closed');
-      setTimeout(() => navigation.navigate('Paywall'), 150);
+      closeSheet();
+      setTimeout(() => navigation.navigate('Paywall'), 350);
       return;
     }
-    setSheet('closed');
-    setTimeout(() => navigation.navigate('BankCamera'), 150);
+    closeSheet();
+    setTimeout(() => navigation.navigate('BankCamera'), 350);
   };
 
   const submitManual = () => {
     const n = parseInt(manualInput, 10);
     if (n > 0) addReps(n);
     setManualInput('');
-    setSheet('closed');
+    closeSheet();
   };
 
   const goalProgress = dailyGoal > 0 ? Math.min(todayReps / dailyGoal, 1) : 0;
+
+  // #11 — spring-animate the daily goal progress bar width
+  const barAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(barAnim, {toValue: goalProgress * 100, useNativeDriver: false, tension: 45, friction: 9}).start();
+  }, [goalProgress]);
+
+  // #16 — spring overshoot for bank sheet entrance
+  const sheetY = useRef(new Animated.Value(500)).current;
+  const prevSheet = useRef<Sheet>('closed');
+  useEffect(() => {
+    if (prevSheet.current === 'closed' && sheet !== 'closed') {
+      sheetY.setValue(500);
+      Animated.spring(sheetY, {toValue: 0, useNativeDriver: true, tension: 55, friction: 8}).start();
+    }
+    prevSheet.current = sheet;
+  }, [sheet]);
+  const closeSheet = () => {
+    Animated.spring(sheetY, {toValue: 600, useNativeDriver: true, tension: 80, friction: 12}).start(
+      () => setSheet('closed'),
+    );
+  };
 
   const sheetBg = {
     backgroundColor: c.surface,
@@ -599,11 +621,17 @@ export default function ProgressScreen() {
               </View>
             </View>
             <View style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
-              <LinearGradient
-                colors={BRAND_GRADIENT.colors}
-                start={{x: 0, y: 0}} end={{x: 1, y: 0}}
-                style={{height: 8, borderRadius: 100, width: `${Math.max(goalProgress * 100, 0)}%`}}
-              />
+              <Animated.View style={{
+                height: 8, borderRadius: 100,
+                width: barAnim.interpolate({inputRange: [0, 100], outputRange: ['0%', '100%']}),
+                overflow: 'hidden',
+              }}>
+                <LinearGradient
+                  colors={BRAND_GRADIENT.colors}
+                  start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+                  style={{flex: 1}}
+                />
+              </Animated.View>
             </View>
             {todayReps >= dailyGoal && (
               <Text style={{fontSize: 13, color: c.primary, marginTop: 10, fontWeight: '700'}}>
@@ -717,12 +745,13 @@ export default function ProgressScreen() {
 
       </ScrollView>
 
-      {/* Bank sheet */}
+      {/* Bank sheet — #16 spring overshoot entrance */}
       <Modal
         visible={sheet !== 'closed'}
-        transparent animationType="slide"
-        onRequestClose={() => setSheet('closed')}>
+        transparent animationType="fade"
+        onRequestClose={closeSheet}>
         <View style={{flex: 1, justifyContent: 'flex-end', backgroundColor: c.backdrop}}>
+        <Animated.View style={{transform: [{translateY: sheetY}]}}>
 
           {sheet === 'intro' && (
             <View style={sheetBg}>
@@ -774,7 +803,7 @@ export default function ProgressScreen() {
                 </View>
               </TouchableOpacity>
 
-              <Button mode="text" onPress={() => setSheet('closed')} style={{marginTop: 4}}>
+              <Button mode="text" onPress={closeSheet} style={{marginTop: 4}}>
                 Cancel
               </Button>
             </View>
@@ -800,7 +829,7 @@ export default function ProgressScreen() {
                   contentContainerStyle={{paddingHorizontal: 28, paddingBottom: 48}}>
                   {/* Auto option */}
                   <TouchableOpacity
-                    onPress={() => { setEquippedTitle(null); setSheet('closed'); }}
+                    onPress={() => { setEquippedTitle(null); closeSheet(); }}
                     activeOpacity={0.7}
                     style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12}}>
                     <View style={{flex: 1}}>
@@ -822,7 +851,7 @@ export default function ProgressScreen() {
                     return (
                       <React.Fragment key={title.label}>
                         <TouchableOpacity
-                          onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); setSheet('closed'); } }}
+                          onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); closeSheet(); } }}
                           activeOpacity={isUnlocked ? 0.7 : 1}
                           style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, opacity: isUnlocked ? 1 : 0.35}}>
                           <View style={{flex: 1}}>
@@ -840,7 +869,7 @@ export default function ProgressScreen() {
                     );
                   })}
 
-                  <Button mode="text" onPress={() => setSheet('closed')} style={{marginTop: 8}}>
+                  <Button mode="text" onPress={closeSheet} style={{marginTop: 8}}>
                     Cancel
                   </Button>
                 </ScrollView>
@@ -878,6 +907,7 @@ export default function ProgressScreen() {
               </View>
             </KeyboardAvoidingView>
           )}
+        </Animated.View>
         </View>
       </Modal>
 

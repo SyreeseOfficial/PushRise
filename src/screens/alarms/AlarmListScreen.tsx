@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Animated, FlatList, View, TouchableOpacity} from 'react-native';
+import {Animated, FlatList, PanResponder, Pressable, View, Vibration, TouchableOpacity} from 'react-native';
 import {Switch, IconButton, Text, Icon, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
@@ -9,8 +9,21 @@ import {useBankStore} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {getTickerMessages} from '../../utils/engagement';
 import type {RootStackParamList} from '../../navigation/navigationRef';
+import TopToast from '../../components/TopToast';
 
 type Nav = StackNavigationProp<RootStackParamList>;
+
+// #10 — animates a number counter from its previous value to a new one
+function AnimatedCounter({value, style}: {value: number; style?: object}) {
+  const anim = useRef(new Animated.Value(value)).current;
+  const [display, setDisplay] = useState(value);
+  useEffect(() => {
+    const id = anim.addListener(({value: v}) => setDisplay(Math.round(v)));
+    Animated.timing(anim, {toValue: value, duration: 550, useNativeDriver: false}).start();
+    return () => anim.removeListener(id);
+  }, [value]);
+  return <Text style={style}>{display.toLocaleString()}</Text>;
+}
 
 function ActivityTicker() {
   const theme = useTheme();
@@ -55,7 +68,6 @@ function ActivityTicker() {
       marginHorizontal: 24, marginBottom: 4,
       height: 28, gap: 8, overflow: 'hidden',
     }}>
-      {/* Pulsing live dot */}
       <View style={{width: 7, height: 7, borderRadius: 4, backgroundColor: c.primary}} />
       <Animated.Text
         numberOfLines={1}
@@ -78,10 +90,10 @@ function formatTime(hour: number, minute: number) {
   return {time: `${h}:${m}`, ampm};
 }
 
-function AlarmCard({alarm}: {alarm: Alarm}) {
+function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; onShowToast: (msg: string) => void}) {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
-  const {toggleAlarm, deleteAlarm} = useAlarmStore();
+  const {toggleAlarm, deleteAlarm, reorderAlarm} = useAlarmStore();
   const {time, ampm} = formatTime(alarm.hour, alarm.minute);
   const enabled = alarm.enabled;
 
@@ -89,71 +101,191 @@ function AlarmCard({alarm}: {alarm: Alarm}) {
     ? 'One-time'
     : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => alarm.days.includes(i)).join(' · ');
 
-  return (
-    <View style={[{
-      backgroundColor: theme.colors.surface,
-      borderRadius: 20,
-      marginHorizontal: 16,
-      marginBottom: 12,
-      padding: 20,
-      opacity: enabled ? 1 : 0.45,
-    }, theme.dark ? {} : cardShadow]}>
-      {/* Time row */}
-      <View style={{flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between'}}>
-        <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 6}}>
-          <Text style={{
-            fontSize: 52,
-            fontWeight: '700',
-            letterSpacing: -2,
-            color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
-            lineHeight: 56,
-          }}>
-            {time}
-          </Text>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: '600',
-            color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
-            marginBottom: 6,
-            opacity: 0.75,
-          }}>
-            {ampm}
-          </Text>
-        </View>
-        <Switch
-          value={enabled}
-          onValueChange={() => toggleAlarm(alarm.id)}
-          color={theme.colors.primary}
-        />
-      </View>
+  // #4 — staggered slide-in from right on mount
+  const slideAnim = useRef(new Animated.Value(60)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, {toValue: 0, useNativeDriver: true, tension: 60, friction: 10, delay: index * 70} as any),
+      Animated.timing(fadeAnim, {toValue: 1, duration: 300, useNativeDriver: true, delay: index * 70}),
+    ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-      {/* Info + delete row */}
-      <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8}}>
-        <View style={{gap: 2}}>
-          <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant, fontWeight: '500'}}>
-            {daysLabel}
-          </Text>
-          <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}}>
-            {alarm.reps} push-ups to dismiss
-            {alarm.label ? `  ·  ${alarm.label}` : ''}
-          </Text>
-        </View>
-        <IconButton
-          icon="pencil-outline"
-          iconColor={theme.colors.onSurfaceVariant}
-          size={20}
-          onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}
-          style={{margin: 0}}
-        />
-        <IconButton
-          icon="trash-can-outline"
-          iconColor={theme.colors.onSurfaceVariant}
-          size={20}
-          onPress={() => deleteAlarm(alarm.id)}
-          style={{margin: 0}}
-        />
+  // #6 — scale pulse on toggle
+  const cardScale = useRef(new Animated.Value(1)).current;
+  const handleToggle = () => {
+    Vibration.vibrate(30);
+    Animated.sequence([
+      Animated.spring(cardScale, {toValue: 1.025, useNativeDriver: false, speed: 40}),
+      Animated.spring(cardScale, {toValue: 1, useNativeDriver: false, speed: 25}),
+    ]).start();
+    onShowToast(enabled ? 'Alarm disabled' : 'Alarm enabled');
+    toggleAlarm(alarm.id);
+  };
+
+  // #17 — shake + double-tap delete
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const shakeX = useRef(new Animated.Value(0)).current;
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const handleDelete = () => {
+    if (pendingDelete) {
+      deleteAlarm(alarm.id);
+      return;
+    }
+    setPendingDelete(true);
+    Animated.sequence([
+      Animated.timing(shakeX, {toValue: -9, duration: 55, useNativeDriver: false}),
+      Animated.timing(shakeX, {toValue: 9, duration: 55, useNativeDriver: false}),
+      Animated.timing(shakeX, {toValue: -6, duration: 55, useNativeDriver: false}),
+      Animated.timing(shakeX, {toValue: 6, duration: 55, useNativeDriver: false}),
+      Animated.timing(shakeX, {toValue: 0, duration: 55, useNativeDriver: false}),
+    ]).start();
+    clearTimeout(deleteTimer.current);
+    deleteTimer.current = setTimeout(() => setPendingDelete(false), 3000);
+  };
+
+  // #7 — long-press to show reorder arrows
+  const [showMoveControls, setShowMoveControls] = useState(false);
+  const moveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const handleLongPress = () => {
+    Vibration.vibrate(50);
+    setShowMoveControls(true);
+    clearTimeout(moveTimer.current);
+    moveTimer.current = setTimeout(() => setShowMoveControls(false), 4000);
+  };
+
+  // #5 — swipe-left to delete via PanResponder
+  const swipeX = useRef(new Animated.Value(0)).current;
+  const deleteRevealOpacity = swipeX.interpolate({
+    inputRange: [-110, -20, 0],
+    outputRange: [1, 0.2, 0],
+    extrapolate: 'clamp',
+  });
+  const panResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) =>
+      Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) && gs.dx < 0,
+    onPanResponderMove: (_, gs) => { if (gs.dx < 0) swipeX.setValue(gs.dx); },
+    onPanResponderRelease: (_, gs) => {
+      if (gs.dx < -120) {
+        Animated.timing(swipeX, {toValue: -500, duration: 200, useNativeDriver: false}).start(
+          () => deleteAlarm(alarm.id),
+        );
+      } else {
+        Animated.spring(swipeX, {toValue: 0, useNativeDriver: false}).start();
+      }
+    },
+  })).current;
+
+  return (
+    // Outer: fade + slide in from right on mount (native driver)
+    <Animated.View style={{opacity: fadeAnim, transform: [{translateX: slideAnim}]}}>
+      <View style={{marginHorizontal: 16, marginBottom: 12}}>
+        {/* Delete reveal shown behind card as it swipes left */}
+        <Animated.View style={{
+          position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 90,
+          backgroundColor: theme.colors.error, borderRadius: 20,
+          justifyContent: 'center', alignItems: 'center',
+          opacity: deleteRevealOpacity,
+        }}>
+          <Icon source="trash-can-outline" size={26} color="#fff" />
+        </Animated.View>
+
+        {/* Card: handles swipe, shake, scale (all non-native for mix compatibility) */}
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={[{
+            backgroundColor: theme.colors.surface,
+            borderRadius: 20,
+            padding: 20,
+            opacity: enabled ? 1 : 0.45,
+            transform: [{scale: cardScale}, {translateX: swipeX}, {translateX: shakeX}],
+          }, theme.dark ? {} : cardShadow]}>
+
+          {/* Time row */}
+          <Pressable onLongPress={handleLongPress}>
+            <View style={{flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between'}}>
+              <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 6}}>
+                <Text style={{
+                  fontSize: 52,
+                  fontWeight: '700',
+                  letterSpacing: -2,
+                  color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
+                  lineHeight: 56,
+                }}>
+                  {time}
+                </Text>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '600',
+                  color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
+                  marginBottom: 6,
+                  opacity: 0.75,
+                }}>
+                  {ampm}
+                </Text>
+              </View>
+              <Switch
+                value={enabled}
+                onValueChange={handleToggle}
+                color={theme.colors.primary}
+              />
+            </View>
+
+            {/* Info + delete row */}
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8}}>
+              <View style={{gap: 2}}>
+                <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant, fontWeight: '500'}}>
+                  {daysLabel}
+                </Text>
+                <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}}>
+                  {alarm.reps} push-ups to dismiss
+                  {alarm.label ? `  ·  ${alarm.label}` : ''}
+                </Text>
+              </View>
+              <IconButton
+                icon="pencil-outline"
+                iconColor={theme.colors.onSurfaceVariant}
+                size={20}
+                onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}
+                style={{margin: 0}}
+              />
+              <IconButton
+                icon="trash-can-outline"
+                iconColor={pendingDelete ? theme.colors.error : theme.colors.onSurfaceVariant}
+                size={20}
+                onPress={handleDelete}
+                style={{margin: 0}}
+              />
+            </View>
+          </Pressable>
+
+          {/* #7 — reorder controls (shown on long-press, auto-hide after 4s) */}
+          {showMoveControls && (
+            <View style={{
+              position: 'absolute', top: 8, right: 56,
+              flexDirection: 'row', gap: 2,
+              backgroundColor: theme.colors.surfaceVariant,
+              borderRadius: 10, padding: 4,
+            }}>
+              <Pressable
+                onPress={() => { reorderAlarm(alarm.id, 'up'); setShowMoveControls(false); }}
+                style={{padding: 4}}>
+                <Icon source="chevron-up" size={20} color={theme.colors.primary} />
+              </Pressable>
+              <Pressable
+                onPress={() => { reorderAlarm(alarm.id, 'down'); setShowMoveControls(false); }}
+                style={{padding: 4}}>
+                <Icon source="chevron-down" size={20} color={theme.colors.primary} />
+              </Pressable>
+              <Pressable onPress={() => setShowMoveControls(false)} style={{padding: 4}}>
+                <Icon source="close" size={20} color={theme.colors.onSurfaceVariant} />
+              </Pressable>
+            </View>
+          )}
+        </Animated.View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -162,6 +294,17 @@ export default function AlarmListScreen() {
   const {alarms} = useAlarmStore();
   const {totalReps} = useBankStore();
   const theme = useTheme();
+
+  // #18 — top toast for alarm toggle feedback
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
+  };
 
   return (
     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
@@ -188,9 +331,11 @@ export default function AlarmListScreen() {
             gap: 4,
           }}>
             <Text style={{fontSize: 16}}>🔥</Text>
-            <Text style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}>
-              {totalReps.toLocaleString()}
-            </Text>
+            {/* #10 — animated counter ticks up when reps change */}
+            <AnimatedCounter
+              value={totalReps}
+              style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}
+            />
           </View>
           <IconButton
             icon="cog-outline"
@@ -207,7 +352,9 @@ export default function AlarmListScreen() {
       <FlatList
         data={alarms}
         keyExtractor={a => a.id}
-        renderItem={({item}) => <AlarmCard alarm={item} />}
+        renderItem={({item, index}) => (
+          <AlarmCard alarm={item} index={index} onShowToast={showToast} />
+        )}
         contentContainerStyle={[
           {paddingTop: 4, paddingBottom: 120},
           alarms.length === 0 && {flex: 1},
@@ -247,6 +394,9 @@ export default function AlarmListScreen() {
           <Icon source="plus" size={28} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
+
+      {/* #18 — top toast */}
+      <TopToast message={toastMsg} visible={toastVisible} />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {View, ScrollView, Animated} from 'react-native';
+import {Dimensions, View, ScrollView, Animated} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput,
   ProgressBar, TouchableRipple, useTheme,
@@ -75,6 +75,7 @@ const PERSONA_DATA = {
 };
 
 const CHART_HEIGHTS = [0.15, 0.38, 0.62, 0.9];
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const theme = useTheme();
@@ -108,6 +109,17 @@ export default function OnboardingScreen() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [dailyGoalInput, setDailyGoalInput] = useState('');
   const [grindingFor, setGrindingFor] = useState('');
+
+  // #19 — slide in from right (or left when going back) on each step change
+  const slideX = useRef(new Animated.Value(0)).current;
+  const prevStepRef = useRef(stepIdx);
+  useEffect(() => {
+    if (stepIdx === prevStepRef.current) return;
+    const dir = stepIdx > prevStepRef.current ? 1 : -1;
+    slideX.setValue(dir * SCREEN_WIDTH * 0.35);
+    Animated.spring(slideX, {toValue: 0, useNativeDriver: true, tension: 70, friction: 11}).start();
+    prevStepRef.current = stepIdx;
+  }, [stepIdx]);
 
   const analyzeProgress = useRef(new Animated.Value(0)).current;
   const [analyzeProgress2, setAnalyzeProgress2] = useState(0);
@@ -881,7 +893,9 @@ export default function OnboardingScreen() {
         contentContainerStyle={{flexGrow: 1, paddingBottom: 48}}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        {renderContent()}
+        <Animated.View style={{flex: 1, transform: [{translateX: slideX}]}}>
+          {renderContent()}
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

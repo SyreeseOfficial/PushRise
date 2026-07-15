@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {View, Vibration, StatusBar, Alert, NativeModules} from 'react-native';
+import {View, Vibration, StatusBar, Alert, NativeModules, Animated} from 'react-native';
 import {Button, Text, useTheme} from 'react-native-paper';
 import Sound from 'react-native-sound';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
@@ -143,6 +143,10 @@ export default function AlarmFiringScreen() {
 
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
   const soundRef = useRef<Sound | null>(null);
+  // #8 — press-in scale for primary action buttons
+  const btnScale = useRef(new Animated.Value(1)).current;
+  const pressBtnIn = () => Animated.spring(btnScale, {toValue: 0.95, useNativeDriver: true}).start();
+  const pressBtnOut = () => Animated.spring(btnScale, {toValue: 1, useNativeDriver: true}).start();
 
   useEffect(() => {
     if (vibrateOnAlarm) Vibration.vibrate([0, 500, 300, 500], true);
@@ -247,9 +251,11 @@ export default function AlarmFiringScreen() {
               <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
                 push-ups to silence this alarm
               </Text>
-              <Button mode="contained" onPress={startCamera} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
-                I'm Ready
-              </Button>
+              <Animated.View style={{transform: [{scale: btnScale}]}}>
+                <Button mode="contained" onPress={startCamera} onPressIn={pressBtnIn} onPressOut={pressBtnOut} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+                  I'm Ready
+                </Button>
+              </Animated.View>
               <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
                 Use manual count instead
               </Button>
@@ -288,13 +294,16 @@ export default function AlarmFiringScreen() {
           <Text variant="titleLarge" style={{color: c.onSurfaceVariant, textAlign: 'center'}}>
             banked. You won this morning.
           </Text>
-          <Button
-            mode="contained"
-            onPress={() => cleanup(true)}
-            style={{marginTop: 16}}
-            contentStyle={{paddingHorizontal: 40, paddingVertical: 10}}>
-            Dismiss Alarm
-          </Button>
+          <Animated.View style={{marginTop: 16, transform: [{scale: btnScale}]}}>
+            <Button
+              mode="contained"
+              onPress={() => cleanup(true)}
+              onPressIn={pressBtnIn}
+              onPressOut={pressBtnOut}
+              contentStyle={{paddingHorizontal: 40, paddingVertical: 10}}>
+              Dismiss Alarm
+            </Button>
+          </Animated.View>
         </View>
       )}
     </View>

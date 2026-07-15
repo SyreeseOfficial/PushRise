@@ -23,6 +23,7 @@ interface AlarmStore {
   updateAlarm: (id: string, data: Omit<Alarm, 'id' | 'enabled'>) => Promise<void>;
   toggleAlarm: (id: string) => Promise<void>;
   deleteAlarm: (id: string) => Promise<void>;
+  reorderAlarm: (id: string, dir: 'up' | 'down') => void;
   reset: () => Promise<void>;
 }
 
@@ -67,6 +68,15 @@ export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
   deleteAlarm: async id => {
     await cancelAlarm(id);
     set(s => ({alarms: s.alarms.filter(a => a.id !== id)}));
+  },
+
+  reorderAlarm: (id, dir) => {
+    const alarms = [...get().alarms];
+    const idx = alarms.findIndex(a => a.id === id);
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    if (swap < 0 || swap >= alarms.length) return;
+    [alarms[idx], alarms[swap]] = [alarms[swap], alarms[idx]];
+    set({alarms});
   },
 
   reset: async () => {

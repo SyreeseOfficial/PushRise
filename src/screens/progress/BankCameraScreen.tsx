@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState, useCallback} from 'react';
-import {View, StyleSheet, StatusBar, NativeModules, Vibration} from 'react-native';
+import {View, StyleSheet, StatusBar, NativeModules, Vibration, Animated} from 'react-native';
 import {Button, Text} from 'react-native-paper';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useNavigation} from '@react-navigation/native';
@@ -19,6 +19,8 @@ export default function BankCameraScreen() {
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const {addReps} = useBankStore();
   const cameraRef = useRef<Camera>(null);
+  // #12 — white flash on each counted rep
+  const flashOpacity = useRef(new Animated.Value(0)).current;
   const phaseRef = useRef<RepPhase>('up');
   const pendingPhaseRef = useRef<RepPhase>('up');
   const pendingCountRef = useRef(0);
@@ -54,6 +56,8 @@ export default function BankCameraScreen() {
             countRef.current += 1;
             setCount(countRef.current);
             if (hapticOnRep) Vibration.vibrate(40);
+            flashOpacity.setValue(0.55);
+            Animated.timing(flashOpacity, {toValue: 0, duration: 220, useNativeDriver: true}).start();
           }
           phaseRef.current = newPhase;
         }
@@ -116,6 +120,8 @@ export default function BankCameraScreen() {
           {count > 0 ? `Done  ·  +${count} banked` : 'Done'}
         </Button>
       </View>
+      {/* #12 — rep flash overlay */}
+      <Animated.View pointerEvents="none" style={{...StyleSheet.absoluteFill, backgroundColor: '#fff', opacity: flashOpacity}} />
     </View>
   );
 }
