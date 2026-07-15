@@ -17,12 +17,12 @@ const STEPS = [
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
   'create-alarm',
-  'daily-goal', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall',
+  'daily-goal', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall', 'free-trial',
 ] as const;
 
 type Step = typeof STEPS[number];
 
-const HIDE_BACK = new Set<Step>(['welcome', 'analyzing', 'persona', 'notif-perm', 'paywall']);
+const HIDE_BACK = new Set<Step>(['welcome', 'analyzing', 'persona', 'notif-perm', 'paywall', 'free-trial']);
 
 const Q1_OPTIONS = [
   'I wake up fine most days',
@@ -112,6 +112,7 @@ export default function OnboardingScreen() {
   const analyzeProgress = useRef(new Animated.Value(0)).current;
   const [analyzeProgress2, setAnalyzeProgress2] = useState(0);
   const [analyzeIdx, setAnalyzeIdx] = useState(0);
+  const [analyzeComplete, setAnalyzeComplete] = useState(false);
 
   const persona = useMemo(() => getPersona(q1, q2), [q1, q2]);
   const recommendedReps = Q4_REPS[Math.max(0, q4)] ?? 10;
@@ -137,11 +138,12 @@ export default function OnboardingScreen() {
     analyzeProgress.setValue(0);
     setAnalyzeProgress2(0);
     setAnalyzeIdx(0);
+    setAnalyzeComplete(false);
     const listener = analyzeProgress.addListener(({value}) => setAnalyzeProgress2(value));
     const anim = Animated.timing(analyzeProgress, {
       toValue: 1, duration: 5400, useNativeDriver: false,
     });
-    anim.start(({finished}) => { if (finished) setTimeout(() => setStepIdx(s => s + 1), 120); });
+    anim.start(({finished}) => { if (finished) setAnalyzeComplete(true); });
     const ticker = setInterval(() => setAnalyzeIdx(i => (i + 1) % ANALYZE_TEXTS.length), 900);
     return () => {
       anim.stop();
@@ -375,8 +377,13 @@ export default function OnboardingScreen() {
             </Text>
             <ProgressBar progress={analyzeProgress2} color={theme.colors.primary} style={{height: 4, borderRadius: 2}} />
             <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20}}>
-              {ANALYZE_TEXTS[analyzeIdx]}
+              {analyzeComplete ? 'Your plan is ready.' : ANALYZE_TEXTS[analyzeIdx]}
             </Text>
+            {analyzeComplete && (
+              <Button mode="contained" onPress={next} style={{marginTop: 40}} contentStyle={{paddingVertical: 8}}>
+                View Your Type →
+              </Button>
+            )}
           </View>
         );
 
@@ -750,7 +757,10 @@ export default function OnboardingScreen() {
 
       case 'paywall':
         return (
-          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+          <View style={{paddingHorizontal: 24, paddingTop: 16}}>
+            <TouchableRipple onPress={next} borderless style={{alignSelf: 'flex-end', borderRadius: 20, padding: 8, marginBottom: 8}}>
+              <Text style={{fontSize: 22, color: theme.colors.onSurfaceVariant}}>✕</Text>
+            </TouchableRipple>
             <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 28, gap: 10}}>
               <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
                 ☕  One coffee: $5–7. Lasts 20 minutes.
@@ -798,14 +808,50 @@ export default function OnboardingScreen() {
               </Surface>
             </TouchableRipple>
 
-            <Text variant="bodySmall" style={{color: theme.colors.outline, textAlign: 'center', lineHeight: 20, marginBottom: 20}}>
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20, marginBottom: 20}}>
               No charge today. No charge until Day 8.{'\n'}Cancel before then and pay nothing.
             </Text>
             <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center'}}>
               {['Camera detection', 'Reward banking', 'Streak tracking', 'No ads'].map(t => (
-                <Text key={t} variant="labelSmall" style={{color: theme.colors.outline}}>✓ {t}</Text>
+                <Text key={t} variant="labelSmall" style={{color: theme.colors.onSurfaceVariant}}>✓ {t}</Text>
               ))}
             </View>
+          </View>
+        );
+
+      case 'free-trial':
+        return (
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineLarge" style={{fontWeight: '800', marginBottom: 8}}>
+              Try it free.
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 32}}>
+              7 days. No card needed.
+            </Text>
+
+            <View style={{gap: 16, marginBottom: 36}}>
+              {[
+                {icon: '📷', label: 'Camera counts your push-ups'},
+                {icon: '💰', label: 'Earn rewards for reps'},
+                {icon: '🔥', label: 'Track streaks'},
+                {icon: '⏰', label: 'All alarm features'},
+              ].map(({icon, label}) => (
+                <View key={label} style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
+                  <Text style={{fontSize: 28}}>{icon}</Text>
+                  <Text variant="bodyLarge" style={{color: theme.colors.onSurface}}>{label}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Button mode="contained" onPress={handleComplete} contentStyle={{paddingVertical: 10}} style={{marginBottom: 12}}>
+              Start Free Trial
+            </Button>
+            <Button mode="text" onPress={() => setStepIdx(s => s - 1)} style={{marginBottom: 8}}>
+              See pricing
+            </Button>
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20}}>
+              $2.99/mo after 7 days. Cancel anytime.
+            </Text>
           </View>
         );
 

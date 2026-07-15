@@ -3,6 +3,7 @@ import {NavigationContainer, DefaultTheme as NavDefaultTheme} from '@react-navig
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useTheme, Icon} from 'react-native-paper';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {navigationRef, RootStackParamList} from './navigationRef';
 import AlarmListScreen from '../screens/alarms/AlarmListScreen';
 import AddAlarmScreen from '../screens/alarms/AddAlarmScreen';
@@ -25,6 +26,7 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -37,8 +39,8 @@ function MainTabs() {
           shadowOffset: {width: 0, height: -2},
           shadowOpacity: 0.08,
           shadowRadius: 8,
-          height: 68,
-          paddingBottom: 10,
+          height: 68 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           paddingTop: 8,
         },
         tabBarLabelStyle: {

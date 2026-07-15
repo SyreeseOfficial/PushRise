@@ -784,60 +784,66 @@ export default function ProgressScreen() {
             const unlocked = getUnlockedTitles(totalReps, currentStreak);
             const autoTitle = getTitle(totalReps, currentStreak);
             return (
-              <View style={sheetBg}>
-                {handle}
-                <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 4, letterSpacing: -0.3}}>
-                  Choose Your Title
-                </Text>
-                <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
-                  Tap any title you've earned to equip it.
-                </Text>
+              <View style={[sheetBg, {padding: 0, paddingBottom: 0, maxHeight: '85%'}]}>
+                <View style={{paddingHorizontal: 28, paddingTop: 28}}>
+                  {handle}
+                  <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 4, letterSpacing: -0.3}}>
+                    Choose Your Title
+                  </Text>
+                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
+                    Tap any title you've earned to equip it.
+                  </Text>
+                </View>
 
-                {/* Auto option */}
-                <TouchableOpacity
-                  onPress={() => { setEquippedTitle(null); setSheet('closed'); }}
-                  activeOpacity={0.7}
-                  style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12}}>
-                  <View style={{flex: 1}}>
-                    <Text style={{fontSize: 16, fontWeight: '700', color: !equippedTitle ? c.primary : c.onSurface}}>
-                      Auto
-                    </Text>
-                    <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
-                      Always shows your highest earned title ({autoTitle})
-                    </Text>
-                  </View>
-                  {!equippedTitle && <Icon source="check" size={18} color={c.primary} />}
-                </TouchableOpacity>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{paddingHorizontal: 28, paddingBottom: 48}}>
+                  {/* Auto option */}
+                  <TouchableOpacity
+                    onPress={() => { setEquippedTitle(null); setSheet('closed'); }}
+                    activeOpacity={0.7}
+                    style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12}}>
+                    <View style={{flex: 1}}>
+                      <Text style={{fontSize: 16, fontWeight: '700', color: !equippedTitle ? c.primary : c.onSurface}}>
+                        Auto
+                      </Text>
+                      <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
+                        Always shows your highest earned title ({autoTitle})
+                      </Text>
+                    </View>
+                    {!equippedTitle && <Icon source="check" size={18} color={c.primary} />}
+                  </TouchableOpacity>
 
-                <Divider />
+                  <Divider />
 
-                {TITLES.map((title, i) => {
-                  const isUnlocked = unlocked.some(t => t.label === title.label);
-                  const isEquipped = equippedTitle === title.label;
-                  return (
-                    <React.Fragment key={title.label}>
-                      <TouchableOpacity
-                        onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); setSheet('closed'); } }}
-                        activeOpacity={isUnlocked ? 0.7 : 1}
-                        style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, opacity: isUnlocked ? 1 : 0.35}}>
-                        <View style={{flex: 1}}>
-                          <Text style={{fontSize: 16, fontWeight: '700', color: isEquipped ? c.primary : c.onSurface}}>
-                            {title.label}
-                          </Text>
-                          <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{title.unlock}</Text>
-                        </View>
-                        {isEquipped && <Icon source="check" size={18} color={c.primary} />}
-                        {!isEquipped && isUnlocked && <Icon source="check-outline" size={18} color={c.onSurfaceVariant} />}
-                        {!isUnlocked && <Icon source="lock-outline" size={16} color={c.onSurfaceVariant} />}
-                      </TouchableOpacity>
-                      {i < TITLES.length - 1 && <Divider />}
-                    </React.Fragment>
-                  );
-                })}
+                  {TITLES.map((title, i) => {
+                    const isUnlocked = unlocked.some(t => t.label === title.label);
+                    const isEquipped = equippedTitle === title.label;
+                    return (
+                      <React.Fragment key={title.label}>
+                        <TouchableOpacity
+                          onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); setSheet('closed'); } }}
+                          activeOpacity={isUnlocked ? 0.7 : 1}
+                          style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, opacity: isUnlocked ? 1 : 0.35}}>
+                          <View style={{flex: 1}}>
+                            <Text style={{fontSize: 16, fontWeight: '700', color: isEquipped ? c.primary : c.onSurface}}>
+                              {title.label}
+                            </Text>
+                            <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{title.unlock}</Text>
+                          </View>
+                          {isEquipped && <Icon source="check" size={18} color={c.primary} />}
+                          {!isEquipped && isUnlocked && <Icon source="check-outline" size={18} color={c.onSurfaceVariant} />}
+                          {!isUnlocked && <Icon source="lock-outline" size={16} color={c.onSurfaceVariant} />}
+                        </TouchableOpacity>
+                        {i < TITLES.length - 1 && <Divider />}
+                      </React.Fragment>
+                    );
+                  })}
 
-                <Button mode="text" onPress={() => setSheet('closed')} style={{marginTop: 8}}>
-                  Cancel
-                </Button>
+                  <Button mode="text" onPress={() => setSheet('closed')} style={{marginTop: 8}}>
+                    Cancel
+                  </Button>
+                </ScrollView>
               </View>
             );
           })()}
