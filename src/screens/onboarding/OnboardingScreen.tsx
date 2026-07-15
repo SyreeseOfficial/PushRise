@@ -6,7 +6,6 @@ import {
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Slider from '@react-native-community/slider';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 import {useSettingsStore} from '../../store/settingsStore';
@@ -452,17 +451,20 @@ export default function OnboardingScreen() {
             <Text variant="titleMedium" style={{textAlign: 'center', color: theme.colors.onSurfaceVariant, marginBottom: 40, marginTop: 8}}>
               {Q4_OPTIONS[bucket]}
             </Text>
-            <Slider
-              minimumValue={1}
-              maximumValue={30}
-              step={1}
-              value={sliderVal}
-              onValueChange={v => setSliderVal(v)}
-              minimumTrackTintColor={theme.colors.primary}
-              maximumTrackTintColor={theme.colors.surfaceVariant}
-              thumbTintColor={theme.colors.primary}
-              style={{marginHorizontal: -8, marginBottom: 48}}
-            />
+            <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 48, gap: 32}}>
+              <TouchableRipple
+                onPress={() => setSliderVal(v => Math.max(1, v - 1))}
+                borderless
+                style={{padding: 16, borderRadius: 40, backgroundColor: theme.colors.surfaceVariant}}>
+                <Text style={{fontSize: 28, lineHeight: 32, color: theme.colors.onSurfaceVariant}}>−</Text>
+              </TouchableRipple>
+              <TouchableRipple
+                onPress={() => setSliderVal(v => Math.min(30, v + 1))}
+                borderless
+                style={{padding: 16, borderRadius: 40, backgroundColor: theme.colors.primary}}>
+                <Text style={{fontSize: 28, lineHeight: 32, color: theme.colors.onPrimary}}>+</Text>
+              </TouchableRipple>
+            </View>
             <Button
               mode="contained"
               onPress={() => { setQ4(bucket); next(); }}
