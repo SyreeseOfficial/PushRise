@@ -48,9 +48,9 @@ const ANALYZE_TEXTS = [
   'Building your personalized plan…',
 ];
 const TESTIMONIALS = [
-  {stars: 5, text: '"I\'ve tried every alarm app. This is the only one I actually respect. It doesn\'t let me lie to myself."', name: 'Marcus, 22'},
-  {stars: 5, text: '"Day 14. Never made it past day 3 with anything else. The push-ups are brutal at 6am — that\'s the point."', name: 'Jordan, 19'},
-  {stars: 5, text: '"My roommate started using it after he saw me wake up on time for two weeks straight. Now we compete."', name: 'Tyler, 24'},
+  {stars: 5, text: '"Tried every alarm app. This is the only one I actually respect. It doesn\'t let me lie to myself."', name: 'Marcus, 22'},
+  {stars: 5, text: '"Day 14. Never made it past day 3 with anything else. Push-ups at 6am. That\'s the point."', name: 'Jordan, 19'},
+  {stars: 5, text: '"My roommate started using it after he saw me wake up on time two weeks straight. Now we compete."', name: 'Tyler, 24'},
 ];
 
 function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optimizer' {
@@ -61,15 +61,15 @@ function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optim
 
 const PERSONA_DATA = {
   sleeper: {
-    title: 'The Sleeper',
+    title: '😴 The Sleeper',
     body: 'You know you should be doing more. You\'re tired of feeling behind before the day starts. PushRise was literally built for you — the people who need this most are the ones who keep hitting snooze. That stops today.',
   },
   inconsistent: {
-    title: 'The Inconsistent',
+    title: '⚡ The Inconsistent',
     body: 'You have the drive — you just can\'t get it started in the morning. Your push-ups are going to fix that. Every morning you do them is a morning you win before the day begins.',
   },
   optimizer: {
-    title: 'The Optimizer',
+    title: '🎯 The Optimizer',
     body: 'You\'re already disciplined. PushRise gives you a system to turn that discipline into real results. Track everything. Bank every rep. Earn what you spend.',
   },
 };
@@ -139,9 +139,9 @@ export default function OnboardingScreen() {
     setAnalyzeIdx(0);
     const listener = analyzeProgress.addListener(({value}) => setAnalyzeProgress2(value));
     const anim = Animated.timing(analyzeProgress, {
-      toValue: 1, duration: 3600, useNativeDriver: false,
+      toValue: 1, duration: 5400, useNativeDriver: false,
     });
-    anim.start(({finished}) => { if (finished) setStepIdx(s => s + 1); });
+    anim.start(({finished}) => { if (finished) setTimeout(() => setStepIdx(s => s + 1), 120); });
     const ticker = setInterval(() => setAnalyzeIdx(i => (i + 1) % ANALYZE_TEXTS.length), 900);
     return () => {
       anim.stop();
@@ -198,7 +198,7 @@ export default function OnboardingScreen() {
                 A note from the founder
               </Text>
               <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic'}}>
-                {"Hey,\n\nI built PushRise because I was you.\n\nSix alarms. Snoozed every single one. Then spent the rest of the day feeling behind before it even started.\n\nThe problem wasn't my alarm. It was me.\n\nI needed something that wouldn't let me off the hook. So I built it.\n\nNow I wake up every morning knowing I already won.\n\nYou can too.\n\n— Syreese"}
+                {"Yo,\n\nI built PushRise because I was you. Six alarms. Snoozed every single one. Spent the rest of the day feeling behind before it even started. The problem wasn't my alarm, it was me. I needed something that wouldn't let me off the hook. So I built it. Now I wake up every morning knowing I already won.\n\nYou can too.\n— Syreese"}
               </Text>
             </Surface>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
@@ -221,7 +221,7 @@ export default function OnboardingScreen() {
                 <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontStyle: 'italic', marginBottom: 10}}>
                   {t.text}
                 </Text>
-                <Text variant="labelMedium" style={{color: theme.colors.outline}}>— {t.name}</Text>
+                <Text variant="labelMedium" style={{color: theme.colors.outline}}>{t.name}</Text>
               </Surface>
             ))}
             <Button mode="contained" onPress={next} style={{marginTop: 8}} contentStyle={{paddingVertical: 8}}>

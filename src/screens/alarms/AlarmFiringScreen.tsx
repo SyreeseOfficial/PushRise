@@ -134,7 +134,7 @@ export default function AlarmFiringScreen() {
   const {addReps, totalReps} = useBankStore();
   const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));
   const {
-    vibrateOnAlarm, muteAudioDuringPushups, autoCompleteAlarm,
+    vibrateOnAlarm, muteAudioDuringPushups,
     hapticOnRep, keepScreenOn, preferFrontCamera,
   } = useSettingsStore();
   const {trialStartedAt, isSubscribed} = useSubscriptionStore();
@@ -198,14 +198,10 @@ export default function AlarmFiringScreen() {
   }, [alarm, alarmId, reps, addReps, totalReps, navigation, hasPromptedReview, markReviewPrompted]);
 
   const complete = useCallback(() => {
-    if (autoCompleteAlarm) {
-      cleanup(true);
-    } else {
-      Vibration.cancel();
-      soundRef.current?.stop();
-      setMode('done');
-    }
-  }, [autoCompleteAlarm, cleanup]);
+    Vibration.cancel();
+    soundRef.current?.stop();
+    setMode('done');
+  }, []);
 
   const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
@@ -284,13 +280,18 @@ export default function AlarmFiringScreen() {
       )}
 
       {mode === 'done' && (
-        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 20}}>
-          <Text variant="headlineMedium" style={{color: c.primary, fontWeight: '800', textAlign: 'center'}}>
-            Done! {reps} reps banked.
+        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 12}}>
+          <Text style={{fontSize: 64}}>💪</Text>
+          <Text variant="displaySmall" style={{color: c.primary, fontWeight: '900', textAlign: 'center', letterSpacing: -1}}>
+            {reps} reps
+          </Text>
+          <Text variant="titleLarge" style={{color: c.onSurfaceVariant, textAlign: 'center'}}>
+            banked. You won this morning.
           </Text>
           <Button
             mode="contained"
             onPress={() => cleanup(true)}
+            style={{marginTop: 16}}
             contentStyle={{paddingHorizontal: 40, paddingVertical: 10}}>
             Dismiss Alarm
           </Button>

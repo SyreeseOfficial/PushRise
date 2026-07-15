@@ -6,9 +6,13 @@ import {
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Sound from 'react-native-sound';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
+import type {RouteProp} from '@react-navigation/native';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
+import type {RootStackParamList} from '../../navigation/navigationRef';
+
+type Route = RouteProp<RootStackParamList, 'AddAlarm'>;
 
 Sound.setCategory('Alarm');
 
@@ -30,24 +34,33 @@ const SOUNDS = [
 
 export default function AddAlarmScreen() {
   const navigation = useNavigation();
+  const route = useRoute<Route>();
+  const alarmId = route.params?.alarmId;
   const theme = useTheme();
-  const {addAlarm} = useAlarmStore();
+  const {addAlarm, updateAlarm, alarms} = useAlarmStore();
   const {defaultReps} = useSettingsStore();
   const previewRef = useRef<Sound | null>(null);
 
+  const existing = alarmId ? alarms.find(a => a.id === alarmId) : undefined;
+
   const [time, setTime] = useState(() => {
+    if (existing) {
+      const d = new Date();
+      d.setHours(existing.hour, existing.minute, 0, 0);
+      return d;
+    }
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
     return d;
   });
   const [showPicker, setShowPicker] = useState(false);
-  const [reps, setReps] = useState(String(defaultReps));
-  const [label, setLabel] = useState('');
-  const [recurring, setRecurring] = useState(false);
-  const [days, setDays] = useState<number[]>([]);
-  const [volume, setVolume] = useState('1.0');
-  const [sound, setSound] = useState('alarm.mp3');
+  const [reps, setReps] = useState(existing ? String(existing.reps) : String(defaultReps));
+  const [label, setLabel] = useState(existing?.label ?? '');
+  const [recurring, setRecurring] = useState(existing ? existing.days.length > 0 : false);
+  const [days, setDays] = useState<number[]>(existing?.days ?? []);
+  const [volume, setVolume] = useState(existing ? String(existing.volume) : '1.0');
+  const [sound, setSound] = useState(existing?.sound ?? 'alarm.mp3');
 
   const toggleDay = (d: number) =>
     setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -66,7 +79,7 @@ export default function AddAlarmScreen() {
 
   const save = async () => {
     previewRef.current?.stop();
-    await addAlarm({
+    const data = {
       hour: time.getHours(),
       minute: time.getMinutes(),
       reps: parseInt(reps, 10) || 10,
@@ -74,7 +87,12 @@ export default function AddAlarmScreen() {
       days: recurring ? days : [],
       volume: parseFloat(volume),
       sound,
-    });
+    };
+    if (alarmId) {
+      await updateAlarm(alarmId, data);
+    } else {
+      await addAlarm(data);
+    }
     navigation.goBack();
   };
 
@@ -82,7 +100,7 @@ export default function AddAlarmScreen() {
     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
       <Appbar.Header>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="New Alarm" />
+        <Appbar.Content title={alarmId ? 'Edit Alarm' : 'New Alarm'} />
         <Appbar.Action icon="check" onPress={save} />
       </Appbar.Header>
 

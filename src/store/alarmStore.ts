@@ -20,6 +20,7 @@ export interface Alarm {
 interface AlarmStore {
   alarms: Alarm[];
   addAlarm: (data: Omit<Alarm, 'id' | 'enabled'>) => Promise<void>;
+  updateAlarm: (id: string, data: Omit<Alarm, 'id' | 'enabled'>) => Promise<void>;
   toggleAlarm: (id: string) => Promise<void>;
   deleteAlarm: (id: string) => Promise<void>;
   reset: () => Promise<void>;
@@ -38,6 +39,15 @@ export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
     };
     set(s => ({alarms: [...s.alarms, alarm]}));
     await scheduleAlarm(alarm);
+  },
+
+  updateAlarm: async (id, data) => {
+    const existing = get().alarms.find(a => a.id === id);
+    if (!existing) return;
+    const alarm = {...existing, ...data};
+    set(s => ({alarms: s.alarms.map(a => a.id === id ? alarm : a)}));
+    await cancelAlarm(id);
+    if (alarm.enabled) await scheduleAlarm(alarm);
   },
 
   toggleAlarm: async id => {

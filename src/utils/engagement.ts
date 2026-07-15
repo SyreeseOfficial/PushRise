@@ -27,12 +27,19 @@ export function checkMilestone(prevTotal: number, newTotal: number, seen: number
 }
 
 export const TITLES = [
+  {label: 'No Days Off',     unlock: '30-day streak',    check: (_r: number, s: number) => s >= 30},
+  {label: 'Ghost Mode',      unlock: '21-day streak',    check: (_r: number, s: number) => s >= 21},
+  {label: 'Relentless',      unlock: '10,000 reps',      check: (r: number) => r >= 10000},
   {label: '5AM Club',        unlock: '14-day streak',    check: (_r: number, s: number) => s >= 14},
   {label: 'Legend',          unlock: '6,000 reps',       check: (r: number) => r >= 6000},
+  {label: 'Machine',         unlock: '4,000 reps',       check: (r: number) => r >= 4000},
   {label: 'Iron Riser',      unlock: '3,000 reps',       check: (r: number) => r >= 3000},
   {label: 'Built Different', unlock: '1,500 reps',       check: (r: number) => r >= 1500},
   {label: 'The Grinder',     unlock: '750 reps',         check: (r: number) => r >= 750},
+  {label: 'Obsessed',        unlock: '500 reps',         check: (r: number) => r >= 500},
   {label: 'Locked In',       unlock: '200 reps',         check: (r: number) => r >= 200},
+  {label: 'Consistent',      unlock: '100 reps',         check: (r: number) => r >= 100},
+  {label: 'Untouchable',     unlock: '7-day streak',     check: (_r: number, s: number) => s >= 7},
   {label: 'Early Riser',     unlock: '20 reps',          check: (r: number) => r >= 20},
   {label: 'Newcomer',        unlock: 'Always available', check: () => true},
 ];

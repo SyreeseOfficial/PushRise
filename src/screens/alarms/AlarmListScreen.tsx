@@ -80,6 +80,7 @@ function formatTime(hour: number, minute: number) {
 
 function AlarmCard({alarm}: {alarm: Alarm}) {
   const theme = useTheme();
+  const navigation = useNavigation<Nav>();
   const {toggleAlarm, deleteAlarm} = useAlarmStore();
   const {time, ampm} = formatTime(alarm.hour, alarm.minute);
   const enabled = alarm.enabled;
@@ -137,6 +138,13 @@ function AlarmCard({alarm}: {alarm: Alarm}) {
             {alarm.label ? `  ·  ${alarm.label}` : ''}
           </Text>
         </View>
+        <IconButton
+          icon="pencil-outline"
+          iconColor={theme.colors.onSurfaceVariant}
+          size={20}
+          onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}
+          style={{margin: 0}}
+        />
         <IconButton
           icon="trash-can-outline"
           iconColor={theme.colors.onSurfaceVariant}
