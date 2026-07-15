@@ -2,8 +2,9 @@ import React, {useState, useRef} from 'react';
 import {View, ScrollView} from 'react-native';
 import {
   Appbar, Button, Text, TextInput, Switch, Chip,
-  SegmentedButtons, RadioButton, TouchableRipple, useTheme, Divider,
+  RadioButton, TouchableRipple, useTheme, Divider,
 } from 'react-native-paper';
+import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Sound from 'react-native-sound';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -17,14 +18,6 @@ type Route = RouteProp<RootStackParamList, 'AddAlarm'>;
 Sound.setCategory('Alarm');
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const VOLUME_BUTTONS = [
-  {value: '0',    label: '🔇'},
-  {value: '0.25', label: '🔈'},
-  {value: '0.5',  label: '🔉'},
-  {value: '0.75', label: '🔊'},
-  {value: '1.0',  label: '🔊+'},
-];
 
 const SOUNDS = [
   {id: 'alarm.mp3',   label: 'Classic'},
@@ -59,7 +52,7 @@ export default function AddAlarmScreen() {
   const [label, setLabel] = useState(existing?.label ?? '');
   const [recurring, setRecurring] = useState(existing ? existing.days.length > 0 : false);
   const [days, setDays] = useState<number[]>(existing?.days ?? []);
-  const [volume, setVolume] = useState(existing ? String(existing.volume) : '1.0');
+  const [volume, setVolume] = useState<number>(existing?.volume ?? 1.0);
   const [sound, setSound] = useState(existing?.sound ?? 'alarm.mp3');
 
   const toggleDay = (d: number) =>
@@ -70,7 +63,7 @@ export default function AddAlarmScreen() {
     previewRef.current?.release();
     const s = new Sound(filename, Sound.MAIN_BUNDLE, err => {
       if (!err) {
-        s.setVolume(parseFloat(volume));
+        s.setVolume(volume);
         s.play(() => s.release());
         previewRef.current = s;
       }
@@ -85,7 +78,7 @@ export default function AddAlarmScreen() {
       reps: parseInt(reps, 10) || 10,
       label,
       days: recurring ? days : [],
-      volume: parseFloat(volume),
+      volume,
       sound,
     };
     if (alarmId) {
@@ -150,13 +143,18 @@ export default function AddAlarmScreen() {
 
         {/* Volume */}
         <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
-          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 12}}>
-            Volume
+          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 4}}>
+            Volume — {Math.round(volume * 100)}%
           </Text>
-          <SegmentedButtons
+          <Slider
+            minimumValue={0}
+            maximumValue={1}
+            step={0.05}
             value={volume}
             onValueChange={setVolume}
-            buttons={VOLUME_BUTTONS}
+            minimumTrackTintColor={theme.colors.primary}
+            maximumTrackTintColor={theme.colors.surfaceVariant}
+            thumbTintColor={theme.colors.primary}
           />
         </View>
 

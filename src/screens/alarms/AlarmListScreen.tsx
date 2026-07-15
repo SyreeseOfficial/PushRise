@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Animated, FlatList, PanResponder, Pressable, View, Vibration, TouchableOpacity} from 'react-native';
+import {Animated, PanResponder, Pressable, ScrollView, View, Vibration, TouchableOpacity} from 'react-native';
 import {Switch, IconButton, Text, Icon, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
@@ -12,8 +12,12 @@ import type {RootStackParamList} from '../../navigation/navigationRef';
 import TopToast from '../../components/TopToast';
 
 type Nav = StackNavigationProp<RootStackParamList>;
+type DragCallbacks = {
+  onStart: (id: string, pageY: number) => void;
+  onMove: (pageY: number) => void;
+  onEnd: () => void;
+};
 
-// #10 — animates a number counter from its previous value to a new one
 function AnimatedCounter({value, style}: {value: number; style?: object}) {
   const anim = useRef(new Animated.Value(value)).current;
   const [display, setDisplay] = useState(value);
@@ -35,7 +39,6 @@ function ActivityTicker() {
 
   useEffect(() => {
     let active = true;
-
     function cycle() {
       if (!active) return;
       Animated.parallel([
@@ -56,7 +59,6 @@ function ActivityTicker() {
         }, 3800);
       });
     }
-
     cycle();
     return () => { active = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,10 +92,50 @@ function formatTime(hour: number, minute: number) {
   return {time: `${h}:${m}`, ampm};
 }
 
-function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; onShowToast: (msg: string) => void}) {
+function GhostCard({alarm}: {alarm: Alarm}) {
+  const theme = useTheme();
+  const {time, ampm} = formatTime(alarm.hour, alarm.minute);
+  const daysLabel = alarm.days.length === 0
+    ? 'One-time'
+    : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => alarm.days.includes(i)).join(' · ');
+  return (
+    <View style={[{
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      padding: 20,
+      elevation: 16,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 10},
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+    }, cardShadow]}>
+      <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 6}}>
+        <Text style={{fontSize: 52, fontWeight: '700', letterSpacing: -2, color: theme.colors.primary, lineHeight: 56}}>
+          {time}
+        </Text>
+        <Text style={{fontSize: 18, fontWeight: '600', color: theme.colors.primary, marginBottom: 6, opacity: 0.75}}>
+          {ampm}
+        </Text>
+      </View>
+      <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant, marginTop: 4}}>
+        {daysLabel}{alarm.label ? `  ·  ${alarm.label}` : ''}
+      </Text>
+    </View>
+  );
+}
+
+function AlarmCard({
+  alarm, index, onShowToast, isDragging, dragCallbacksRef,
+}: {
+  alarm: Alarm;
+  index: number;
+  onShowToast: (msg: string) => void;
+  isDragging: boolean;
+  dragCallbacksRef: React.MutableRefObject<DragCallbacks>;
+}) {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
-  const {toggleAlarm, deleteAlarm, reorderAlarm} = useAlarmStore();
+  const {toggleAlarm, deleteAlarm} = useAlarmStore();
   const {time, ampm} = formatTime(alarm.hour, alarm.minute);
   const enabled = alarm.enabled;
 
@@ -101,7 +143,7 @@ function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; on
     ? 'One-time'
     : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].filter((_, i) => alarm.days.includes(i)).join(' · ');
 
-  // #4 — staggered slide-in from right on mount
+  // Staggered slide-in from right on mount
   const slideAnim = useRef(new Animated.Value(60)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -112,7 +154,7 @@ function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; on
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // #6 — scale pulse on toggle
+  // Scale pulse on toggle
   const cardScale = useRef(new Animated.Value(1)).current;
   const handleToggle = () => {
     Vibration.vibrate(30);
@@ -124,7 +166,7 @@ function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; on
     toggleAlarm(alarm.id);
   };
 
-  // #17 — shake + double-tap delete
+  // Shake + double-tap delete
   const [pendingDelete, setPendingDelete] = useState(false);
   const shakeX = useRef(new Animated.Value(0)).current;
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -145,24 +187,14 @@ function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; on
     deleteTimer.current = setTimeout(() => setPendingDelete(false), 3000);
   };
 
-  // #7 — long-press to show reorder arrows
-  const [showMoveControls, setShowMoveControls] = useState(false);
-  const moveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const handleLongPress = () => {
-    Vibration.vibrate(50);
-    setShowMoveControls(true);
-    clearTimeout(moveTimer.current);
-    moveTimer.current = setTimeout(() => setShowMoveControls(false), 4000);
-  };
-
-  // #5 — swipe-left to delete via PanResponder
+  // Swipe-left to delete
   const swipeX = useRef(new Animated.Value(0)).current;
   const deleteRevealOpacity = swipeX.interpolate({
     inputRange: [-110, -20, 0],
     outputRange: [1, 0.2, 0],
     extrapolate: 'clamp',
   });
-  const panResponder = useRef(PanResponder.create({
+  const swipePan = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, gs) =>
       Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) && gs.dx < 0,
     onPanResponderMove: (_, gs) => { if (gs.dx < 0) swipeX.setValue(gs.dx); },
@@ -177,113 +209,104 @@ function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; on
     },
   })).current;
 
+  // Drag handle — captures touch immediately, inner wins over swipePan
+  const dragPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt) => {
+      dragCallbacksRef.current.onStart(alarm.id, evt.nativeEvent.pageY);
+    },
+    onPanResponderMove: (evt) => {
+      dragCallbacksRef.current.onMove(evt.nativeEvent.pageY);
+    },
+    onPanResponderRelease: () => {
+      dragCallbacksRef.current.onEnd();
+    },
+    onPanResponderTerminate: () => {
+      dragCallbacksRef.current.onEnd();
+    },
+  })).current;
+
   return (
-    // Outer: fade + slide in from right on mount (native driver)
     <Animated.View style={{opacity: fadeAnim, transform: [{translateX: slideAnim}]}}>
-      <View style={{marginHorizontal: 16, marginBottom: 12}}>
-        {/* Delete reveal shown behind card as it swipes left */}
-        <Animated.View style={{
-          position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 90,
-          backgroundColor: theme.colors.error, borderRadius: 20,
-          justifyContent: 'center', alignItems: 'center',
-          opacity: deleteRevealOpacity,
-        }}>
-          <Icon source="trash-can-outline" size={26} color="#fff" />
-        </Animated.View>
+      <View style={{opacity: isDragging ? 0 : 1}}>
+        <View style={{marginHorizontal: 16, marginBottom: 12}}>
+          {/* Delete reveal */}
+          <Animated.View style={{
+            position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 90,
+            backgroundColor: theme.colors.error, borderRadius: 20,
+            justifyContent: 'center', alignItems: 'center',
+            opacity: deleteRevealOpacity,
+          }}>
+            <Icon source="trash-can-outline" size={26} color="#fff" />
+          </Animated.View>
 
-        {/* Card: handles swipe, shake, scale (all non-native for mix compatibility) */}
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[{
-            backgroundColor: theme.colors.surface,
-            borderRadius: 20,
-            padding: 20,
-            opacity: enabled ? 1 : 0.45,
-            transform: [{scale: cardScale}, {translateX: swipeX}, {translateX: shakeX}],
-          }, theme.dark ? {} : cardShadow]}>
+          {/* Card */}
+          <Animated.View
+            {...swipePan.panHandlers}
+            style={[{
+              backgroundColor: theme.colors.surface,
+              borderRadius: 20,
+              padding: 20,
+              opacity: enabled ? 1 : 0.45,
+              transform: [{scale: cardScale}, {translateX: swipeX}, {translateX: shakeX}],
+            }, theme.dark ? {} : cardShadow]}>
 
-          {/* Time row */}
-          <Pressable onLongPress={handleLongPress}>
-            <View style={{flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between'}}>
-              <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 6}}>
-                <Text style={{
-                  fontSize: 52,
-                  fontWeight: '700',
-                  letterSpacing: -2,
-                  color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
-                  lineHeight: 56,
-                }}>
-                  {time}
-                </Text>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: '600',
-                  color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
-                  marginBottom: 6,
-                  opacity: 0.75,
-                }}>
-                  {ampm}
-                </Text>
+            <View style={{flexDirection: 'row', alignItems: 'stretch'}}>
+              {/* Drag handle */}
+              <View {...dragPan.panHandlers} style={{justifyContent: 'center', paddingRight: 12}}>
+                <Icon source="drag-vertical" size={24} color={theme.colors.outlineVariant} />
               </View>
-              <Switch
-                value={enabled}
-                onValueChange={handleToggle}
-                color={theme.colors.primary}
-              />
-            </View>
 
-            {/* Info + delete row */}
-            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8}}>
-              <View style={{gap: 2}}>
-                <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant, fontWeight: '500'}}>
-                  {daysLabel}
-                </Text>
-                <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}}>
-                  {alarm.reps} push-ups to dismiss
-                  {alarm.label ? `  ·  ${alarm.label}` : ''}
-                </Text>
-              </View>
-              <IconButton
-                icon="pencil-outline"
-                iconColor={theme.colors.onSurfaceVariant}
-                size={20}
-                onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}
-                style={{margin: 0}}
-              />
-              <IconButton
-                icon="trash-can-outline"
-                iconColor={pendingDelete ? theme.colors.error : theme.colors.onSurfaceVariant}
-                size={20}
-                onPress={handleDelete}
-                style={{margin: 0}}
-              />
-            </View>
-          </Pressable>
+              {/* Card content */}
+              <Pressable style={{flex: 1}}>
+                <View style={{flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between'}}>
+                  <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 6}}>
+                    <Text style={{
+                      fontSize: 52, fontWeight: '700', letterSpacing: -2,
+                      color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
+                      lineHeight: 56,
+                    }}>
+                      {time}
+                    </Text>
+                    <Text style={{
+                      fontSize: 18, fontWeight: '600',
+                      color: enabled ? theme.colors.primary : theme.colors.onSurfaceVariant,
+                      marginBottom: 6, opacity: 0.75,
+                    }}>
+                      {ampm}
+                    </Text>
+                  </View>
+                  <Switch value={enabled} onValueChange={handleToggle} color={theme.colors.primary} />
+                </View>
 
-          {/* #7 — reorder controls (shown on long-press, auto-hide after 4s) */}
-          {showMoveControls && (
-            <View style={{
-              position: 'absolute', top: 8, right: 56,
-              flexDirection: 'row', gap: 2,
-              backgroundColor: theme.colors.surfaceVariant,
-              borderRadius: 10, padding: 4,
-            }}>
-              <Pressable
-                onPress={() => { reorderAlarm(alarm.id, 'up'); setShowMoveControls(false); }}
-                style={{padding: 4}}>
-                <Icon source="chevron-up" size={20} color={theme.colors.primary} />
-              </Pressable>
-              <Pressable
-                onPress={() => { reorderAlarm(alarm.id, 'down'); setShowMoveControls(false); }}
-                style={{padding: 4}}>
-                <Icon source="chevron-down" size={20} color={theme.colors.primary} />
-              </Pressable>
-              <Pressable onPress={() => setShowMoveControls(false)} style={{padding: 4}}>
-                <Icon source="close" size={20} color={theme.colors.onSurfaceVariant} />
+                <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8}}>
+                  <View style={{gap: 2}}>
+                    <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant, fontWeight: '500'}}>
+                      {daysLabel}
+                    </Text>
+                    <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}}>
+                      {alarm.reps} push-ups to dismiss{alarm.label ? `  ·  ${alarm.label}` : ''}
+                    </Text>
+                  </View>
+                  <IconButton
+                    icon="pencil-outline"
+                    iconColor={theme.colors.onSurfaceVariant}
+                    size={20}
+                    onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}
+                    style={{margin: 0}}
+                  />
+                  <IconButton
+                    icon="trash-can-outline"
+                    iconColor={pendingDelete ? theme.colors.error : theme.colors.onSurfaceVariant}
+                    size={20}
+                    onPress={handleDelete}
+                    style={{margin: 0}}
+                  />
+                </View>
               </Pressable>
             </View>
-          )}
-        </Animated.View>
+          </Animated.View>
+        </View>
       </View>
     </Animated.View>
   );
@@ -291,11 +314,11 @@ function AlarmCard({alarm, index, onShowToast}: {alarm: Alarm; index: number; on
 
 export default function AlarmListScreen() {
   const navigation = useNavigation<Nav>();
-  const {alarms} = useAlarmStore();
+  const {alarms, reorderAlarmToIndex} = useAlarmStore();
   const {totalReps} = useBankStore();
   const theme = useTheme();
 
-  // #18 — top toast for alarm toggle feedback
+  // Toast
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -306,8 +329,95 @@ export default function AlarmListScreen() {
     toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
   };
 
+  // Drag state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [insertIndex, setInsertIndex] = useState(-1);
+  const draggingIdRef = useRef<string | null>(null);
+  const insertIndexRef = useRef(-1);
+  const ghostAnimY = useRef(new Animated.Value(0)).current;
+  const intraCardOffsetRef = useRef(0);
+
+  // Position tracking
+  const rootViewRef = useRef<View>(null);
+  const rootTopRef = useRef(0);
+  const listContainerRef = useRef<View>(null);
+  const listScreenTopRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
+  const itemLayoutsRef = useRef<Map<string, {y: number; height: number}>>(new Map());
+
+  // Compute where to insert (index in list-without-dragging-item space)
+  const computeInsertIndex = (pageY: number): number => {
+    let noBIdx = 0;
+    for (const alarm of alarms) {
+      if (alarm.id === draggingIdRef.current) continue;
+      const layout = itemLayoutsRef.current.get(alarm.id);
+      if (layout) {
+        const midY = listScreenTopRef.current + layout.y + layout.height / 2 - scrollOffsetRef.current;
+        if (pageY <= midY) return noBIdx;
+      }
+      noBIdx++;
+    }
+    return noBIdx;
+  };
+
+  // Drag callbacks — updated every render so closures stay fresh
+  const dragCallbacksRef = useRef<DragCallbacks>({
+    onStart: () => {},
+    onMove: () => {},
+    onEnd: () => {},
+  });
+
+  dragCallbacksRef.current.onStart = (id, pageY) => {
+    const layout = itemLayoutsRef.current.get(id);
+    const cardScreenTop = listScreenTopRef.current + (layout?.y ?? 0) - scrollOffsetRef.current;
+    intraCardOffsetRef.current = pageY - cardScreenTop;
+    ghostAnimY.setValue(cardScreenTop - rootTopRef.current);
+    draggingIdRef.current = id;
+    insertIndexRef.current = alarms.findIndex(a => a.id === id);
+    setDraggingId(id);
+    setInsertIndex(insertIndexRef.current);
+    Vibration.vibrate(40);
+  };
+
+  dragCallbacksRef.current.onMove = (pageY) => {
+    ghostAnimY.setValue(pageY - rootTopRef.current - intraCardOffsetRef.current);
+    const newIdx = computeInsertIndex(pageY);
+    if (newIdx !== insertIndexRef.current) {
+      insertIndexRef.current = newIdx;
+      setInsertIndex(newIdx);
+    }
+  };
+
+  dragCallbacksRef.current.onEnd = () => {
+    const id = draggingIdRef.current;
+    if (id && insertIndexRef.current >= 0) {
+      reorderAlarmToIndex(id, insertIndexRef.current);
+    }
+    draggingIdRef.current = null;
+    setDraggingId(null);
+    setInsertIndex(-1);
+  };
+
+  // Map no-B insertIndex to full-list indicator position
+  const getDropIndicatorFullIdx = (): number => {
+    if (!draggingId || insertIndex < 0) return -1;
+    const fromIndex = alarms.findIndex(a => a.id === draggingId);
+    return insertIndex <= fromIndex ? insertIndex : insertIndex + 1;
+  };
+  const dropFullIdx = getDropIndicatorFullIdx();
+
+  const draggingAlarm = draggingId ? alarms.find(a => a.id === draggingId) : null;
+
   return (
-    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+    <View
+      ref={rootViewRef}
+      style={{flex: 1, backgroundColor: theme.colors.background}}
+      onLayout={() => {
+        rootViewRef.current?.measure((x, y, w, h, pageX, pageY) => {
+          rootTopRef.current = pageY;
+        });
+      }}
+    >
       {/* Header */}
       <View style={{
         paddingHorizontal: 24,
@@ -322,16 +432,12 @@ export default function AlarmListScreen() {
         </Text>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
           <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: 'row', alignItems: 'center',
             backgroundColor: theme.colors.surfaceVariant,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 100,
-            gap: 4,
+            paddingHorizontal: 12, paddingVertical: 6,
+            borderRadius: 100, gap: 4,
           }}>
             <Text style={{fontSize: 16}}>🔥</Text>
-            {/* #10 — animated counter ticks up when reps change */}
             <AnimatedCounter
               value={totalReps}
               style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}
@@ -349,29 +455,82 @@ export default function AlarmListScreen() {
 
       <ActivityTicker />
 
-      <FlatList
-        data={alarms}
-        keyExtractor={a => a.id}
-        renderItem={({item, index}) => (
-          <AlarmCard alarm={item} index={index} onShowToast={showToast} />
-        )}
-        contentContainerStyle={[
-          {paddingTop: 4, paddingBottom: 120},
-          alarms.length === 0 && {flex: 1},
-        ]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 8}}>
-            <Text style={{fontSize: 48}}>⏰</Text>
-            <Text variant="titleMedium" style={{color: theme.colors.onSurfaceVariant, fontWeight: '600'}}>
-              No alarms set
-            </Text>
-            <Text variant="bodyMedium" style={{color: theme.colors.outline}}>
-              Tap + to create your first alarm
-            </Text>
-          </View>
-        }
-      />
+      <View
+        ref={listContainerRef}
+        style={{flex: 1}}
+        onLayout={() => {
+          listContainerRef.current?.measure((x, y, w, h, pageX, pageY) => {
+            listScreenTopRef.current = pageY;
+          });
+        }}
+      >
+        <ScrollView
+          scrollEnabled={!draggingId}
+          onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={16}
+          contentContainerStyle={[
+            {paddingTop: 4, paddingBottom: 120},
+            alarms.length === 0 && {flex: 1},
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {alarms.length === 0 ? (
+            <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 8}}>
+              <Text style={{fontSize: 48}}>⏰</Text>
+              <Text variant="titleMedium" style={{color: theme.colors.onSurfaceVariant, fontWeight: '600'}}>
+                No alarms set
+              </Text>
+              <Text variant="bodyMedium" style={{color: theme.colors.outline}}>
+                Tap + to create your first alarm
+              </Text>
+            </View>
+          ) : (
+            alarms.map((alarm, index) => (
+              <React.Fragment key={alarm.id}>
+                {dropFullIdx === index && (
+                  <View style={{height: 3, backgroundColor: theme.colors.primary, marginHorizontal: 16, marginBottom: 6, borderRadius: 2}} />
+                )}
+                <View
+                  onLayout={(e) => {
+                    itemLayoutsRef.current.set(alarm.id, {
+                      y: e.nativeEvent.layout.y,
+                      height: e.nativeEvent.layout.height,
+                    });
+                  }}
+                >
+                  <AlarmCard
+                    alarm={alarm}
+                    index={index}
+                    onShowToast={showToast}
+                    isDragging={alarm.id === draggingId}
+                    dragCallbacksRef={dragCallbacksRef}
+                  />
+                </View>
+              </React.Fragment>
+            ))
+          )}
+          {dropFullIdx === alarms.length && (
+            <View style={{height: 3, backgroundColor: theme.colors.primary, marginHorizontal: 16, marginTop: -6, borderRadius: 2}} />
+          )}
+        </ScrollView>
+      </View>
+
+      {/* Floating ghost card during drag */}
+      {draggingAlarm && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 16,
+            right: 16,
+            top: 0,
+            transform: [{translateY: ghostAnimY}],
+            zIndex: 999,
+          }}
+        >
+          <GhostCard alarm={draggingAlarm} />
+        </Animated.View>
+      )}
 
       {/* Gradient FAB */}
       <TouchableOpacity
@@ -395,7 +554,6 @@ export default function AlarmListScreen() {
         </LinearGradient>
       </TouchableOpacity>
 
-      {/* #18 — top toast */}
       <TopToast message={toastMsg} visible={toastVisible} />
     </View>
   );

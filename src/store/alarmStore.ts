@@ -23,7 +23,7 @@ interface AlarmStore {
   updateAlarm: (id: string, data: Omit<Alarm, 'id' | 'enabled'>) => Promise<void>;
   toggleAlarm: (id: string) => Promise<void>;
   deleteAlarm: (id: string) => Promise<void>;
-  reorderAlarm: (id: string, dir: 'up' | 'down') => void;
+  reorderAlarmToIndex: (id: string, toIndex: number) => void;
   reset: () => Promise<void>;
 }
 
@@ -70,12 +70,12 @@ export const useAlarmStore = create<AlarmStore>()(persist((set, get) => ({
     set(s => ({alarms: s.alarms.filter(a => a.id !== id)}));
   },
 
-  reorderAlarm: (id, dir) => {
+  reorderAlarmToIndex: (id, toIndex) => {
     const alarms = [...get().alarms];
-    const idx = alarms.findIndex(a => a.id === id);
-    const swap = dir === 'up' ? idx - 1 : idx + 1;
-    if (swap < 0 || swap >= alarms.length) return;
-    [alarms[idx], alarms[swap]] = [alarms[swap], alarms[idx]];
+    const from = alarms.findIndex(a => a.id === id);
+    if (from === -1) return;
+    const [item] = alarms.splice(from, 1);
+    alarms.splice(toIndex, 0, item);
     set({alarms});
   },
 
