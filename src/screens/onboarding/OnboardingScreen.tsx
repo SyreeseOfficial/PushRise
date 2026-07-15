@@ -1,11 +1,12 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {Dimensions, View, ScrollView, Animated} from 'react-native';
+import {Dimensions, View, ScrollView, Animated, Vibration} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput,
-  ProgressBar, TouchableRipple, useTheme,
+  TouchableRipple, useTheme,
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Slider from '@react-native-community/slider';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 import {useSettingsStore} from '../../store/settingsStore';
@@ -13,7 +14,7 @@ import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {requestNotificationPermission, scheduleNudge, cancelNudge} from '../../utils/notifee';
 
 const STEPS = [
-  'welcome', 'founder', 'social',
+  'welcome', 'name-input', 'founder', 'social',
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
   'create-alarm',
@@ -23,6 +24,7 @@ const STEPS = [
 type Step = typeof STEPS[number];
 
 const HIDE_BACK = new Set<Step>(['welcome', 'analyzing', 'persona', 'notif-perm', 'paywall', 'free-trial']);
+const PHASES = ['About You', 'Your Plan', 'Launch'] as const;
 
 const Q1_OPTIONS = [
   'I wake up fine most days',
@@ -40,12 +42,6 @@ const REWARD_GOALS = [
   'Actually hitting my goals',
   'Feeling proud of myself',
   'Just not being late anymore',
-];
-const ANALYZE_TEXTS = [
-  'Analyzing your wake-up patterns…',
-  'Calculating your push-up baseline…',
-  'Designing your reward system…',
-  'Building your personalized plan…',
 ];
 const TESTIMONIALS = [
   {stars: 5, text: '"Tried every alarm app. This is the only one I actually respect. It doesn\'t let me lie to myself."', name: 'Marcus, 22'},
@@ -75,6 +71,13 @@ const PERSONA_DATA = {
 };
 
 const CHART_HEIGHTS = [0.15, 0.38, 0.62, 0.9];
+
+function sliderBucket(v: number) {
+  if (v <= 5) return 0;
+  if (v <= 12) return 1;
+  if (v <= 19) return 2;
+  return 3;
+}
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 export default function OnboardingScreen() {
@@ -86,12 +89,17 @@ export default function OnboardingScreen() {
 
   const [stepIdx, setStepIdx] = useState(0);
   const currentStep = STEPS[stepIdx] as Step;
-  const progress = stepIdx / (STEPS.length - 1);
+  const phase = stepIdx <= 9 ? 0 : stepIdx <= 14 ? 1 : 2;
+
+  const [userName, setUserName] = useState('');
 
   const [q1, setQ1] = useState(-1);
+  const [snoozeCount, setSnoozeCount] = useState(0);
+  const snoozeCountRef = useRef(0);
   const [q2, setQ2] = useState(-1);
   const [q3, setQ3] = useState(-1);
   const [q4, setQ4] = useState(-1);
+  const [sliderVal, setSliderVal] = useState(10);
   const [rewardGoals, setRewardGoals] = useState<number[]>([]);
 
   const [wakeTime, setWakeTime] = useState<Date>(() => {
@@ -109,6 +117,8 @@ export default function OnboardingScreen() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [dailyGoalInput, setDailyGoalInput] = useState('');
   const [grindingFor, setGrindingFor] = useState('');
+  const [commitSigned, setCommitSigned] = useState(false);
+  const commitSealAnim = useRef(new Animated.Value(0)).current;
 
   // #19 — slide in from right (or left when going back) on each step change
   const slideX = useRef(new Animated.Value(0)).current;
@@ -121,9 +131,22 @@ export default function OnboardingScreen() {
     prevStepRef.current = stepIdx;
   }, [stepIdx]);
 
-  const analyzeProgress = useRef(new Animated.Value(0)).current;
-  const [analyzeProgress2, setAnalyzeProgress2] = useState(0);
-  const [analyzeIdx, setAnalyzeIdx] = useState(0);
+  const q1Cards = useRef(Q1_OPTIONS.map(() => new Animated.Value(0))).current;
+  const q2Cards = useRef(Q2_OPTIONS.map(() => new Animated.Value(0))).current;
+  const q3Cards = useRef(Q3_OPTIONS.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    const map: Partial<Record<Step, Animated.Value[]>> = {q1: q1Cards, q2: q2Cards, q3: q3Cards};
+    const anims = map[currentStep];
+    if (!anims) return;
+    anims.forEach(a => a.setValue(0));
+    Animated.stagger(80, anims.map(a =>
+      Animated.timing(a, {toValue: 1, duration: 280, useNativeDriver: true})
+    )).start();
+  }, [currentStep]);
+
+  const barAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const [analyzeLines, setAnalyzeLines] = useState(0);
+  const [personaCharCount, setPersonaCharCount] = useState(0);
   const [analyzeComplete, setAnalyzeComplete] = useState(false);
 
   const persona = useMemo(() => getPersona(q1, q2), [q1, q2]);
@@ -146,21 +169,57 @@ export default function OnboardingScreen() {
   }, [currentStep]);
 
   useEffect(() => {
+    if (currentStep !== 'q1') return;
+    snoozeCountRef.current = 0;
+    setSnoozeCount(0);
+    const timer = setTimeout(() => {
+      setQ1(Math.min(snoozeCountRef.current, 3));
+      setStepIdx(s => Math.min(s + 1, STEPS.length - 1));
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [currentStep]);
+
+  useEffect(() => {
     if (currentStep !== 'analyzing') return;
-    analyzeProgress.setValue(0);
-    setAnalyzeProgress2(0);
-    setAnalyzeIdx(0);
+    barAnims.forEach(a => a.setValue(0));
+    setAnalyzeLines(0);
+    setPersonaCharCount(0);
     setAnalyzeComplete(false);
-    const listener = analyzeProgress.addListener(({value}) => setAnalyzeProgress2(value));
-    const anim = Animated.timing(analyzeProgress, {
-      toValue: 1, duration: 5400, useNativeDriver: false,
+    const personaTitle = PERSONA_DATA[persona].title;
+    const barFills = [
+      Math.max(0.25, (q1 + 1) / 4),
+      Math.max(0.33, (q2 + 1) / 3),
+      1.0,
+    ];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let nameInterval: ReturnType<typeof setInterval> | null = null;
+    const runningAnims: Animated.CompositeAnimation[] = [];
+    [0, 1, 2].forEach(i => {
+      const t = setTimeout(() => {
+        setAnalyzeLines(i + 1);
+        const anim = Animated.timing(barAnims[i], {toValue: barFills[i], duration: 650, useNativeDriver: false});
+        runningAnims.push(anim);
+        anim.start();
+      }, i * 800);
+      timers.push(t);
     });
-    anim.start(({finished}) => { if (finished) setAnalyzeComplete(true); });
-    const ticker = setInterval(() => setAnalyzeIdx(i => (i + 1) % ANALYZE_TEXTS.length), 900);
+    const nameTimer = setTimeout(() => {
+      let charIdx = 0;
+      nameInterval = setInterval(() => {
+        charIdx++;
+        setPersonaCharCount(charIdx);
+        if (charIdx >= personaTitle.length) {
+          if (nameInterval) clearInterval(nameInterval);
+          nameInterval = null;
+          timers.push(setTimeout(() => setAnalyzeComplete(true), 400));
+        }
+      }, 65);
+    }, 3 * 800 + 300);
+    timers.push(nameTimer);
     return () => {
-      anim.stop();
-      clearInterval(ticker);
-      analyzeProgress.removeListener(listener);
+      timers.forEach(clearTimeout);
+      if (nameInterval) clearInterval(nameInterval);
+      runningAnims.forEach(a => a.stop());
     };
   }, [currentStep]);
 
@@ -178,12 +237,23 @@ export default function OnboardingScreen() {
     completeOnboarding();
   };
 
+  const handleSnooze = () => {
+    const newCount = snoozeCountRef.current + 1;
+    snoozeCountRef.current = newCount;
+    setSnoozeCount(newCount);
+    if (newCount >= 3) {
+      setQ1(3);
+      next();
+    }
+  };
+
   const toggleRewardGoal = (i: number) =>
     setRewardGoals(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
 
   // ─── Step renders ─────────────────────────────────────────────────────────────
 
   const renderContent = () => {
+    const name = userName.trim();
     switch (currentStep) {
 
       case 'welcome':
@@ -200,6 +270,34 @@ export default function OnboardingScreen() {
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               I'm ready to change →
+            </Button>
+          </View>
+        );
+
+      case 'name-input':
+        return (
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
+            <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
+              What do we{'\n'}call you?
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 32}}>
+              We'll make this personal.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="First name"
+              value={userName}
+              onChangeText={setUserName}
+              autoFocus
+              maxLength={30}
+              style={{marginBottom: 28}}
+            />
+            <Button
+              mode="contained"
+              disabled={!name}
+              onPress={next}
+              contentStyle={{paddingVertical: 8}}>
+              Let's go →
             </Button>
           </View>
         );
@@ -251,7 +349,7 @@ export default function OnboardingScreen() {
               Let's be honest{'\n'}with each other.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              A few questions so we can build your plan.
+              A few questions so we can build {name ? `${name}'s` : 'your'} plan.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Let's go →
@@ -261,17 +359,32 @@ export default function OnboardingScreen() {
 
       case 'q1':
         return (
-          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
-            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 40, justifyContent: 'center', alignItems: 'center'}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', textAlign: 'center', marginBottom: 40}}>
               How bad is the snooze problem — really?
             </Text>
-            {Q1_OPTIONS.map((opt, i) => (
-              <TouchableRipple key={i} onPress={() => { setQ1(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
-                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                  <Text variant="bodyLarge" style={{color: theme.colors.onSurface}}>{opt}</Text>
-                </Surface>
-              </TouchableRipple>
-            ))}
+            <Text style={{fontSize: 88, textAlign: 'center', marginBottom: 16}}>🚨</Text>
+            <Text variant="titleMedium" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', marginBottom: 40}}>
+              Your alarm is going off…
+            </Text>
+            {snoozeCount > 0 ? (
+              <Text variant="titleLarge" style={{fontWeight: '700', color: theme.colors.primary, marginBottom: 32, textAlign: 'center'}}>
+                {'😴'.repeat(Math.min(snoozeCount, 3))}{'  '}Snoozed {snoozeCount}×
+              </Text>
+            ) : (
+              <Text variant="bodyMedium" style={{color: theme.colors.outline, marginBottom: 32}}>
+                Tap snooze like you normally would
+              </Text>
+            )}
+            <Button
+              mode="contained"
+              onPress={handleSnooze}
+              contentStyle={{paddingVertical: 14, paddingHorizontal: 40}}>
+              😴  Snooze
+            </Button>
+            <Text variant="bodySmall" style={{color: theme.colors.outline, marginTop: 36, textAlign: 'center'}}>
+              Don't tap? We'll assume you wake up fine.
+            </Text>
           </View>
         );
 
@@ -279,7 +392,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
             <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
-              You're not lazy.{'\n'}You're untrained.
+              {name ? `${name}, you're` : "You're"} not lazy.{'\n'}You're untrained.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
               There's a difference — and it's fixable.
@@ -297,11 +410,13 @@ export default function OnboardingScreen() {
               What does your body look like right now? Be honest.
             </Text>
             {Q2_OPTIONS.map((opt, i) => (
-              <TouchableRipple key={i} onPress={() => { setQ2(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
-                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                  <Text variant="bodyLarge">{opt}</Text>
-                </Surface>
-              </TouchableRipple>
+              <Animated.View key={i} style={{opacity: q2Cards[i], transform: [{translateY: q2Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
+                <TouchableRipple onPress={() => { setQ2(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                  <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                    <Text variant="bodyLarge">{opt}</Text>
+                  </Surface>
+                </TouchableRipple>
+              </Animated.View>
             ))}
           </View>
         );
@@ -313,30 +428,50 @@ export default function OnboardingScreen() {
               Why did you really download this?
             </Text>
             {Q3_OPTIONS.map((opt, i) => (
-              <TouchableRipple key={i} onPress={() => { setQ3(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
-                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                  <Text variant="bodyLarge">{opt}</Text>
-                </Surface>
-              </TouchableRipple>
+              <Animated.View key={i} style={{opacity: q3Cards[i], transform: [{translateY: q3Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
+                <TouchableRipple onPress={() => { setQ3(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
+                  <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
+                    <Text variant="bodyLarge">{opt}</Text>
+                  </Surface>
+                </TouchableRipple>
+              </Animated.View>
             ))}
           </View>
         );
 
-      case 'q4':
+      case 'q4': {
+        const bucket = sliderBucket(sliderVal);
         return (
-          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
-            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 32, justifyContent: 'center'}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 48}}>
               No ego. How many push-ups can you actually do right now?
             </Text>
-            {Q4_OPTIONS.map((opt, i) => (
-              <TouchableRipple key={i} onPress={() => { setQ4(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
-                <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                  <Text variant="bodyLarge">{opt}</Text>
-                </Surface>
-              </TouchableRipple>
-            ))}
+            <Text style={{fontSize: 96, fontWeight: '200', textAlign: 'center', color: theme.colors.primary, letterSpacing: -4, lineHeight: 104}}>
+              {sliderVal === 30 ? '30+' : sliderVal}
+            </Text>
+            <Text variant="titleMedium" style={{textAlign: 'center', color: theme.colors.onSurfaceVariant, marginBottom: 40, marginTop: 8}}>
+              {Q4_OPTIONS[bucket]}
+            </Text>
+            <Slider
+              minimumValue={1}
+              maximumValue={30}
+              step={1}
+              value={sliderVal}
+              onValueChange={v => setSliderVal(v)}
+              minimumTrackTintColor={theme.colors.primary}
+              maximumTrackTintColor={theme.colors.surfaceVariant}
+              thumbTintColor={theme.colors.primary}
+              style={{marginHorizontal: -8, marginBottom: 48}}
+            />
+            <Button
+              mode="contained"
+              onPress={() => { setQ4(bucket); next(); }}
+              contentStyle={{paddingVertical: 8}}>
+              That's my number
+            </Button>
           </View>
         );
+      }
 
       case 'q56':
         return (
@@ -381,23 +516,67 @@ export default function OnboardingScreen() {
           </View>
         );
 
-      case 'analyzing':
+      case 'analyzing': {
+        const personaTitle = PERSONA_DATA[persona].title;
+        const statRows = [
+          {label: 'Snooze severity', value: Q1_OPTIONS[Math.max(0, q1)]},
+          {label: 'Fitness level', value: Q2_OPTIONS[Math.max(0, q2)]},
+          {label: 'Goal', value: Q3_OPTIONS[Math.max(0, q3)]},
+        ];
         return (
-          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
-            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 32}}>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 64, justifyContent: 'center'}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 48}}>
               Building your plan…
             </Text>
-            <ProgressBar progress={analyzeProgress2} color={theme.colors.primary} style={{height: 4, borderRadius: 2}} />
-            <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 20}}>
-              {analyzeComplete ? 'Your plan is ready.' : ANALYZE_TEXTS[analyzeIdx]}
-            </Text>
+            {statRows.map((row, i) => (
+              analyzeLines > i ? (
+                <View key={i} style={{marginBottom: 28}}>
+                  <Text variant="labelSmall" style={{
+                    color: theme.colors.onSurfaceVariant,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.8,
+                    marginBottom: 8,
+                  }}>
+                    {row.label}
+                  </Text>
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                    <View style={{
+                      width: 100, height: 8,
+                      backgroundColor: theme.colors.surfaceVariant,
+                      borderRadius: 4, overflow: 'hidden',
+                    }}>
+                      <Animated.View style={{
+                        height: '100%',
+                        backgroundColor: theme.colors.primary,
+                        borderRadius: 4,
+                        width: barAnims[i].interpolate({inputRange: [0, 1], outputRange: ['0%', '100%']}),
+                      }} />
+                    </View>
+                    <Text variant="bodySmall" style={{color: theme.colors.onSurface, flex: 1}} numberOfLines={2}>
+                      {row.value}
+                    </Text>
+                  </View>
+                </View>
+              ) : null
+            ))}
+            {analyzeLines >= 3 && personaCharCount > 0 && (
+              <Text variant="titleLarge" style={{
+                fontWeight: '800',
+                color: theme.colors.primary,
+                marginTop: 28,
+                letterSpacing: 0.5,
+              }}>
+                {personaTitle.slice(0, personaCharCount)}
+              </Text>
+            )}
             {analyzeComplete && (
-              <Button mode="contained" onPress={next} style={{marginTop: 40}} contentStyle={{paddingVertical: 8}}>
+              <Button mode="contained" onPress={next} style={{marginTop: 32}} contentStyle={{paddingVertical: 8}}>
                 View Your Type →
               </Button>
             )}
           </View>
         );
+      }
 
       case 'persona': {
         const p = PERSONA_DATA[persona];
@@ -409,7 +588,7 @@ export default function OnboardingScreen() {
               marginBottom: 32,
             }}>
               <Text variant="labelLarge" style={{color: theme.colors.primary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8}}>
-                Your type
+                {name ? `${name}'s type` : 'Your type'}
               </Text>
               <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 16}}>{p.title}</Text>
               <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26}}>{p.body}</Text>
@@ -460,7 +639,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 20}}>
-              Here's your plan.
+              {name ? `Here's your plan, ${name}.` : "Here's your plan."}
             </Text>
             <Surface elevation={1} style={{borderRadius: 20, padding: 24, marginBottom: 24, gap: 20}}>
               {([
@@ -591,36 +770,85 @@ export default function OnboardingScreen() {
 
       case 'commitment': {
         const canContinue = grindingFor.trim().length > 2;
+        const timeStr = alarmTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+        const handleLockIn = () => {
+          Vibration.vibrate([0, 60, 40, 120]);
+          setCommitSigned(true);
+          commitSealAnim.setValue(0);
+          Animated.spring(commitSealAnim, {toValue: 1, useNativeDriver: true, tension: 55, friction: 6}).start();
+          setTimeout(() => { settings.update({grindingFor: grindingFor.trim()}); next(); }, 900);
+        };
+
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
-            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
-              What are you grinding for?
-            </Text>
-            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 8}}>
-              Be specific. Vague goals don't stick.
-            </Text>
-            <Text variant="bodySmall" style={{color: theme.colors.outline, marginBottom: 24}}>
-              e.g. "Wake up before 7am every day" or "Get stronger before summer"
-            </Text>
-            <TextInput
-              mode="outlined"
-              value={grindingFor}
-              onChangeText={setGrindingFor}
-              placeholder="I'm grinding for…"
-              multiline
-              numberOfLines={3}
-              maxLength={120}
-              style={{marginBottom: 28}}
-            />
+            <Surface elevation={1} style={{
+              borderRadius: 16, padding: 24, marginBottom: 20,
+              borderWidth: 1, borderColor: theme.colors.outlineVariant,
+            }}>
+              <Text variant="labelLarge" style={{
+                color: theme.colors.primary, letterSpacing: 2,
+                textTransform: 'uppercase', marginBottom: 20,
+              }}>
+                Morning Contract
+              </Text>
+
+              <Text variant="bodyLarge" style={{lineHeight: 30, marginBottom: 16}}>
+                {'I commit to waking up at '}
+                <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{timeStr}</Text>
+                {' and doing '}
+                <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{recommendedReps} push-ups</Text>
+                {' every morning because:'}
+              </Text>
+
+              <TextInput
+                mode="outlined"
+                value={grindingFor}
+                onChangeText={setGrindingFor}
+                placeholder="Write your reason here…"
+                multiline
+                numberOfLines={3}
+                maxLength={120}
+                editable={!commitSigned}
+                style={{marginBottom: 24}}
+              />
+
+              <View style={{borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant, paddingTop: 14}}>
+                <Text style={{
+                  fontFamily: 'serif', fontStyle: 'italic',
+                  fontSize: 22, color: theme.colors.onSurface, textAlign: 'right',
+                }}>
+                  {'Signed: '}{name || '—'}
+                </Text>
+              </View>
+            </Surface>
+
+            {commitSigned && (
+              <Animated.View style={{
+                alignSelf: 'center', marginBottom: 20,
+                opacity: commitSealAnim,
+                transform: [{scale: commitSealAnim.interpolate({inputRange: [0, 1], outputRange: [0.2, 1]})}],
+              }}>
+                <View style={{
+                  width: 80, height: 80, borderRadius: 40,
+                  backgroundColor: theme.colors.primaryContainer,
+                  borderWidth: 3, borderColor: theme.colors.primary,
+                  justifyContent: 'center', alignItems: 'center',
+                }}>
+                  <Text style={{fontSize: 38, lineHeight: 46}}>✓</Text>
+                </View>
+              </Animated.View>
+            )}
+
             <Button
               mode="contained"
-              disabled={!canContinue}
-              onPress={() => { settings.update({grindingFor: grindingFor.trim()}); next(); }}
+              disabled={!canContinue || commitSigned}
+              onPress={handleLockIn}
               contentStyle={{paddingVertical: 8}}
               style={{marginBottom: 12}}>
-              Lock it in →
+              Lock it in
             </Button>
-            <Button mode="text" onPress={next}>Skip</Button>
+            <Button mode="text" onPress={next} disabled={commitSigned}>Skip</Button>
           </View>
         );
       }
@@ -876,11 +1104,23 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
-      <ProgressBar
-        progress={progress}
-        color={theme.colors.primary}
-        style={{height: 3}}
-      />
+      <View style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12}}>
+        {PHASES.map((label, i) => (
+          <React.Fragment key={label}>
+            {i > 0 && (
+              <Text style={{color: theme.colors.outline, marginHorizontal: 6, fontSize: 12}}>→</Text>
+            )}
+            <Text
+              variant={phase === i ? 'labelLarge' : 'labelMedium'}
+              style={{
+                color: phase === i ? theme.colors.primary : theme.colors.outline,
+                fontWeight: phase === i ? '700' : '400',
+              }}>
+              {label}
+            </Text>
+          </React.Fragment>
+        ))}
+      </View>
 
       {!HIDE_BACK.has(currentStep) && stepIdx > 0 && (
         <Button mode="text" onPress={back} style={{alignSelf: 'flex-start', marginLeft: 8}}>
