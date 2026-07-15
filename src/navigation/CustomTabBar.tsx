@@ -1,6 +1,6 @@
 import React, {useRef, useState, useEffect} from 'react';
 import {View, Animated, Pressable} from 'react-native';
-import {Icon} from 'react-native-paper';
+import {Icon, useTheme} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import type {BottomTabBarProps} from '@react-navigation/bottom-tabs';
 
@@ -12,8 +12,16 @@ const ICONS: Record<string, string> = {
 
 export default function CustomTabBar({state, navigation}: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const isDark = theme.dark;
   const [tabWidth, setTabWidth] = useState(0);
   const pillX = useRef(new Animated.Value(0)).current;
+
+  const barBg = isDark ? 'rgba(28,28,30,0.94)' : 'rgba(255,255,255,0.95)';
+  const barBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const pillColor = theme.colors.primary;
+  const iconFocused = isDark ? '#000000' : '#FFFFFF';
+  const iconUnfocused = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.40)';
 
   useEffect(() => {
     if (tabWidth === 0) return;
@@ -37,12 +45,14 @@ export default function CustomTabBar({state, navigation}: BottomTabBarProps) {
       <View
         style={{
           flexDirection: 'row',
-          backgroundColor: 'rgba(18, 18, 18, 0.92)',
+          backgroundColor: barBg,
           borderRadius: 100,
           padding: 6,
+          borderWidth: 1,
+          borderColor: barBorder,
           shadowColor: '#000',
           shadowOffset: {width: 0, height: 8},
-          shadowOpacity: 0.35,
+          shadowOpacity: isDark ? 0.5 : 0.12,
           shadowRadius: 20,
           elevation: 16,
         }}
@@ -58,7 +68,7 @@ export default function CustomTabBar({state, navigation}: BottomTabBarProps) {
               bottom: 6,
               left: 6,
               width: tabWidth,
-              backgroundColor: '#ffffff',
+              backgroundColor: pillColor,
               borderRadius: 100,
               transform: [{translateX: pillX}],
             }}
@@ -80,7 +90,7 @@ export default function CustomTabBar({state, navigation}: BottomTabBarProps) {
               }}>
               <Icon
                 source={ICONS[route.name] ?? 'circle'}
-                color={focused ? '#111111' : 'rgba(255,255,255,0.65)'}
+                color={focused ? iconFocused : iconUnfocused}
                 size={22}
               />
             </Pressable>
