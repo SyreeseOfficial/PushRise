@@ -10,6 +10,7 @@ export type RootStackParamList = {
   Paywall: undefined;
   Downsell1: undefined;
   Downsell2: undefined;
+  Settings: undefined;
 };
 
 export const navigationRef =

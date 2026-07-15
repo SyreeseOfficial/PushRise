@@ -177,19 +177,28 @@ export default function AlarmListScreen() {
         <Text style={{fontSize: 34, fontWeight: '800', color: theme.colors.onBackground, letterSpacing: -0.5}}>
           Alarms
         </Text>
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: theme.colors.surfaceVariant,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 100,
-          gap: 4,
-        }}>
-          <Text style={{fontSize: 16}}>🔥</Text>
-          <Text style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}>
-            {totalReps.toLocaleString()}
-          </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: theme.colors.surfaceVariant,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 100,
+            gap: 4,
+          }}>
+            <Text style={{fontSize: 16}}>🔥</Text>
+            <Text style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}>
+              {totalReps.toLocaleString()}
+            </Text>
+          </View>
+          <IconButton
+            icon="cog-outline"
+            iconColor={theme.colors.onSurfaceVariant}
+            size={22}
+            onPress={() => navigation.navigate('Settings')}
+            style={{margin: 0}}
+          />
         </View>
       </View>
 
