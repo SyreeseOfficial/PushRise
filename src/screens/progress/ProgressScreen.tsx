@@ -16,6 +16,7 @@ import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
   getBoss, getCommunityGoal, getWeekStart, TITLES, getUnlockedTitles,
 } from '../../utils/engagement';
+import MonthlyCalendar from '../../components/MonthlyCalendar';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -437,7 +438,7 @@ export default function ProgressScreen() {
     pendingFreezeUsed, clearFreezeUsed,
     freezeCount, equippedTitle, setEquippedTitle,
     bossDefeatedWeek, defeatBoss,
-    yesterdayHourlyReps,
+    yesterdayHourlyReps, dailyHistory,
   } = useBankStore();
   const {dailyGoal, grindingFor} = useSettingsStore();
   const {trialStartedAt, isSubscribed} = useSubscriptionStore();
@@ -742,6 +743,8 @@ export default function ProgressScreen() {
 
         {/* Leaderboard */}
         <LeaderboardCard weekReps={weekReps} />
+
+        <MonthlyCalendar dailyHistory={dailyHistory ?? {}} />
 
       </ScrollView>
 
