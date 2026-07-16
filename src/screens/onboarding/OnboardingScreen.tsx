@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {Dimensions, View, ScrollView, Animated, Vibration} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput,
-  TouchableRipple, useTheme,
+  TouchableRipple, useTheme, ProgressBar,
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -45,7 +45,6 @@ const REWARD_GOALS = [
 const TESTIMONIALS = [
   {stars: 5, text: '"Tried every alarm app. This is the only one I actually respect. It doesn\'t let me lie to myself."', name: 'Marcus, 22'},
   {stars: 5, text: '"Day 14. Never made it past day 3 with anything else. Push-ups at 6am. That\'s the point."', name: 'Jordan, 19'},
-  {stars: 5, text: '"My roommate started using it after he saw me wake up on time two weeks straight. Now we compete."', name: 'Tyler, 24'},
 ];
 
 function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optimizer' {
@@ -57,15 +56,15 @@ function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optim
 const PERSONA_DATA = {
   sleeper: {
     title: '😴 The Sleeper',
-    body: 'You know you should be doing more. You\'re tired of feeling behind before the day starts. PushRise was literally built for you — the people who need this most are the ones who keep hitting snooze. That stops today.',
+    body: 'You know you should be doing more. PushRise was built for this. No more snooze.',
   },
   inconsistent: {
     title: '⚡ The Inconsistent',
-    body: 'You have the drive — you just can\'t get it started in the morning. Your push-ups are going to fix that. Every morning you do them is a morning you win before the day begins.',
+    body: 'You\'ve got the drive — you just can\'t get started. Push-ups fix that.',
   },
   optimizer: {
     title: '🎯 The Optimizer',
-    body: 'You\'re already disciplined. PushRise gives you a system to turn that discipline into real results. Track everything. Bank every rep. Earn what you spend.',
+    body: 'Already disciplined. PushRise gives you the system to make every rep count.',
   },
 };
 
@@ -89,6 +88,15 @@ export default function OnboardingScreen() {
   const [stepIdx, setStepIdx] = useState(0);
   const currentStep = STEPS[stepIdx] as Step;
   const phase = stepIdx <= 9 ? 0 : stepIdx <= 14 ? 1 : 2;
+
+  const reviewAnims = useRef([new Animated.Value(0), new Animated.Value(0)]).current;
+  useEffect(() => {
+    if (currentStep !== 'social') return;
+    reviewAnims.forEach(a => a.setValue(0));
+    Animated.stagger(150, reviewAnims.map(a =>
+      Animated.spring(a, {toValue: 1, useNativeDriver: true, tension: 60, friction: 8})
+    )).start();
+  }, [currentStep]);
 
   const [userName, setUserName] = useState('');
 
@@ -325,15 +333,20 @@ export default function OnboardingScreen() {
               Real people. Real results.
             </Text>
             {TESTIMONIALS.map((t, i) => (
-              <Surface key={i} elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 12}}>
-                <Text style={{color: theme.colors.primary, fontSize: 14, marginBottom: 10}}>
-                  {'★'.repeat(t.stars)}
-                </Text>
-                <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontStyle: 'italic', marginBottom: 10}}>
-                  {t.text}
-                </Text>
-                <Text variant="labelMedium" style={{color: theme.colors.outline}}>{t.name}</Text>
-              </Surface>
+              <Animated.View key={i} style={{
+                opacity: reviewAnims[i],
+                transform: [{translateY: reviewAnims[i].interpolate({inputRange: [0, 1], outputRange: [30, 0]})}],
+              }}>
+                <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 12}}>
+                  <Text style={{color: theme.colors.primary, fontSize: 14, marginBottom: 10}}>
+                    {'★'.repeat(t.stars)}
+                  </Text>
+                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontStyle: 'italic', marginBottom: 10}}>
+                    {t.text}
+                  </Text>
+                  <Text variant="labelMedium" style={{color: theme.colors.outline}}>{t.name}</Text>
+                </Surface>
+              </Animated.View>
             ))}
             <Button mode="contained" onPress={next} style={{marginTop: 8}} contentStyle={{paddingVertical: 8}}>
               Continue →
@@ -446,20 +459,20 @@ export default function OnboardingScreen() {
               No ego. How many push-ups can you actually do right now?
             </Text>
             <Text style={{fontSize: 96, fontWeight: '200', textAlign: 'center', color: theme.colors.primary, letterSpacing: -4, lineHeight: 104}}>
-              {sliderVal === 30 ? '30+' : sliderVal}
+              {sliderVal >= 50 ? '50+' : sliderVal}
             </Text>
             <Text variant="titleMedium" style={{textAlign: 'center', color: theme.colors.onSurfaceVariant, marginBottom: 40, marginTop: 8}}>
               {Q4_OPTIONS[bucket]}
             </Text>
             <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 48, gap: 32}}>
               <TouchableRipple
-                onPress={() => setSliderVal(v => Math.max(1, v - 1))}
+                onPress={() => setSliderVal(v => Math.max(1, v - 5))}
                 borderless
                 style={{padding: 16, borderRadius: 40, backgroundColor: theme.colors.surfaceVariant}}>
                 <Text style={{fontSize: 28, lineHeight: 32, color: theme.colors.onSurfaceVariant}}>−</Text>
               </TouchableRipple>
               <TouchableRipple
-                onPress={() => setSliderVal(v => Math.min(30, v + 1))}
+                onPress={() => setSliderVal(v => Math.min(50, v + 5))}
                 borderless
                 style={{padding: 16, borderRadius: 40, backgroundColor: theme.colors.primary}}>
                 <Text style={{fontSize: 28, lineHeight: 32, color: theme.colors.onPrimary}}>+</Text>
@@ -1106,6 +1119,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <ProgressBar progress={(phase + 1) / PHASES.length} />
       <View style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12}}>
         {PHASES.map((label, i) => (
           <React.Fragment key={label}>

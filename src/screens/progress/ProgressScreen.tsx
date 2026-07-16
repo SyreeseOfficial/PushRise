@@ -750,7 +750,7 @@ export default function ProgressScreen() {
         visible={sheet !== 'closed'}
         transparent animationType="fade"
         onRequestClose={closeSheet}>
-        <View style={{flex: 1, justifyContent: 'flex-end', backgroundColor: c.backdrop}}>
+        <KeyboardAvoidingView behavior="padding" enabled={sheet === 'manual'} style={{flex: 1, justifyContent: 'flex-end', backgroundColor: c.backdrop}}>
         <Animated.View style={{transform: [{translateY: sheetY}]}}>
 
           {sheet === 'intro' && (
@@ -878,7 +878,6 @@ export default function ProgressScreen() {
           })()}
 
           {sheet === 'manual' && (
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{justifyContent: 'flex-end'}}>
               <View style={sheetBg}>
                 {handle}
                 <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 20, letterSpacing: -0.3}}>
@@ -905,10 +904,9 @@ export default function ProgressScreen() {
                 </Button>
                 <Button mode="text" onPress={() => setSheet('mode')}>← Back</Button>
               </View>
-            </KeyboardAvoidingView>
           )}
         </Animated.View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Share card */}

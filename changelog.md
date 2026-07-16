@@ -6,6 +6,49 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-15 — UI Polish: Nav Bar, Micro-interactions, Onboarding, Alarm UX
+
+### Navigation Bar
+- Full custom `CustomTabBar.tsx` built — replaced default RN Paper tab bar
+- Light mode: frosted white bar, orange active pill; Dark mode: surface-colored bar with subtle border (visible against pure black)
+- Tab icons spring-scale on press, haptic tap, active-tab pop animation
+
+### Micro-interactions (across the app)
+- **Alarm list:** staggered slide-in on mount, swipe-to-delete, toggle haptic + scale pulse, shake + double-tap delete confirm, animated rep counter, top toast on alarm toggle
+- **Tab bar:** icon bounce + haptic on every tap
+- **Alarm firing:** press-in scale on primary buttons
+- **Progress:** spring-animated goal bar, bank sheet spring overshoot
+- **Bank camera:** white flash on each counted rep
+- **Rewards:** shimmer on unaffordable cards, bounce on unlock
+- **Onboarding:** slide transition between steps
+- New `TopToast.tsx` component for transient in-app feedback
+
+### Onboarding Polish
+- Analyzing screen: rotating text replaced with staggered stat reveal — Snooze severity / Fitness level / Goal bars build in one by one, then persona name types in character by character, then CTA appears
+- Alarm goal stepper: slider replaced with +/− stepper buttons (cleaner, less error-prone)
+- Founder letter: "Yo," opening, condensed to one paragraph
+- Analyzing screen: 3.6s → 5.4s with guaranteed 100% progress bar before transition
+- Testimonials: shorter copy, no em dashes, cleaner attribution
+- Persona types: matching emojis added (Sleeper / Inconsistent / Optimizer)
+- Free trial screen: wall-of-text stripped down to 4-item icon list + short CTA
+- Paywall + free-trial footer text: `outline` → `onSurfaceVariant` for readable contrast in light mode
+
+### Alarm UX
+- Alarm cards: pencil icon opens pre-populated edit screen
+- Volume control: 5-button `SegmentedButtons` → continuous `Slider` (0–100%, live % label); added `@react-native-community/slider`
+- Drag-and-drop reorder: long-press up/down arrows replaced with drag handle; ghost card floats under finger, blue drop-indicator line shows insertion point; `FlatList` → `ScrollView` to prevent scroll conflicts during drag
+- `alarmStore`: `reorderAlarm(id, dir)` replaced with `reorderAlarmToIndex(id, n)`
+- Push-up completion: always shows celebration screen before dismissing alarm
+
+### Engagement Utils
+- 7 new titles added: No Days Off, Ghost Mode, Relentless, Machine, Obsessed, Consistent, Untouchable
+- Contact Support: shows email text in Alert instead of launching mailto
+
+### Status
+All MVP screens feature-complete. Remaining work: app icon, store assets, Play Store submission.
+
+---
+
 ## 2026-07-15 — Ringer Character Removed
 
 ### Changes

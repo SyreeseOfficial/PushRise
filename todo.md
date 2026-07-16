@@ -54,14 +54,14 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ## MVP Build
 
-- [x] Alarm — one-time + recurring, volume control (5-level segmented), 3 bundled sounds with preview
+- [x] Alarm — one-time + recurring, volume control (continuous slider 0–100%), 3 bundled sounds with preview
 - [x] Full-screen alarm takeover when alarm fires (notifee fullScreenAction + `FLAG_SHOW_WHEN_LOCKED`)
 - [x] Camera push-up detection (ML Kit, not MediaPipe — snapshot-based, no network needed)
 - [x] Manual fallback mode (hold-button-per-rep)
 - [x] **Outside-alarm push-up logging** — Progress tab Bank Push-ups CTA; camera or manual; all reps count toward bank
 - [x] Battery optimization onboarding screen (OEM-specific instructions framed as "make your alarm bulletproof") — Samsung and Xiaomi extra steps shown only on matching devices
 - [x] Notification permission onboarding screen (Permissions screen in settings + onboarding)
-- [x] Onboarding flow — 5 steps: welcome, create-alarm, daily-goal, grinding-for commitment, complete (simplified from 20-screen PRD; revisit pre-launch)
+- [x] Onboarding flow — 5 steps: welcome, create-alarm, daily-goal, grinding-for commitment, complete; analyzing screen has staggered stat reveal + persona type-in animation; stepper replaces slider for goal input
 - [x] Reward banking — 5 default rewards pre-loaded; user-created custom rewards; emoji picker; Paper Dialog redemption; confetti on redeem
 - [x] Streak tracking (goal-completion only, 1 grace day per 7-day rolling window)
 - [x] RevenueCat paywall integration (7-day trial → monthly or lifetime)
@@ -75,7 +75,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ## Play Store Submission (Week 5)
 
-- [ ] App icon (512×512 PNG)
+- [ ] App icon (512×512 PNG) — design locked (Ringer face close-up), asset generation pending
 - [ ] Feature graphic (1024×500)
 - [ ] Screenshots (min. 2, aim for 6–8, phone + tablet)
 - [x] Store listing copy — saved in `store-listing.md` (**delete file before submission**)

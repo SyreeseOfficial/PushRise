@@ -329,7 +329,7 @@ export default function SettingsScreen() {
           <TapRow
             icon="file-document-outline"
             title="Privacy Policy"
-            onPress={() => Alert.alert('Coming Soon', 'Privacy policy will be available before launch.')}
+            onPress={() => Linking.openURL('https://syreese.com/pushrise/privacy-policy')}
           />
           <TapRow
             icon="email-outline"
