@@ -252,7 +252,7 @@ function AlarmCard({
                       {daysLabel}
                     </Text>
                     <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}} numberOfLines={1}>
-                      {alarm.reps} push-ups to dismiss{alarm.label ? `  ·  ${alarm.label}` : ''}
+                      {alarm.reps} push-ups{alarm.label ? `  ·  ${alarm.label}` : ''}
                     </Text>
                   </View>
                   <IconButton

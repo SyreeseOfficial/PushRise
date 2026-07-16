@@ -3,6 +3,7 @@ import {Animated, Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platf
 import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useBankStore, Reward} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 
@@ -320,6 +321,7 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
 export default function RewardsScreen() {
   const theme = useTheme();
   const c = theme.colors;
+  const insets = useSafeAreaInsets();
   const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward} = useBankStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
@@ -424,7 +426,7 @@ export default function RewardsScreen() {
         </LinearGradient>
       </TouchableOpacity>
 
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000}>
+      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000} wrapperStyle={{bottom: Math.max(insets.bottom, 8) + 80}}>
         {snackbar}
       </Snackbar>
 

@@ -7,6 +7,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {useAlarmStore} from '../../store/alarmStore';
+import {useBankStore} from '../../store/bankStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useSubscriptionStore} from '../../store/subscriptionStore';
@@ -17,7 +18,7 @@ const STEPS = [
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
   'create-alarm',
-  'daily-goal', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall', 'free-trial',
+  'daily-goal', 'create-reward', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall', 'free-trial',
 ] as const;
 
 type Step = typeof STEPS[number];
@@ -81,6 +82,7 @@ const {width: SCREEN_WIDTH} = Dimensions.get('window');
 export default function OnboardingScreen() {
   const theme = useTheme();
   const {addAlarm} = useAlarmStore();
+  const {addReward} = useBankStore();
   const {completeOnboarding} = useOnboardingStore();
   const {startTrial} = useSubscriptionStore();
   const settings = useSettingsStore();
@@ -128,6 +130,10 @@ export default function OnboardingScreen() {
   });
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [dailyGoalInput, setDailyGoalInput] = useState('');
+  const [rewardEmoji, setRewardEmoji] = useState('🏆');
+  const [rewardTitle, setRewardTitle] = useState('');
+  const [rewardCost, setRewardCost] = useState(50);
+  const rewardHeroAnim = useRef(new Animated.Value(1)).current;
   const [grindingFor, setGrindingFor] = useState('');
   const [commitSigned, setCommitSigned] = useState(false);
   const commitSealAnim = useRef(new Animated.Value(0)).current;
@@ -255,6 +261,9 @@ export default function OnboardingScreen() {
   }, [currentStep]);
 
   const handleComplete = async () => {
+    if (rewardTitle.trim()) {
+      addReward({emoji: rewardEmoji, title: rewardTitle.trim(), cost: rewardCost});
+    }
     await addAlarm({
       hour: alarmTime.getHours(),
       minute: alarmTime.getMinutes(),
@@ -835,6 +844,109 @@ export default function OnboardingScreen() {
         );
       }
 
+      case 'create-reward': {
+        const REWARD_EMOJI_PRESETS = ['🎮','🍕','☕','👟','💵','🏖️'];
+        const COST_PRESETS = [25, 50, 100, 200];
+        const selectEmoji = (e: string) => {
+          setRewardEmoji(e);
+          rewardHeroAnim.setValue(0.75);
+          Animated.spring(rewardHeroAnim, {toValue: 1, useNativeDriver: true, tension: 120, friction: 6}).start();
+        };
+        return (
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 28}}>
+              Pick your reward
+            </Text>
+
+            {/* Hero emoji */}
+            <Animated.View style={{alignSelf: 'center', marginBottom: 20, transform: [{scale: rewardHeroAnim}]}}>
+              <View style={{
+                width: 100, height: 100, borderRadius: 50,
+                backgroundColor: theme.colors.primaryContainer,
+                alignItems: 'center', justifyContent: 'center',
+                shadowColor: theme.colors.primary,
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: 0.25,
+                shadowRadius: 16,
+                elevation: 6,
+              }}>
+                <Text style={{fontSize: 52, lineHeight: 60}}>{rewardEmoji}</Text>
+              </View>
+            </Animated.View>
+
+            {/* Emoji picker */}
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 24}}>
+              {REWARD_EMOJI_PRESETS.map(e => (
+                <TouchableRipple
+                  key={e}
+                  onPress={() => selectEmoji(e)}
+                  borderless
+                  style={{borderRadius: 14}}>
+                  <View style={{
+                    width: 52, height: 52, borderRadius: 14,
+                    backgroundColor: rewardEmoji === e ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                    alignItems: 'center', justifyContent: 'center',
+                    borderWidth: rewardEmoji === e ? 2 : 0,
+                    borderColor: theme.colors.primary,
+                  }}>
+                    <Text style={{fontSize: 26}}>{e}</Text>
+                  </View>
+                </TouchableRipple>
+              ))}
+            </View>
+
+            {/* Name input */}
+            <TextInput
+              mode="outlined"
+              label="Reward name (e.g. TV Time, New Sneakers)"
+              value={rewardTitle}
+              onChangeText={setRewardTitle}
+              maxLength={40}
+              style={{marginBottom: 20}}
+            />
+
+            {/* Cost presets */}
+            <Text variant="labelMedium" style={{color: theme.colors.onSurfaceVariant, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5}}>
+              Worth how many push-ups?
+            </Text>
+            <View style={{flexDirection: 'row', gap: 10, marginBottom: 32}}>
+              {COST_PRESETS.map(n => (
+                <TouchableRipple
+                  key={n}
+                  onPress={() => setRewardCost(n)}
+                  borderless
+                  style={{flex: 1, borderRadius: 14}}>
+                  <Surface
+                    elevation={0}
+                    style={{
+                      borderRadius: 14, padding: 14, alignItems: 'center',
+                      backgroundColor: rewardCost === n ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                      borderWidth: rewardCost === n ? 2 : 0,
+                      borderColor: theme.colors.primary,
+                    }}>
+                    <Text style={{
+                      fontSize: 20, fontWeight: '800',
+                      color: rewardCost === n ? theme.colors.primary : theme.colors.onSurface,
+                    }}>{n}</Text>
+                    <Text style={{fontSize: 10, color: theme.colors.onSurfaceVariant, marginTop: 2}}>reps</Text>
+                  </Surface>
+                </TouchableRipple>
+              ))}
+            </View>
+
+            <Button
+              mode="contained"
+              disabled={!rewardTitle.trim()}
+              onPress={next}
+              contentStyle={{paddingVertical: 8}}
+              style={{marginBottom: 12}}>
+              Lock It In →
+            </Button>
+            <Button mode="text" onPress={next}>Skip for now</Button>
+          </View>
+        );
+      }
+
       case 'commitment': {
         const canContinue = grindingFor.trim().length > 2;
         const timeStr = alarmTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
@@ -1068,20 +1180,12 @@ export default function OnboardingScreen() {
             <TouchableRipple onPress={next} borderless style={{alignSelf: 'flex-end', borderRadius: 20, padding: 8, marginBottom: 8}}>
               <Text style={{fontSize: 22, color: theme.colors.onSurfaceVariant}}>✕</Text>
             </TouchableRipple>
-            <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 28, gap: 10}}>
-              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
-                ☕  One coffee: $5–7. Lasts 20 minutes.
-              </Text>
-              <Text variant="bodyMedium" style={{color: theme.colors.primary}}>
-                💪  PushRise: $2.99/month. Lasts forever.
-              </Text>
-            </Surface>
 
             <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 40, marginBottom: 10}}>
-              Start Free.{'\n'}Stay Because It Works.
+              The alarm you earn{'\n'}your way out of.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
-              7 days. Full access. No credit card required.
+              Free for 7 days. No card needed.
             </Text>
 
             <TouchableRipple onPress={handleComplete} borderless style={{borderRadius: 16, marginBottom: 12}}>
@@ -1098,6 +1202,9 @@ export default function OnboardingScreen() {
                   <Text variant="bodyMedium" style={{color: 'rgba(255,255,255,0.8)', marginTop: 2}}>
                     $2.99 / month
                   </Text>
+                  <Text variant="bodySmall" style={{color: 'rgba(255,255,255,0.6)', marginTop: 2}}>
+                    Best way to start
+                  </Text>
                 </View>
                 <Text variant="headlineSmall" style={{color: '#fff'}}>→</Text>
               </Surface>
@@ -1110,6 +1217,9 @@ export default function OnboardingScreen() {
                   <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
                     $14.99 one-time
                   </Text>
+                  <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
+                    Never pay again
+                  </Text>
                 </View>
                 <Text variant="headlineSmall" style={{color: theme.colors.onSurfaceVariant}}>→</Text>
               </Surface>
@@ -1118,11 +1228,6 @@ export default function OnboardingScreen() {
             <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20, marginBottom: 20}}>
               No charge today. No charge until Day 8.{'\n'}Cancel before then and pay nothing.
             </Text>
-            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center'}}>
-              {['Camera detection', 'Reward banking', 'Streak tracking', 'No ads'].map(t => (
-                <Text key={t} variant="labelSmall" style={{color: theme.colors.onSurfaceVariant}}>✓ {t}</Text>
-              ))}
-            </View>
           </View>
         );
 
@@ -1130,28 +1235,14 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineLarge" style={{fontWeight: '800', marginBottom: 8}}>
-              Try it free.
+              7 days. Zero risk.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 32}}>
-              7 days. No card needed.
+              See what it feels like to actually get up.
             </Text>
 
-            <View style={{gap: 16, marginBottom: 36}}>
-              {[
-                {icon: '📷', label: 'Camera counts your push-ups'},
-                {icon: '💰', label: 'Earn rewards for reps'},
-                {icon: '🔥', label: 'Track streaks'},
-                {icon: '⏰', label: 'All alarm features'},
-              ].map(({icon, label}) => (
-                <View key={label} style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
-                  <Text style={{fontSize: 28}}>{icon}</Text>
-                  <Text variant="bodyLarge" style={{color: theme.colors.onSurface}}>{label}</Text>
-                </View>
-              ))}
-            </View>
-
             <Button mode="contained" onPress={handleComplete} contentStyle={{paddingVertical: 10}} style={{marginBottom: 12}}>
-              Start Free Trial
+              Start Free — No Card Needed
             </Button>
             <Button mode="text" onPress={() => setStepIdx(s => s - 1)} style={{marginBottom: 8}}>
               See pricing
@@ -1171,7 +1262,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
-      <ProgressBar progress={(phase + 1) / PHASES.length} />
+      <ProgressBar progress={0.15 + (stepIdx / (STEPS.length - 1)) * 0.85} />
       <View style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12}}>
         {PHASES.map((label, i) => (
           <React.Fragment key={label}>
