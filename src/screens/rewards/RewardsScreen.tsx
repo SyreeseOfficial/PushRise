@@ -53,6 +53,13 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
     onSave({emoji: form.emoji, title: form.title.trim(), cost, oneTime: form.oneTime});
   };
 
+  const stepCost = (delta: number) => {
+    const n = parseInt(form.cost, 10) || 0;
+    setForm(f => ({...f, cost: String(Math.max(1, n + delta))}));
+  };
+
+  const displayEmoji = form.customEmoji || form.emoji;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -62,81 +69,149 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
           backgroundColor: c.surface,
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
-          padding: 28,
           paddingBottom: 48,
         }}>
-          <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 24}} />
-          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
-            <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, letterSpacing: -0.3}}>{modalTitle}</Text>
-            <Button onPress={onClose} mode="text">Close</Button>
-          </View>
+          <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginTop: 16, marginBottom: 8}} />
 
-          <Text style={{fontSize: 12, fontWeight: '600', color: c.onSurfaceVariant, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5}}>
-            Emoji
-          </Text>
-          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12}}>
-            {EMOJIS.map(e => {
-              const selected = form.emoji === e && !form.customEmoji;
-              return (
-                <TouchableRipple key={e} onPress={() => setForm(f => ({...f, emoji: e, customEmoji: ''}))} borderless style={{borderRadius: 12}}>
-                  <View style={{
-                    width: 48, height: 48, borderRadius: 12,
-                    alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: c.surfaceVariant,
-                    borderWidth: selected ? 2 : 0,
-                    borderColor: c.primary,
-                  }}>
-                    <Text style={{fontSize: 24}}>{e}</Text>
-                  </View>
-                </TouchableRipple>
-              );
-            })}
-          </View>
-
-          <TextInput
-            mode="outlined"
-            label="Or type a custom emoji"
-            value={form.customEmoji}
-            onChangeText={v => setForm(f => ({...f, customEmoji: v, emoji: v || f.emoji}))}
-            placeholder="🏅"
-            maxLength={8}
-            style={{marginBottom: 16}}
-          />
-
-          <TextInput
-            mode="outlined"
-            label="Reward name"
-            value={form.title}
-            onChangeText={t => setForm(f => ({...f, title: t}))}
-            placeholder="e.g. TV Time, New Shoes…"
-            maxLength={40}
-            style={{marginBottom: 16}}
-          />
-
-          <TextInput
-            mode="outlined"
-            label="Push-ups required"
-            value={form.cost}
-            onChangeText={t => setForm(f => ({...f, cost: t.replace(/[^0-9]/g, '')}))}
-            placeholder="50"
-            keyboardType="number-pad"
-            maxLength={5}
-            style={{width: 160, marginBottom: 16}}
-          />
-
-          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28}}>
-            <View style={{flex: 1, marginRight: 12}}>
-              <Text style={{fontSize: 15, fontWeight: '600', color: c.onSurface}}>One-time reward</Text>
-              <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
-                Removes after redeeming. Off = repeatable.
-              </Text>
+          {/* Hero emoji preview */}
+          <View style={{alignItems: 'center', paddingTop: 12, paddingBottom: 20}}>
+            <View style={{
+              width: 88, height: 88, borderRadius: 26,
+              backgroundColor: c.primaryContainer,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Text style={{fontSize: 50}}>{displayEmoji}</Text>
             </View>
-            <Switch value={form.oneTime} onValueChange={v => setForm(f => ({...f, oneTime: v}))} />
           </View>
 
-          <Button mode="contained" onPress={save} contentStyle={{paddingVertical: 8}}>
-            Save Reward
-          </Button>
+          <View style={{height: 1, backgroundColor: c.outlineVariant, marginHorizontal: 0}} />
+
+          <View style={{paddingHorizontal: 24, paddingTop: 20}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16}}>
+              <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, letterSpacing: -0.3}}>{modalTitle}</Text>
+              <Button onPress={onClose} mode="text">Close</Button>
+            </View>
+
+            {/* Emoji grid */}
+            <Text style={{fontSize: 12, fontWeight: '600', color: c.onSurfaceVariant, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5}}>
+              Pick an emoji
+            </Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12}}>
+              {EMOJIS.map(e => {
+                const selected = form.emoji === e && !form.customEmoji;
+                return (
+                  <TouchableRipple key={e} onPress={() => setForm(f => ({...f, emoji: e, customEmoji: ''}))} borderless style={{borderRadius: 13}}>
+                    <View style={{
+                      width: 52, height: 52, borderRadius: 13,
+                      alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: selected ? c.primaryContainer : c.surfaceVariant,
+                      borderWidth: selected ? 2 : 0,
+                      borderColor: c.primary,
+                    }}>
+                      <Text style={{fontSize: 26}}>{e}</Text>
+                    </View>
+                  </TouchableRipple>
+                );
+              })}
+            </View>
+
+            <TextInput
+              mode="outlined"
+              label="Or type a custom emoji"
+              value={form.customEmoji}
+              onChangeText={v => setForm(f => ({...f, customEmoji: v, emoji: v || f.emoji}))}
+              placeholder="🏅"
+              maxLength={8}
+              style={{marginBottom: 20}}
+            />
+
+            <View style={{height: 1, backgroundColor: c.outlineVariant, marginBottom: 20}} />
+
+            <TextInput
+              mode="outlined"
+              label="Reward name"
+              value={form.title}
+              onChangeText={t => setForm(f => ({...f, title: t}))}
+              placeholder="e.g. TV Time, New Shoes…"
+              maxLength={40}
+              style={{marginBottom: 20}}
+            />
+
+            <View style={{height: 1, backgroundColor: c.outlineVariant, marginBottom: 20}} />
+
+            {/* Cost stepper */}
+            <Text variant="labelLarge" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+              Push-ups required
+            </Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 20}}>
+              <TouchableRipple onPress={() => stepCost(-5)} borderless style={{borderRadius: 22}}>
+                <View style={{
+                  width: 44, height: 44, borderRadius: 22,
+                  backgroundColor: c.primaryContainer,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon source="minus" size={20} color={c.onPrimaryContainer} />
+                </View>
+              </TouchableRipple>
+
+              <TextInput
+                mode="flat"
+                value={form.cost}
+                onChangeText={t => setForm(f => ({...f, cost: t.replace(/[^0-9]/g, '')}))}
+                keyboardType="number-pad"
+                maxLength={5}
+                selectTextOnFocus
+                underlineColor="transparent"
+                activeUnderlineColor="transparent"
+                placeholder="50"
+                contentStyle={{fontSize: 48, fontWeight: '300', color: c.primary, textAlign: 'center'}}
+                style={{backgroundColor: 'transparent', width: 110}}
+              />
+
+              <TouchableRipple onPress={() => stepCost(5)} borderless style={{borderRadius: 22}}>
+                <View style={{
+                  width: 44, height: 44, borderRadius: 22,
+                  backgroundColor: c.primaryContainer,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon source="plus" size={20} color={c.onPrimaryContainer} />
+                </View>
+              </TouchableRipple>
+            </View>
+
+            <View style={{height: 1, backgroundColor: c.outlineVariant, marginBottom: 20}} />
+
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28}}>
+              <View style={{flex: 1, marginRight: 12}}>
+                <Text style={{fontSize: 15, fontWeight: '600', color: c.onSurface}}>One-time reward</Text>
+                <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
+                  Removes after redeeming. Off = repeatable.
+                </Text>
+              </View>
+              <Switch value={form.oneTime} onValueChange={v => setForm(f => ({...f, oneTime: v}))} />
+            </View>
+
+            {/* Gradient save button */}
+            <TouchableOpacity onPress={save} activeOpacity={0.85}>
+              <LinearGradient
+                colors={BRAND_GRADIENT.colors}
+                start={BRAND_GRADIENT.start}
+                end={BRAND_GRADIENT.end}
+                style={{
+                  borderRadius: 14, paddingVertical: 16,
+                  alignItems: 'center', justifyContent: 'center',
+                  shadowColor: '#FF4500',
+                  shadowOffset: {width: 0, height: 4},
+                  shadowOpacity: 0.35,
+                  shadowRadius: 10,
+                  elevation: 6,
+                }}>
+                <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3}}>
+                  Save Reward
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

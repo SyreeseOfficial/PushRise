@@ -1,8 +1,8 @@
 import React, {useState, useRef} from 'react';
 import {View, ScrollView} from 'react-native';
 import {
-  Appbar, Button, Text, TextInput, Switch, Chip,
-  RadioButton, TouchableRipple, useTheme, Divider,
+  Appbar, Text, TextInput, Switch, Chip,
+  TouchableRipple, useTheme, Icon,
 } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -12,6 +12,7 @@ import type {RouteProp} from '@react-navigation/native';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import type {RootStackParamList} from '../../navigation/navigationRef';
+import {cardShadow} from '../../theme';
 
 type Route = RouteProp<RootStackParamList, 'AddAlarm'>;
 
@@ -20,9 +21,9 @@ Sound.setCategory('Alarm');
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const SOUNDS = [
-  {id: 'alarm.mp3',   label: 'Classic'},
-  {id: 'digital.mp3', label: 'Digital'},
-  {id: 'gentle.mp3',  label: 'Gentle Rise'},
+  {id: 'alarm.mp3',   label: 'Classic',     icon: 'alarm'},
+  {id: 'digital.mp3', label: 'Digital',     icon: 'music-note'},
+  {id: 'gentle.mp3',  label: 'Gentle Rise', icon: 'weather-sunny'},
 ];
 
 export default function AddAlarmScreen() {
@@ -30,6 +31,7 @@ export default function AddAlarmScreen() {
   const route = useRoute<Route>();
   const alarmId = route.params?.alarmId;
   const theme = useTheme();
+  const c = theme.colors;
   const {addAlarm, updateAlarm, alarms} = useAlarmStore();
   const {defaultReps} = useSettingsStore();
   const previewRef = useRef<Sound | null>(null);
@@ -48,7 +50,7 @@ export default function AddAlarmScreen() {
     return d;
   });
   const [showPicker, setShowPicker] = useState(false);
-  const [reps, setReps] = useState(existing ? String(existing.reps) : String(defaultReps));
+  const [reps, setReps] = useState(existing ? existing.reps : (parseInt(String(defaultReps), 10) || 10));
   const [label, setLabel] = useState(existing?.label ?? '');
   const [recurring, setRecurring] = useState(existing ? existing.days.length > 0 : false);
   const [days, setDays] = useState<number[]>(existing?.days ?? []);
@@ -75,7 +77,7 @@ export default function AddAlarmScreen() {
     const data = {
       hour: time.getHours(),
       minute: time.getMinutes(),
-      reps: parseInt(reps, 10) || 10,
+      reps: reps || 10,
       label,
       days: recurring ? days : [],
       volume,
@@ -89,22 +91,31 @@ export default function AddAlarmScreen() {
     navigation.goBack();
   };
 
+  const card = {
+    backgroundColor: c.surface,
+    borderRadius: 16,
+    padding: 18,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    ...(theme.dark ? {} : cardShadow),
+  } as const;
+
   return (
-    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+    <View style={{flex: 1, backgroundColor: c.background}}>
       <Appbar.Header>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={alarmId ? 'Edit Alarm' : 'New Alarm'} />
         <Appbar.Action icon="check" onPress={save} />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={{paddingBottom: 40}}>
+      <ScrollView contentContainerStyle={{paddingTop: 8, paddingBottom: 40}}>
         {/* Time display */}
         <TouchableRipple onPress={() => setShowPicker(true)} style={{alignItems: 'center', paddingVertical: 28}}>
           <View style={{alignItems: 'center'}}>
-            <Text style={{fontSize: 72, fontWeight: '200', letterSpacing: -2, color: theme.colors.onSurface}}>
+            <Text style={{fontSize: 72, fontWeight: '200', letterSpacing: -2, color: c.onSurface}}>
               {time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
             </Text>
-            <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4}}>
+            <Text variant="labelSmall" style={{color: c.onSurfaceVariant, marginTop: 4}}>
               Tap to change
             </Text>
           </View>
@@ -122,62 +133,114 @@ export default function AddAlarmScreen() {
           />
         )}
 
-        <Divider />
+        {/* Push-ups stepper */}
+        <View style={card}>
+          <Text variant="labelLarge" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+            Push-ups to dismiss
+          </Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20}}>
+            <TouchableRipple
+              onPress={() => setReps(r => Math.max(1, r - 5))}
+              borderless
+              style={{borderRadius: 22}}>
+              <View style={{
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: c.primaryContainer,
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon source="minus" size={20} color={c.onPrimaryContainer} />
+              </View>
+            </TouchableRipple>
 
-        {/* Push-ups */}
-        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
-          <TextInput
-            mode="outlined"
-            label="Push-ups to dismiss"
-            value={reps}
-            onChangeText={setReps}
-            keyboardType="number-pad"
-            maxLength={3}
-            selectTextOnFocus
-            contentStyle={{fontSize: 36, fontWeight: '300', color: theme.colors.primary}}
-            style={{width: 180}}
-          />
+            <TextInput
+              mode="flat"
+              value={String(reps)}
+              onChangeText={t => {
+                const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(n)) setReps(Math.min(999, Math.max(1, n)));
+                else if (t === '') setReps(1);
+              }}
+              keyboardType="number-pad"
+              maxLength={3}
+              selectTextOnFocus
+              underlineColor="transparent"
+              activeUnderlineColor="transparent"
+              contentStyle={{fontSize: 48, fontWeight: '300', color: c.primary, textAlign: 'center'}}
+              style={{backgroundColor: 'transparent', width: 100}}
+            />
+
+            <TouchableRipple
+              onPress={() => setReps(r => Math.min(999, r + 5))}
+              borderless
+              style={{borderRadius: 22}}>
+              <View style={{
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: c.primaryContainer,
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon source="plus" size={20} color={c.onPrimaryContainer} />
+              </View>
+            </TouchableRipple>
+          </View>
         </View>
 
-        <Divider />
-
         {/* Volume */}
-        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
-          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 4}}>
-            Volume — {Math.round(volume * 100)}%
-          </Text>
+        <View style={card}>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12}}>
+            <Text variant="labelLarge" style={{color: c.onSurfaceVariant}}>Volume</Text>
+            <Text variant="labelLarge" style={{color: c.primary, fontWeight: '700'}}>
+              {Math.round(volume * 100)}%
+            </Text>
+          </View>
           <Slider
             minimumValue={0}
             maximumValue={1}
             step={0.05}
             value={volume}
             onValueChange={setVolume}
-            minimumTrackTintColor={theme.colors.primary}
-            maximumTrackTintColor={theme.colors.surfaceVariant}
-            thumbTintColor={theme.colors.primary}
+            minimumTrackTintColor={c.primary}
+            maximumTrackTintColor={c.surfaceVariant}
+            thumbTintColor={c.primary}
           />
         </View>
 
-        <Divider />
-
         {/* Sound */}
-        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
-          <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 4}}>
+        <View style={card}>
+          <Text variant="labelLarge" style={{color: c.onSurfaceVariant, marginBottom: 12}}>
             Sound
           </Text>
-          <RadioButton.Group
-            value={sound}
-            onValueChange={v => { setSound(v); previewSound(v); }}>
-            {SOUNDS.map(s => (
-              <RadioButton.Item key={s.id} label={s.label} value={s.id} />
-            ))}
-          </RadioButton.Group>
+          <View style={{flexDirection: 'row', gap: 8}}>
+            {SOUNDS.map(s => {
+              const selected = sound === s.id;
+              return (
+                <TouchableRipple
+                  key={s.id}
+                  onPress={() => { setSound(s.id); previewSound(s.id); }}
+                  borderless
+                  style={{flex: 1, borderRadius: 12}}>
+                  <View style={{
+                    flex: 1, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 8,
+                    alignItems: 'center', gap: 6,
+                    backgroundColor: selected ? c.primaryContainer : c.surfaceVariant,
+                    borderWidth: selected ? 1.5 : 0,
+                    borderColor: c.primary,
+                  }}>
+                    <Icon source={s.icon} size={22} color={selected ? c.primary : c.onSurfaceVariant} />
+                    <Text style={{
+                      fontSize: 11, fontWeight: '600', textAlign: 'center',
+                      color: selected ? c.primary : c.onSurfaceVariant,
+                    }}>
+                      {s.label}
+                    </Text>
+                  </View>
+                </TouchableRipple>
+              );
+            })}
+          </View>
         </View>
 
-        <Divider />
-
         {/* Label */}
-        <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
+        <View style={card}>
           <TextInput
             mode="outlined"
             label="Label (optional)"
@@ -187,24 +250,20 @@ export default function AddAlarmScreen() {
           />
         </View>
 
-        <Divider />
-
         {/* Repeat */}
-        <View style={{paddingHorizontal: 20, paddingVertical: 16}}>
-          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: recurring ? 16 : 0}}>
-            <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant}}>
-              Repeat
-            </Text>
+        <View style={card}>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: recurring ? 16 : 0,
+          }}>
+            <Text variant="labelLarge" style={{color: c.onSurfaceVariant}}>Repeat</Text>
             <Switch value={recurring} onValueChange={setRecurring} />
           </View>
           {recurring && (
             <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
               {DAYS.map((d, i) => (
-                <Chip
-                  key={d}
-                  selected={days.includes(i)}
-                  onPress={() => toggleDay(i)}
-                  compact>
+                <Chip key={d} selected={days.includes(i)} onPress={() => toggleDay(i)} compact>
                   {d}
                 </Chip>
               ))}

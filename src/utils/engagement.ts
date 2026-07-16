@@ -175,7 +175,8 @@ export function getCommunityGoal(): {repsToGo: number; total: number; goal: numb
   const liveRate = Math.round(rand() * 4 + 3); // 3–7 per tick
   const liveGrowth = Math.floor(minsElapsed / 2) * liveRate;
 
-  const total = Math.min(weeklyBase + liveGrowth, goal - 200);
+  const capOffset = Math.round(rand() * 350 + 50); // 50–400, seeded per week
+  const total = Math.min(weeklyBase + liveGrowth, goal - capOffset);
   return {repsToGo: goal - total, total, goal};
 }
 

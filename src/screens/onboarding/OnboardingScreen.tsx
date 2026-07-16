@@ -273,10 +273,10 @@ export default function OnboardingScreen() {
               The snooze button{'\n'}is making you weak.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              Every morning you give in, you train yourself to quit.{'\n'}It's time to train yourself to win.
+              Every snooze is practice for quitting.{'\n'}Start practicing the opposite.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
-              I'm ready to change →
+              I'm ready →
             </Button>
           </View>
         );
@@ -286,9 +286,6 @@ export default function OnboardingScreen() {
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
             <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
               What do we{'\n'}call you?
-            </Text>
-            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 32}}>
-              We'll make this personal.
             </Text>
             <TextInput
               mode="outlined"
@@ -317,7 +314,7 @@ export default function OnboardingScreen() {
                 A note from the founder
               </Text>
               <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic'}}>
-                {"Yo,\n\nI built PushRise because I was you. Six alarms. Snoozed every single one. Spent the rest of the day feeling behind before it even started. The problem wasn't my alarm, it was me. I needed something that wouldn't let me off the hook. So I built it. Now I wake up every morning knowing I already won.\n\nYou can too.\n— Syreese"}
+                {"Yo,\n\nI was you. Six alarms. Snoozed every one. I needed something that wouldn't let me off the hook — so I built it.\n\nNow I wake up knowing I already won.\n\nYou can too.\n— Syreese"}
               </Text>
             </Surface>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
@@ -419,7 +416,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
-              What does your body look like right now? Be honest.
+              How fit are you right now? Be real.
             </Text>
             {Q2_OPTIONS.map((opt, i) => (
               <Animated.View key={i} style={{opacity: q2Cards[i], transform: [{translateY: q2Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
@@ -456,7 +453,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 32, justifyContent: 'center'}}>
             <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 48}}>
-              No ego. How many push-ups can you actually do right now?
+              How many push-ups can you actually do? No ego.
             </Text>
             <Text style={{fontSize: 96, fontWeight: '200', textAlign: 'center', color: theme.colors.primary, letterSpacing: -4, lineHeight: 104}}>
               {sliderVal >= 50 ? '50+' : sliderVal}
@@ -641,7 +638,7 @@ export default function OnboardingScreen() {
               ))}
             </View>
             <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 22, marginBottom: 32}}>
-              Users who complete 7 days don't quit. The first morning is the hardest. After that, it becomes who you are.
+              People who hit 7 days don't quit. Day 1 is the hardest. After that, it's just who you are.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               I want that →
@@ -734,10 +731,10 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
-              Set a daily rep goal.
+              Daily rep goal.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
-              How many push-ups do you want to do every day?
+              How many reps per day?
             </Text>
             <View style={{flexDirection: 'row', gap: 10, marginBottom: 20}}>
               {GOAL_PRESETS.map(n => (
@@ -809,11 +806,11 @@ export default function OnboardingScreen() {
               </Text>
 
               <Text variant="bodyLarge" style={{lineHeight: 30, marginBottom: 16}}>
-                {'I commit to waking up at '}
+                {"I'll wake up at "}
                 <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{timeStr}</Text>
-                {' and doing '}
+                {' and do '}
                 <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{recommendedReps} push-ups</Text>
-                {' every morning because:'}
+                {'. My reason:'}
               </Text>
 
               <TextInput
@@ -872,14 +869,14 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
-              Before we finish setup…
+              Almost done.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 24}}>
-              We need a couple permissions to make sure your alarm never fails.
+              Two quick permissions so your alarm never fails.
             </Text>
             {[
-              {icon: '🔋', title: 'Battery access', sub: 'So your alarm fires even when your phone tries to save power'},
-              {icon: '🔔', title: 'Notifications', sub: "So we warn you before your trial ends"},
+              {icon: '🔋', title: 'Battery access', sub: 'Keeps alarms firing even in battery saver mode'},
+              {icon: '🔔', title: 'Notifications', sub: 'Trial reminders only'},
             ].map(p => (
               <Surface key={p.title} elevation={1} style={{borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 12}}>
                 <Text style={{fontSize: 28}}>{p.icon}</Text>
@@ -927,7 +924,7 @@ export default function OnboardingScreen() {
               We'll remind you{'\n'}before midnight.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 36}}>
-              If you haven't logged any push-ups, we'll send a reminder so your streak doesn't die quietly.
+              Haven't logged reps yet? We'll ping you so your streak survives.
             </Text>
 
             <TouchableRipple onPress={() => setShowReminderPicker(true)} style={{alignItems: 'center', paddingVertical: 12, marginBottom: 4}}>
