@@ -187,28 +187,6 @@ function AlarmCard({
     deleteTimer.current = setTimeout(() => setPendingDelete(false), 3000);
   };
 
-  // Swipe-left to delete
-  const swipeX = useRef(new Animated.Value(0)).current;
-  const deleteRevealOpacity = swipeX.interpolate({
-    inputRange: [-110, -20, 0],
-    outputRange: [1, 0.2, 0],
-    extrapolate: 'clamp',
-  });
-  const swipePan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) =>
-      Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) && gs.dx < 0,
-    onPanResponderMove: (_, gs) => { if (gs.dx < 0) swipeX.setValue(gs.dx); },
-    onPanResponderRelease: (_, gs) => {
-      if (gs.dx < -120) {
-        Animated.timing(swipeX, {toValue: -500, duration: 200, useNativeDriver: false}).start(
-          () => deleteAlarm(alarm.id),
-        );
-      } else {
-        Animated.spring(swipeX, {toValue: 0, useNativeDriver: false}).start();
-      }
-    },
-  })).current;
-
   // Drag handle — captures touch immediately, inner wins over swipePan
   const dragPan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -230,25 +208,14 @@ function AlarmCard({
     <Animated.View style={{opacity: fadeAnim, transform: [{translateX: slideAnim}]}}>
       <View style={{opacity: isDragging ? 0 : 1}}>
         <View style={{marginHorizontal: 16, marginBottom: 12}}>
-          {/* Delete reveal */}
-          <Animated.View style={{
-            position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 90,
-            backgroundColor: theme.colors.error, borderRadius: 20,
-            justifyContent: 'center', alignItems: 'center',
-            opacity: deleteRevealOpacity,
-          }}>
-            <Icon source="trash-can-outline" size={26} color="#fff" />
-          </Animated.View>
-
           {/* Card */}
           <Animated.View
-            {...swipePan.panHandlers}
             style={[{
               backgroundColor: theme.colors.surface,
               borderRadius: 20,
               padding: 20,
               opacity: enabled ? 1 : 0.45,
-              transform: [{scale: cardScale}, {translateX: swipeX}, {translateX: shakeX}],
+              transform: [{scale: cardScale}, {translateX: shakeX}],
             }, theme.dark ? {} : cardShadow]}>
 
             <View style={{flexDirection: 'row', alignItems: 'stretch'}}>
@@ -280,11 +247,11 @@ function AlarmCard({
                 </View>
 
                 <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8}}>
-                  <View style={{gap: 2}}>
+                  <View style={{gap: 2, flex: 1}}>
                     <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant, fontWeight: '500'}}>
                       {daysLabel}
                     </Text>
-                    <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}}>
+                    <Text style={{fontSize: 13, color: theme.colors.onSurfaceVariant}} numberOfLines={1}>
                       {alarm.reps} push-ups to dismiss{alarm.label ? `  ·  ${alarm.label}` : ''}
                     </Text>
                   </View>

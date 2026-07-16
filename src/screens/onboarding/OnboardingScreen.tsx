@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {Dimensions, View, ScrollView, Animated, Vibration} from 'react-native';
+import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput,
   TouchableRipple, useTheme, ProgressBar,
@@ -103,6 +103,11 @@ export default function OnboardingScreen() {
   const [q1, setQ1] = useState(-1);
   const [snoozeCount, setSnoozeCount] = useState(0);
   const snoozeCountRef = useRef(0);
+  const q1TimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [q1Progress, setQ1Progress] = useState(1);
+  const q1ProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [floatingZzz, setFloatingZzz] = useState<Array<{id: number; y: Animated.Value; opacity: Animated.Value}>>([]);
+  const zzzCounterRef = useRef(0);
   const [q2, setQ2] = useState(-1);
   const [q3, setQ3] = useState(-1);
   const [q4, setQ4] = useState(-1);
@@ -175,15 +180,34 @@ export default function OnboardingScreen() {
     }
   }, [currentStep]);
 
+  const startQ1Timer = () => {
+    if (q1TimerRef.current) clearTimeout(q1TimerRef.current);
+    if (q1ProgressIntervalRef.current) clearInterval(q1ProgressIntervalRef.current);
+    setQ1Progress(1);
+    const start = Date.now();
+    q1ProgressIntervalRef.current = setInterval(() => {
+      const p = Math.max(0, 1 - (Date.now() - start) / 5000);
+      setQ1Progress(p);
+      if (p <= 0) { clearInterval(q1ProgressIntervalRef.current!); q1ProgressIntervalRef.current = null; }
+    }, 50);
+    q1TimerRef.current = setTimeout(() => {
+      if (q1ProgressIntervalRef.current) { clearInterval(q1ProgressIntervalRef.current); q1ProgressIntervalRef.current = null; }
+      const c = snoozeCountRef.current;
+      setQ1(c === 0 ? 0 : c <= 2 ? 1 : c <= 4 ? 2 : 3);
+      setStepIdx(s => Math.min(s + 1, STEPS.length - 1));
+    }, 5000);
+  };
+
   useEffect(() => {
     if (currentStep !== 'q1') return;
     snoozeCountRef.current = 0;
     setSnoozeCount(0);
-    const timer = setTimeout(() => {
-      setQ1(Math.min(snoozeCountRef.current, 3));
-      setStepIdx(s => Math.min(s + 1, STEPS.length - 1));
-    }, 4000);
-    return () => clearTimeout(timer);
+    setFloatingZzz([]);
+    startQ1Timer();
+    return () => {
+      if (q1TimerRef.current) clearTimeout(q1TimerRef.current);
+      if (q1ProgressIntervalRef.current) clearInterval(q1ProgressIntervalRef.current);
+    };
   }, [currentStep]);
 
   useEffect(() => {
@@ -248,10 +272,22 @@ export default function OnboardingScreen() {
     const newCount = snoozeCountRef.current + 1;
     snoozeCountRef.current = newCount;
     setSnoozeCount(newCount);
-    if (newCount >= 3) {
-      setQ1(3);
-      next();
-    }
+    startQ1Timer();
+    const id = zzzCounterRef.current++;
+    const y = new Animated.Value(0);
+    const opacity = new Animated.Value(1);
+    setFloatingZzz(prev => [...prev, {id, y, opacity}]);
+    Animated.parallel([
+      Animated.timing(y, {toValue: -130, duration: 1400, useNativeDriver: true}),
+      Animated.timing(opacity, {toValue: 0, duration: 1400, useNativeDriver: true}),
+    ]).start(() => setFloatingZzz(prev => prev.filter(z => z.id !== id)));
+  };
+
+  const advanceQ1 = () => {
+    if (q1TimerRef.current) clearTimeout(q1TimerRef.current);
+    const c = snoozeCountRef.current;
+    setQ1(c === 0 ? 0 : c <= 2 ? 1 : c <= 4 ? 2 : 3);
+    next();
   };
 
   const toggleRewardGoal = (i: number) =>
@@ -341,7 +377,7 @@ export default function OnboardingScreen() {
                   <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontStyle: 'italic', marginBottom: 10}}>
                     {t.text}
                   </Text>
-                  <Text variant="labelMedium" style={{color: theme.colors.outline}}>{t.name}</Text>
+                  <Text variant="labelMedium" style={{color: theme.colors.onSurface}}>{t.name}</Text>
                 </Surface>
               </Animated.View>
             ))}
@@ -366,36 +402,55 @@ export default function OnboardingScreen() {
           </View>
         );
 
-      case 'q1':
+      case 'q1': {
+        const snoozeSubtext = () => {
+          if (snoozeCount === 0) return 'Go ahead, tap it...';
+          if (snoozeCount <= 2) return 'Just 5 more minutes...';
+          if (snoozeCount <= 4) return 'Warm and cozy...';
+          return "Okay, we've got some work to do! 😳";
+        };
         return (
-          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 40, justifyContent: 'center', alignItems: 'center'}}>
-            <Text variant="headlineSmall" style={{fontWeight: '700', textAlign: 'center', marginBottom: 40}}>
-              How bad is the snooze problem — really?
-            </Text>
-            <Text style={{fontSize: 88, textAlign: 'center', marginBottom: 16}}>🚨</Text>
-            <Text variant="titleMedium" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', marginBottom: 40}}>
-              Your alarm is going off…
-            </Text>
-            {snoozeCount > 0 ? (
-              <Text variant="titleLarge" style={{fontWeight: '700', color: theme.colors.primary, marginBottom: 32, textAlign: 'center'}}>
-                {'😴'.repeat(Math.min(snoozeCount, 3))}{'  '}Snoozed {snoozeCount}×
+          <View style={{flex: 1, paddingHorizontal: 24, justifyContent: 'space-between', paddingTop: 16, paddingBottom: 40}}>
+            <ProgressBar progress={q1Progress} style={{height: 4, borderRadius: 2}} />
+            <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+              <Text variant="headlineSmall" style={{fontWeight: '700', textAlign: 'center', marginBottom: 48}}>
+                How often do you hit snooze?
               </Text>
-            ) : (
-              <Text variant="bodyMedium" style={{color: theme.colors.outline, marginBottom: 32}}>
-                Tap snooze like you normally would
+              {/* ponytail: static random translateX per particle — good enough for visual scatter */}
+              <View style={{width: 120, height: 120, alignItems: 'center', justifyContent: 'center', marginBottom: 32}} pointerEvents="none">
+                {floatingZzz.map(z => (
+                  <Animated.Text key={z.id} style={{
+                    position: 'absolute',
+                    fontSize: 32,
+                    opacity: z.opacity,
+                    transform: [{translateY: z.y}, {translateX: (Math.random() * 40 - 20)}],
+                  }}>
+                    💤
+                  </Animated.Text>
+                ))}
+                <Text style={{fontSize: 72}}>😴</Text>
+              </View>
+              {snoozeCount > 0 && (
+                <Text variant="headlineMedium" style={{fontWeight: '800', color: theme.colors.primary, marginBottom: 8, textAlign: 'center'}}>
+                  Snoozed {snoozeCount}×
+                </Text>
+              )}
+              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginBottom: 48, textAlign: 'center'}}>
+                {snoozeSubtext()}
               </Text>
-            )}
-            <Button
-              mode="contained"
-              onPress={handleSnooze}
-              contentStyle={{paddingVertical: 14, paddingHorizontal: 40}}>
-              😴  Snooze
-            </Button>
-            <Text variant="bodySmall" style={{color: theme.colors.outline, marginTop: 36, textAlign: 'center'}}>
-              Don't tap? We'll assume you wake up fine.
-            </Text>
+              <Button
+                mode="contained"
+                onPress={handleSnooze}
+                contentStyle={{paddingVertical: 14, paddingHorizontal: 40}}>
+                😴  Snooze
+              </Button>
+              <Button mode="text" onPress={advanceQ1} style={{marginTop: 20}}>
+                Done
+              </Button>
+            </View>
           </View>
         );
+      }
 
       case 'q1-reflect':
         return (
@@ -1141,15 +1196,17 @@ export default function OnboardingScreen() {
         </Button>
       )}
 
-      <ScrollView
-        style={{flex: 1}}
-        contentContainerStyle={{flexGrow: 1, paddingBottom: 48}}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        <Animated.View style={{flex: 1, transform: [{translateX: slideX}]}}>
-          {renderContent()}
-        </Animated.View>
-      </ScrollView>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
+        <ScrollView
+          style={{flex: 1}}
+          contentContainerStyle={{flexGrow: 1, paddingBottom: 48}}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <Animated.View style={{flex: 1, transform: [{translateX: slideX}]}}>
+            {renderContent()}
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

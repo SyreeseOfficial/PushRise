@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {View, ScrollView} from 'react-native';
+import {View, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
 import {
   Appbar, Text, TextInput, Switch, Chip,
   TouchableRipple, useTheme, Icon,
@@ -108,6 +108,7 @@ export default function AddAlarmScreen() {
         <Appbar.Action icon="check" onPress={save} />
       </Appbar.Header>
 
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
       <ScrollView contentContainerStyle={{paddingTop: 8, paddingBottom: 40}}>
         {/* Time display */}
         <TouchableRipple onPress={() => setShowPicker(true)} style={{alignItems: 'center', paddingVertical: 28}}>
@@ -271,6 +272,7 @@ export default function AddAlarmScreen() {
           )}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

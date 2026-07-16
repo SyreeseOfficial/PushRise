@@ -51,7 +51,7 @@ export default function App() {
   const nudgeEnabled = useSettingsStore(s => s.nudgeEnabled);
   const nudgeHour = useSettingsStore(s => s.nudgeHour);
   const nudgeMinute = useSettingsStore(s => s.nudgeMinute);
-  const {trialStartedAt, isSubscribed} = useSubscriptionStore();
+  const {trialStartedAt, isSubscribed, setSubscribed} = useSubscriptionStore();
 
   useEffect(() => {
     if (!nudgeEnabled || todayReps > 0) {
@@ -71,10 +71,9 @@ export default function App() {
 
   useEffect(() => {
     initializePurchases();
-    const unsub = Purchases.addCustomerInfoUpdateListener(info => {
-      setSubscribed(isPro(info));
-    });
-    return () => unsub.remove();
+    const onUpdate = (info: any) => setSubscribed(isPro(info));
+    Purchases.addCustomerInfoUpdateListener(onUpdate);
+    return () => Purchases.removeCustomerInfoUpdateListener(onUpdate);
   }, []);
 
   useEffect(() => {
