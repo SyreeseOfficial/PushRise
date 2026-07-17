@@ -94,24 +94,24 @@ export default function PermissionsScreen() {
         </View>
 
         <View style={{
-          marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+          marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between',
         }}>
           <View style={{
-            paddingHorizontal: 12, paddingVertical: 5,
-            backgroundColor: badgeBg, borderRadius: 100,
+            paddingHorizontal: 12, paddingVertical: 6,
+            backgroundColor: badgeBg, borderRadius: 100, justifyContent: 'center',
           }}>
             <Text variant="labelSmall" style={{color: badgeColor}}>{badgeLabel}</Text>
           </View>
-          {onGrant && !granted && (
-            <Button mode="contained-tonal" onPress={onGrant} compact style={{borderRadius: 100}}>
-              {grantLabel ?? 'Grant Access'}
+          {(onGrant && !granted) || isManual ? (
+            <Button
+              mode="contained"
+              onPress={onGrant}
+              style={{borderRadius: 100, minWidth: 110}}
+              labelStyle={{fontSize: 13}}
+            >
+              {grantLabel ?? (isManual ? 'Open Settings' : 'Grant Access')}
             </Button>
-          )}
-          {isManual && (
-            <Button mode="contained-tonal" onPress={onGrant} compact style={{borderRadius: 100}}>
-              {grantLabel ?? 'Open Settings'}
-            </Button>
-          )}
+          ) : null}
         </View>
       </Surface>
     );

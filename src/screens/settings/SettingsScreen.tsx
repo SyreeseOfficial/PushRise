@@ -381,7 +381,7 @@ export default function SettingsScreen() {
 
       {/* Dialogs */}
       <Portal>
-        <Dialog visible={dialog === 'theme'} onDismiss={close}>
+        <Dialog visible={dialog === 'theme'} onDismiss={close} style={{backgroundColor: c.surface}}>
           <Dialog.Title>Theme</Dialog.Title>
           <Dialog.Content>
             <RadioButton.Group value={tempTheme} onValueChange={v => setTempTheme(v as ThemeMode)}>
@@ -396,7 +396,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={dialog === 'defaultReps'} onDismiss={close}>
+        <Dialog visible={dialog === 'defaultReps'} onDismiss={close} style={{backgroundColor: c.surface}}>
           <Dialog.Title>Default Push-ups</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
@@ -420,7 +420,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={dialog === 'dailyGoal'} onDismiss={close}>
+        <Dialog visible={dialog === 'dailyGoal'} onDismiss={close} style={{backgroundColor: c.surface}}>
           <Dialog.Title>Daily Push-up Goal</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
@@ -445,7 +445,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={dialog === 'grindingFor'} onDismiss={close}>
+        <Dialog visible={dialog === 'grindingFor'} onDismiss={close} style={{backgroundColor: c.surface}}>
           <Dialog.Title>What are you grinding for?</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
@@ -468,7 +468,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={dialog === 'about'} onDismiss={close} style={{borderRadius: 28}}>
+        <Dialog visible={dialog === 'about'} onDismiss={close} style={{borderRadius: 28, backgroundColor: c.surface}}>
           <Dialog.Content style={{paddingTop: 28, alignItems: 'center'}}>
             <View style={{
               width: 72, height: 72, borderRadius: 20,
@@ -502,7 +502,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={dialog === 'resetSettings'} onDismiss={close}>
+        <Dialog visible={dialog === 'resetSettings'} onDismiss={close} style={{backgroundColor: c.surface}}>
           <Dialog.Title>Reset Settings?</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{color: c.onSurfaceVariant}}>
@@ -515,7 +515,7 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={dialog === 'resetAll'} onDismiss={close}>
+        <Dialog visible={dialog === 'resetAll'} onDismiss={close} style={{backgroundColor: c.surface}}>
           <Dialog.Icon icon="alert-circle-outline" color={c.error} />
           <Dialog.Title style={{textAlign: 'center'}}>Reset Everything?</Dialog.Title>
           <Dialog.Content>
