@@ -359,8 +359,9 @@ export default function OnboardingScreen() {
     setPurchaseLoading(true);
     setPurchaseError(null);
     try {
-      await Purchases.purchasePackage(pkg);
-      await handleComplete();
+      const {customerInfo} = await Purchases.purchasePackage(pkg);
+      startTrial();
+      completeOnboarding();
     } catch (e: any) {
       if (!e.userCancelled) setPurchaseError('Purchase failed. Please try again.');
     } finally {
@@ -1412,6 +1413,7 @@ export default function OnboardingScreen() {
         const weeklyPkg = offerings?.current?.availablePackages?.find((p: any) => p.packageType === Purchases.PACKAGE_TYPE.WEEKLY);
         const annualPkg = offerings?.current?.availablePackages?.find((p: any) => p.packageType === Purchases.PACKAGE_TYPE.ANNUAL);
         const lifetimePkg = offerings?.current?.availablePackages?.find((p: any) => p.packageType === Purchases.PACKAGE_TYPE.LIFETIME);
+        // ^ offerings structure from RC API: current is the default Offering object
 
         const PlanCard = ({type, title, price, subtext, badge}: any) => (
           <TouchableRipple onPress={() => setSelectedPkgType(type)} borderless style={{borderRadius: 16, marginBottom: 12}}>
