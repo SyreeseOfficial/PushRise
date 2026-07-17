@@ -41,9 +41,9 @@ const Q2_CARDS = [
 ];
 const Q3_OPTIONS = ['I just need to wake up on time', 'I want to get stronger', 'I need a complete reset — both'];
 const Q3_CARDS = [
-  {emoji: '⏰', label: 'Just the wake-ups', sub: Q3_OPTIONS[0]},
-  {emoji: '💪🏽', label: 'Get stronger', sub: Q3_OPTIONS[1]},
-  {emoji: '🔥', label: 'Full reset', sub: Q3_OPTIONS[2]},
+  {emoji: '⏰', label: 'My mornings are a mess', sub: Q3_OPTIONS[0]},
+  {emoji: '💪🏽', label: 'I need to get my body back', sub: Q3_OPTIONS[1]},
+  {emoji: '🔥', label: 'Full reset — I\'m done coasting', sub: Q3_OPTIONS[2]},
 ];
 const Q4_OPTIONS = ['5 or fewer', 'Around 10', '15–20', 'More than 20'];
 const Q4_REPS = [5, 10, 15, 20];
@@ -55,8 +55,8 @@ const REWARD_GOALS = [
   'Just not being late anymore',
 ];
 const TESTIMONIALS = [
-  {stars: 5, text: '"Tried every alarm app. This is the only one I actually respect. It doesn\'t let me lie to myself."', name: 'Marcus, 22'},
-  {stars: 5, text: '"Day 14. Never made it past day 3 with anything else. Push-ups at 6am. That\'s the point."', name: 'Jordan, 19'},
+  {stars: 5, text: '"I\'d been saying "I\'ll start Monday" for literally 2 years. Day 11 now. Haven\'t snoozed once."', name: 'Marcus, 22'},
+  {stars: 5, text: '"I\'ve got a graveyard of fitness apps. This one actually works because you can\'t just skip it."', name: 'Jordan, 19'},
 ];
 
 function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optimizer' {
@@ -68,15 +68,15 @@ function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optim
 const PERSONA_DATA = {
   sleeper: {
     title: '😴 The Sleeper',
-    body: 'You know you should be doing more. PushRise was built for this. No more snooze.',
+    body: 'You\'ve been telling yourself "tomorrow" for months. Tomorrow has become never. The gap between who you are and who you could be is growing — and you feel it every morning. PushRise was built exactly for you.',
   },
   inconsistent: {
-    title: '⚡ The Inconsistent',
-    body: 'You\'ve got the drive — you just can\'t get started. Push-ups fix that.',
+    title: '⚡ The Restarter',
+    body: 'You start strong. Then life happens, you miss a day, and the streak\'s gone. You\'re not lazy — you just haven\'t had something with real stakes. Now you do.',
   },
   optimizer: {
     title: '🎯 The Optimizer',
-    body: 'Already disciplined. PushRise gives you the system to make every rep count.',
+    body: 'You\'re already disciplined — but you know there\'s another level. You don\'t want good mornings. You want great ones, every single day, without exception. PushRise is the system.',
   },
 };
 
@@ -350,13 +350,13 @@ export default function OnboardingScreen() {
               PushRise
             </Text>
             <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
-              The snooze button{'\n'}is making you weak.
+              You're tired of being{'\n'}the guy who could.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              Every snooze is practice for quitting.{'\n'}Start practicing the opposite.
+              Potential means nothing without execution. Every morning you snooze, the version of you that you want to be gets further away. That changes now.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
-              I'm ready →
+              I'm done →
             </Button>
           </View>
         );
@@ -394,7 +394,7 @@ export default function OnboardingScreen() {
                 "
               </Text>
               <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic', marginBottom: 24}}>
-                {"I was you. Six alarms. Snoozed every one. I needed something that wouldn't let me off the hook — so I built it.\n\nNow I wake up knowing I already won.\n\nYou can too."}
+                {"I was you. Snoozed through every alarm, skipped every workout, told myself tomorrow. I knew exactly what I was capable of — and I was wasting it. So I built something that wouldn't let me lie to myself anymore. Now I wake up knowing I already won. You can too."}
               </Text>
               <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, fontStyle: 'italic', textAlign: 'right'}}>
                 — Syreese
@@ -438,13 +438,13 @@ export default function OnboardingScreen() {
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
             <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
-              Let's be honest{'\n'}with each other.
+              Let's figure out{'\n'}why you keep stopping.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              A few questions so we can build {name ? `${name}'s` : 'your'} plan.
+              Not judging — diagnosing. We need the truth to build {name ? `${name}'s` : 'your'} plan.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
-              Let's go →
+              Tell the truth →
             </Button>
           </View>
         );
@@ -503,13 +503,13 @@ export default function OnboardingScreen() {
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
             <Text variant="displaySmall" style={{fontWeight: '800', lineHeight: 44, marginBottom: 16}}>
-              {name ? `${name}, you're` : "You're"} not lazy.{'\n'}You're untrained.
+              {name ? `${name}, that's` : "That's"} the habit{'\n'}killing your mornings.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              There's a difference — and it's fixable.
+              Not laziness — an untrained reflex. Every morning you practiced hitting snooze, you trained yourself to quit when it's uncomfortable. We're going to undo that.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
-              I get it →
+              Let's undo it →
             </Button>
           </View>
         );
@@ -518,7 +518,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
-              How fit are you right now? Be real.
+              How far have you let yourself slide? Be real.
             </Text>
             {Q2_CARDS.map((card, i) => (
               <Animated.View key={i} style={{opacity: q2Cards[i], transform: [{translateY: q2Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
@@ -542,7 +542,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
-              Why did you really download this?
+              What made you finally download this?
             </Text>
             {Q3_CARDS.map((card, i) => (
               <Animated.View key={i} style={{opacity: q3Cards[i], transform: [{translateY: q3Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
@@ -762,7 +762,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="displaySmall" style={{fontWeight: '800', marginBottom: 20}}>
-              In 30 days,{'\n'}you'll be different.
+              In 30 days,{'\n'}you won't recognize your mornings.
             </Text>
             <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20}}>
               Push-ups per week
@@ -794,7 +794,7 @@ export default function OnboardingScreen() {
               })}
             </View>
             <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 22, marginBottom: 32}}>
-              People who hit 7 days don't quit. Day 1 is the hardest. After that, it's just who you are.
+              You'll wake up before the alarm. You'll do the reps without negotiating with yourself. You'll feel it in how you carry yourself. Not because you forced it — because it's who you are now.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               I want that →
@@ -846,7 +846,7 @@ export default function OnboardingScreen() {
               ))}
             </Surface>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, textAlign: 'center', marginBottom: 32}}>
-              This is exactly what you need.{'\n'}Start tomorrow.
+              This is the plan.{'\n'}Show up tomorrow.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Set Your First Alarm →
@@ -911,10 +911,10 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 8}}>
-              Daily rep goal.
+              How hard are you willing to push?
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
-              How many reps per day?
+              This is your daily minimum. The floor, not the ceiling.
             </Text>
             <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28}}>
               {GOAL_TIERS.map(({value, emoji, tier, desc}) => (
@@ -962,7 +962,7 @@ export default function OnboardingScreen() {
               onPress={() => { settings.update({dailyGoal: selectedGoal}); next(); }}
               contentStyle={{paddingVertical: 8}}
               style={{marginBottom: 12}}>
-              Set My Goal →
+              Set My Standard →
             </Button>
             <Button mode="text" onPress={next}>Skip for now</Button>
           </View>
@@ -980,7 +980,10 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 28}}>
-              Create your first reward.
+              What are you grinding for?
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 20}}>
+              Name the thing you want. Every push-up is earning it.
             </Text>
 
             {/* Hero emoji */}
@@ -1125,7 +1128,7 @@ export default function OnboardingScreen() {
                   marginBottom: 8,
                   fontWeight: '700',
                 }}>
-                  My Reason
+                  Why this matters — be specific
                 </Text>
 
                 <TextInput
@@ -1157,6 +1160,10 @@ export default function OnboardingScreen() {
                 </View>
               </View>
             </Surface>
+
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, textAlign: 'center', marginBottom: 24}}>
+              The men who write this down are the ones who actually show up.
+            </Text>
 
             {commitSigned && (
               <Animated.View style={{
@@ -1378,10 +1385,13 @@ export default function OnboardingScreen() {
             </TouchableRipple>
 
             <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 40, marginBottom: 10}}>
-              The alarm you earn{'\n'}your way out of.
+              The last morning{'\n'}routine you'll ever need.
             </Text>
-            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
-              Free for 7 days. No card needed.
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 8}}>
+              7 days to prove it to yourself. No card required.
+            </Text>
+            <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
+              You've tried motivation. You've tried alarms. None of it stuck because none of it had stakes. This does.
             </Text>
 
             <TouchableRipple onPress={handleComplete} borderless style={{borderRadius: 16, marginBottom: 12}}>
@@ -1431,14 +1441,14 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineLarge" style={{fontWeight: '800', marginBottom: 8}}>
-              7 days. Zero risk.
+              7 days to change your mornings.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 32}}>
-              See what it feels like to actually get up.
+              One week. If waking up before the alarm and knocking out push-ups doesn't feel different — cancel and pay nothing. But it will.
             </Text>
 
             <Button mode="contained" onPress={handleComplete} contentStyle={{paddingVertical: 10}} style={{marginBottom: 12}}>
-              Start Free — No Card Needed
+              Start My 7 Days →
             </Button>
             <Button mode="text" onPress={() => setStepIdx(s => s - 1)} style={{marginBottom: 8}}>
               See pricing
