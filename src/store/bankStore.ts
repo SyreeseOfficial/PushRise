@@ -38,6 +38,7 @@ interface BankStore {
   seenMilestones: number[];
   pendingCelebration: Celebration | null;
   bossDefeatedWeek: string | null;
+  dailyHistory: Record<string, number>;
   rewards: Reward[];
   addReps: (n: number) => void;
   clearCelebration: () => void;
@@ -114,6 +115,7 @@ const BANK_DEFAULTS = {
   seenMilestones: [] as number[],
   pendingCelebration: null as Celebration | null,
   bossDefeatedWeek: null as string | null,
+  dailyHistory: {} as Record<string, number>,
   rewards: DEFAULT_REWARDS,
 };
 
@@ -165,6 +167,9 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       weekStartDate: weekStart,
       seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,
       pendingCelebration: celebration,
+      dailyHistory: isNewDay
+        ? {...s.dailyHistory, ...(s.todayDate ? {[s.todayDate]: s.todayReps} : {}), [today]: newTodayReps}
+        : {...s.dailyHistory, [today]: newTodayReps},
       ...streakUpdate,
       freezeCount: newFreezeCount,
       pendingFreezeEarned: awardFreeze || s.pendingFreezeEarned,

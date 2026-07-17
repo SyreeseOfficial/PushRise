@@ -6,6 +6,7 @@ import {
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import LinearGradient from 'react-native-linear-gradient';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useBankStore} from '../../store/bankStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
@@ -33,7 +34,17 @@ const Q1_OPTIONS = [
   'I\'ve actually been late because of it',
 ];
 const Q2_OPTIONS = ['I never really work out', 'I work out here and there', 'I\'m pretty consistent'];
+const Q2_CARDS = [
+  {emoji: '🛋️', label: 'Starting from zero', sub: Q2_OPTIONS[0]},
+  {emoji: '🏃', label: 'Occasionally moving', sub: Q2_OPTIONS[1]},
+  {emoji: '💪🏽', label: 'Pretty consistent', sub: Q2_OPTIONS[2]},
+];
 const Q3_OPTIONS = ['I just need to wake up on time', 'I want to get stronger', 'I need a complete reset — both'];
+const Q3_CARDS = [
+  {emoji: '⏰', label: 'Just the wake-ups', sub: Q3_OPTIONS[0]},
+  {emoji: '💪', label: 'Get stronger', sub: Q3_OPTIONS[1]},
+  {emoji: '🔥', label: 'Full reset', sub: Q3_OPTIONS[2]},
+];
 const Q4_OPTIONS = ['5 or fewer', 'Around 10', '15–20', 'More than 20'];
 const Q4_REPS = [5, 10, 15, 20];
 const REWARD_GOALS = [
@@ -137,6 +148,9 @@ export default function OnboardingScreen() {
   const [grindingFor, setGrindingFor] = useState('');
   const [commitSigned, setCommitSigned] = useState(false);
   const commitSealAnim = useRef(new Animated.Value(0)).current;
+  const viewTypeAnim = useRef(new Animated.Value(0)).current;
+  const personaCardAnim = useRef(new Animated.Value(0)).current;
+  const chartBarAnims = useRef(CHART_HEIGHTS.map(() => new Animated.Value(0))).current;
 
   // #19 — slide in from right (or left when going back) on each step change
   const slideX = useRef(new Animated.Value(0)).current;
@@ -219,6 +233,7 @@ export default function OnboardingScreen() {
   useEffect(() => {
     if (currentStep !== 'analyzing') return;
     barAnims.forEach(a => a.setValue(0));
+    viewTypeAnim.setValue(0);
     setAnalyzeLines(0);
     setPersonaCharCount(0);
     setAnalyzeComplete(false);
@@ -258,6 +273,25 @@ export default function OnboardingScreen() {
       if (nameInterval) clearInterval(nameInterval);
       runningAnims.forEach(a => a.stop());
     };
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (!analyzeComplete) return;
+    Animated.spring(viewTypeAnim, {toValue: 1, useNativeDriver: true, tension: 60, friction: 8}).start();
+  }, [analyzeComplete]);
+
+  useEffect(() => {
+    if (currentStep !== 'persona') return;
+    personaCardAnim.setValue(0);
+    Animated.spring(personaCardAnim, {toValue: 1, useNativeDriver: true, tension: 60, friction: 8, delay: 150}).start();
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (currentStep !== 'outcome') return;
+    chartBarAnims.forEach(a => a.setValue(0));
+    Animated.stagger(180, CHART_HEIGHTS.map((h, i) =>
+      Animated.timing(chartBarAnims[i], {toValue: h * 140, duration: 500, useNativeDriver: false})
+    )).start();
   }, [currentStep]);
 
   const handleComplete = async () => {
@@ -355,11 +389,14 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Surface elevation={1} style={{borderRadius: 20, padding: 24, marginBottom: 24}}>
-              <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16}}>
-                A note from the founder
+              <Text style={{fontSize: 80, fontWeight: '900', color: theme.colors.primary, lineHeight: 60, marginBottom: 12}}>
+                "
               </Text>
-              <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic'}}>
-                {"Yo,\n\nI was you. Six alarms. Snoozed every one. I needed something that wouldn't let me off the hook — so I built it.\n\nNow I wake up knowing I already won.\n\nYou can too.\n— Syreese"}
+              <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic', marginBottom: 24}}>
+                {"I was you. Six alarms. Snoozed every one. I needed something that wouldn't let me off the hook — so I built it.\n\nNow I wake up knowing I already won.\n\nYou can too."}
+              </Text>
+              <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, fontStyle: 'italic', textAlign: 'right'}}>
+                — Syreese
               </Text>
             </Surface>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
@@ -420,7 +457,6 @@ export default function OnboardingScreen() {
         };
         return (
           <View style={{flex: 1, paddingHorizontal: 24, justifyContent: 'space-between', paddingTop: 16, paddingBottom: 40}}>
-            <ProgressBar progress={q1Progress} style={{height: 4, borderRadius: 2}} />
             <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
               <Text variant="headlineSmall" style={{fontWeight: '700', textAlign: 'center', marginBottom: 48}}>
                 How often do you hit snooze?
@@ -457,6 +493,7 @@ export default function OnboardingScreen() {
                 Done
               </Button>
             </View>
+            <ProgressBar progress={q1Progress} style={{height: 4, borderRadius: 2}} />
           </View>
         );
       }
@@ -482,11 +519,17 @@ export default function OnboardingScreen() {
             <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
               How fit are you right now? Be real.
             </Text>
-            {Q2_OPTIONS.map((opt, i) => (
+            {Q2_CARDS.map((card, i) => (
               <Animated.View key={i} style={{opacity: q2Cards[i], transform: [{translateY: q2Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
                 <TouchableRipple onPress={() => { setQ2(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
                   <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                    <Text variant="bodyLarge">{opt}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
+                      <Text style={{fontSize: 40}}>{card.emoji}</Text>
+                      <View style={{flex: 1}}>
+                        <Text variant="titleMedium" style={{fontWeight: '700'}}>{card.label}</Text>
+                        <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>{card.sub}</Text>
+                      </View>
+                    </View>
                   </Surface>
                 </TouchableRipple>
               </Animated.View>
@@ -500,11 +543,17 @@ export default function OnboardingScreen() {
             <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 20}}>
               Why did you really download this?
             </Text>
-            {Q3_OPTIONS.map((opt, i) => (
+            {Q3_CARDS.map((card, i) => (
               <Animated.View key={i} style={{opacity: q3Cards[i], transform: [{translateY: q3Cards[i].interpolate({inputRange: [0, 1], outputRange: [20, 0]})}]}}>
                 <TouchableRipple onPress={() => { setQ3(i); next(); }} borderless style={{borderRadius: 14, marginBottom: 10}}>
                   <Surface elevation={1} style={{borderRadius: 14, padding: 18}}>
-                    <Text variant="bodyLarge">{opt}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
+                      <Text style={{fontSize: 40}}>{card.emoji}</Text>
+                      <View style={{flex: 1}}>
+                        <Text variant="titleMedium" style={{fontWeight: '700'}}>{card.label}</Text>
+                        <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>{card.sub}</Text>
+                      </View>
+                    </View>
                   </Surface>
                 </TouchableRipple>
               </Animated.View>
@@ -516,7 +565,7 @@ export default function OnboardingScreen() {
         const bucket = sliderBucket(sliderVal);
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 32, justifyContent: 'center'}}>
-            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 48}}>
+            <Text variant="headlineSmall" style={{fontWeight: '700', lineHeight: 30, marginBottom: 48, textAlign: 'center'}}>
               How many push-ups can you actually do? No ego.
             </Text>
             <Text style={{fontSize: 96, fontWeight: '200', textAlign: 'center', color: theme.colors.primary, letterSpacing: -4, lineHeight: 104}}>
@@ -600,33 +649,40 @@ export default function OnboardingScreen() {
           {label: 'Goal', value: Q3_OPTIONS[Math.max(0, q3)]},
         ];
         return (
-          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 64, justifyContent: 'center'}}>
-            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 48}}>
+          <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 64, justifyContent: 'center', alignItems: 'center'}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 48, alignSelf: 'flex-start'}}>
               Building your plan…
             </Text>
             {statRows.map((row, i) => (
               analyzeLines > i ? (
-                <View key={i} style={{marginBottom: 28}}>
+                <View key={i} style={{marginBottom: 28, width: '100%', alignItems: 'center'}}>
                   <Text variant="labelSmall" style={{
                     color: theme.colors.onSurfaceVariant,
                     textTransform: 'uppercase',
                     letterSpacing: 0.8,
                     marginBottom: 8,
+                    alignSelf: 'flex-start',
                   }}>
                     {row.label}
                   </Text>
-                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%'}}>
                     <View style={{
-                      width: 100, height: 8,
+                      width: '60%', height: 8,
                       backgroundColor: theme.colors.surfaceVariant,
                       borderRadius: 4, overflow: 'hidden',
                     }}>
                       <Animated.View style={{
                         height: '100%',
-                        backgroundColor: theme.colors.primary,
                         borderRadius: 4,
                         width: barAnims[i].interpolate({inputRange: [0, 1], outputRange: ['0%', '100%']}),
-                      }} />
+                      }}>
+                        <LinearGradient
+                          colors={['#FF6B00', '#FF2D00']}
+                          start={{x: 0, y: 0}}
+                          end={{x: 1, y: 0}}
+                          style={{width: '100%', height: '100%', borderRadius: 4}}
+                        />
+                      </Animated.View>
                     </View>
                     <Text variant="bodySmall" style={{color: theme.colors.onSurface, flex: 1}} numberOfLines={2}>
                       {row.value}
@@ -636,19 +692,27 @@ export default function OnboardingScreen() {
               ) : null
             ))}
             {analyzeLines >= 3 && personaCharCount > 0 && (
-              <Text variant="titleLarge" style={{
+              <Text variant="headlineMedium" style={{
                 fontWeight: '800',
                 color: theme.colors.primary,
                 marginTop: 28,
                 letterSpacing: 0.5,
+                alignSelf: 'flex-start',
               }}>
                 {personaTitle.slice(0, personaCharCount)}
               </Text>
             )}
             {analyzeComplete && (
-              <Button mode="contained" onPress={next} style={{marginTop: 32}} contentStyle={{paddingVertical: 8}}>
-                View Your Type →
-              </Button>
+              <Animated.View style={{
+                marginTop: 32,
+                opacity: viewTypeAnim,
+                transform: [{scale: viewTypeAnim.interpolate({inputRange: [0, 1], outputRange: [0.85, 1]})}],
+                alignSelf: 'flex-start',
+              }}>
+                <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
+                  View Your Type →
+                </Button>
+              </Animated.View>
             )}
           </View>
         );
@@ -656,19 +720,36 @@ export default function OnboardingScreen() {
 
       case 'persona': {
         const p = PERSONA_DATA[persona];
+        const emoji = p.title.split(' ')[0];
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
-            <Surface elevation={2} style={{
-              borderRadius: 20, padding: 28,
-              borderWidth: 2, borderColor: theme.colors.primary,
+            <Animated.View style={{
+              opacity: personaCardAnim,
+              transform: [{scale: personaCardAnim.interpolate({inputRange: [0, 1], outputRange: [0.92, 1]})}],
               marginBottom: 32,
+              borderRadius: 20,
+              overflow: 'hidden',
             }}>
-              <Text variant="labelLarge" style={{color: theme.colors.primary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8}}>
-                {name ? `${name}'s type` : 'Your type'}
-              </Text>
-              <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 16}}>{p.title}</Text>
-              <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26}}>{p.body}</Text>
-            </Surface>
+              <Surface elevation={2} style={{
+                borderRadius: 20,
+              }}>
+                <LinearGradient
+                  colors={['#FF6B00', '#FF2D00']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{height: 80, justifyContent: 'center', alignItems: 'center'}}
+                >
+                  <Text style={{fontSize: 48, lineHeight: 56}}>{emoji}</Text>
+                </LinearGradient>
+                <View style={{padding: 28}}>
+                  <Text variant="labelLarge" style={{color: theme.colors.primary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8}}>
+                    {name ? `${name}'s type` : 'Your type'}
+                  </Text>
+                  <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 16}}>{p.title}</Text>
+                  <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26}}>{p.body}</Text>
+                </View>
+              </Surface>
+            </Animated.View>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               That's me →
             </Button>
@@ -679,27 +760,37 @@ export default function OnboardingScreen() {
       case 'outcome':
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
-            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 20}}>
-              In 30 days, you'll be a different person.
+            <Text variant="displaySmall" style={{fontWeight: '800', marginBottom: 20}}>
+              In 30 days,{'\n'}you'll be different.
             </Text>
             <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20}}>
               Push-ups per week
             </Text>
-            <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 12, height: 160, marginBottom: 24}}>
-              {CHART_HEIGHTS.map((h, i) => (
-                <View key={i} style={{flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8}}>
-                  <Surface elevation={0} style={{
-                    width: '100%',
-                    height: h * 140,
-                    backgroundColor: theme.colors.primaryContainer,
-                    borderRadius: 6,
-                    overflow: 'hidden',
-                  }}>
-                    <View style={{flex: 1, backgroundColor: theme.colors.primary, opacity: 0.85}} />
-                  </Surface>
-                  <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant}}>Wk {i + 1}</Text>
-                </View>
-              ))}
+            <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 12, height: 200, marginBottom: 32}}>
+              {CHART_HEIGHTS.map((h, i) => {
+                const projectedReps = Math.round(recommendedReps * 7 * h);
+                return (
+                  <View key={i} style={{flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8}}>
+                    <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, fontSize: 11, fontWeight: '600'}}>
+                      ~{projectedReps}
+                    </Text>
+                    <Animated.View style={{
+                      width: '100%',
+                      height: chartBarAnims[i],
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                    }}>
+                      <LinearGradient
+                        colors={['#FF6B00', '#FF2D00']}
+                        start={{x: 0, y: 1}}
+                        end={{x: 0, y: 0}}
+                        style={{width: '100%', height: '100%', opacity: 0.9}}
+                      />
+                    </Animated.View>
+                    <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant}}>Wk {i + 1}</Text>
+                  </View>
+                );
+              })}
             </View>
             <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 22, marginBottom: 32}}>
               People who hit 7 days don't quit. Day 1 is the hardest. After that, it's just who you are.
@@ -714,17 +805,36 @@ export default function OnboardingScreen() {
         const goalLabel = Q3_OPTIONS[Math.max(0, q3)] ?? 'Get better';
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
-            <Text variant="headlineMedium" style={{fontWeight: '800', marginBottom: 20}}>
-              {name ? `Here's your plan, ${name}.` : "Here's your plan."}
-            </Text>
-            <Surface elevation={1} style={{borderRadius: 20, padding: 24, marginBottom: 24, gap: 20}}>
+            <LinearGradient
+              colors={['#FF6B00', '#FF2D00']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0}}
+              style={{borderRadius: 20, padding: 20, marginBottom: -20, zIndex: 1}}
+            >
+              <Text variant="labelLarge" style={{color: '#FFFFFF', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, textAlign: 'center'}}>
+                Your Plan Is Ready
+              </Text>
+              {name && (
+                <Text style={{color: '#FFFFFF', fontSize: 14, marginTop: 4, textAlign: 'center', fontStyle: 'italic'}}>
+                  {name}
+                </Text>
+              )}
+            </LinearGradient>
+            <Surface elevation={1} style={{borderRadius: 20, paddingTop: 44, paddingHorizontal: 24, paddingBottom: 24, marginBottom: 24, gap: 20}}>
               {([
                 ['⏰', 'Wake time', wakeTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})],
                 ['💪', 'Starting reps', `${recommendedReps} push-ups`],
                 ['🎯', 'Goal', goalLabel],
               ] as const).map(([icon, label, value]) => (
                 <View key={label} style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
-                  <Text style={{fontSize: 28}}>{icon}</Text>
+                  <View style={{
+                    width: 48, height: 48,
+                    borderRadius: 24,
+                    backgroundColor: theme.colors.primaryContainer,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Text style={{fontSize: 24}}>{icon}</Text>
+                  </View>
                   <View style={{flex: 1}}>
                     <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5}}>
                       {label}
@@ -735,7 +845,7 @@ export default function OnboardingScreen() {
               ))}
             </Surface>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, textAlign: 'center', marginBottom: 32}}>
-              In 7 days, this won't feel like a choice.{'\n'}It'll feel like who you are.
+              This is exactly what you need.{'\n'}Start tomorrow.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Set Your First Alarm →
@@ -790,7 +900,12 @@ export default function OnboardingScreen() {
         );
 
       case 'daily-goal': {
-        const GOAL_PRESETS = [25, 50, 100, 200];
+        const GOAL_TIERS = [
+          {value: 25, emoji: '🌱', tier: 'Warm-Up', desc: 'Build the habit first'},
+          {value: 50, emoji: '💪', tier: 'Committed', desc: 'The recommended start'},
+          {value: 100, emoji: '🔥', tier: 'Serious', desc: 'You mean business'},
+          {value: 200, emoji: '⚡', tier: 'Elite', desc: 'Beast territory'},
+        ];
         const selectedGoal = parseInt(dailyGoalInput, 10);
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
@@ -800,24 +915,33 @@ export default function OnboardingScreen() {
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
               How many reps per day?
             </Text>
-            <View style={{flexDirection: 'row', gap: 10, marginBottom: 20}}>
-              {GOAL_PRESETS.map(n => (
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28}}>
+              {GOAL_TIERS.map(({value, emoji, tier, desc}) => (
                 <TouchableRipple
-                  key={n}
-                  onPress={() => setDailyGoalInput(String(n))}
+                  key={value}
+                  onPress={() => setDailyGoalInput(String(value))}
                   borderless
-                  style={{flex: 1, borderRadius: 14}}>
+                  style={{flex: 1, minWidth: '47%', borderRadius: 16}}>
                   <Surface
                     elevation={0}
                     style={{
-                      borderRadius: 14, padding: 16, alignItems: 'center',
-                      backgroundColor: selectedGoal === n ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                      borderRadius: 16, padding: 16, alignItems: 'center',
+                      backgroundColor: selectedGoal === value ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                      borderWidth: selectedGoal === value ? 2 : 0,
+                      borderColor: theme.colors.primary,
                     }}>
+                    <Text style={{fontSize: 32, marginBottom: 8}}>{emoji}</Text>
                     <Text style={{
-                      fontSize: 22, fontWeight: '800',
-                      color: selectedGoal === n ? theme.colors.primary : theme.colors.onSurface,
-                    }}>{n}</Text>
-                    <Text style={{fontSize: 11, color: theme.colors.onSurfaceVariant, marginTop: 2}}>reps</Text>
+                      fontSize: 18, fontWeight: '800',
+                      color: selectedGoal === value ? theme.colors.primary : theme.colors.onSurface,
+                    }}>{value}</Text>
+                    <Text style={{fontSize: 10, color: theme.colors.onSurfaceVariant, marginTop: 2}}>reps</Text>
+                    <Text style={{fontSize: 11, fontWeight: '700', color: theme.colors.onSurface, marginTop: 8, textAlign: 'center'}}>
+                      {tier}
+                    </Text>
+                    <Text style={{fontSize: 9, color: theme.colors.onSurfaceVariant, marginTop: 4, textAlign: 'center'}}>
+                      {desc}
+                    </Text>
                   </Surface>
                 </TouchableRipple>
               ))}
@@ -955,50 +1079,81 @@ export default function OnboardingScreen() {
           Vibration.vibrate([0, 60, 40, 120]);
           setCommitSigned(true);
           commitSealAnim.setValue(0);
-          Animated.spring(commitSealAnim, {toValue: 1, useNativeDriver: true, tension: 55, friction: 6}).start();
+          Animated.spring(commitSealAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 55,
+            friction: 6,
+          }).start();
           setTimeout(() => { settings.update({grindingFor: grindingFor.trim()}); next(); }, 900);
         };
 
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Surface elevation={1} style={{
-              borderRadius: 16, padding: 24, marginBottom: 20,
-              borderWidth: 1, borderColor: theme.colors.outlineVariant,
+              borderRadius: 16,
+              marginBottom: 20,
+              overflow: 'hidden',
             }}>
-              <Text variant="labelLarge" style={{
-                color: theme.colors.primary, letterSpacing: 2,
-                textTransform: 'uppercase', marginBottom: 20,
-              }}>
-                Morning Contract
-              </Text>
-
-              <Text variant="bodyLarge" style={{lineHeight: 30, marginBottom: 16}}>
-                {"I'll wake up at "}
-                <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{timeStr}</Text>
-                {' and do '}
-                <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{recommendedReps} push-ups</Text>
-                {'. My reason:'}
-              </Text>
-
-              <TextInput
-                mode="outlined"
-                value={grindingFor}
-                onChangeText={setGrindingFor}
-                placeholder="Write your reason here…"
-                multiline
-                numberOfLines={3}
-                maxLength={120}
-                editable={!commitSigned}
-                style={{marginBottom: 24}}
-              />
-
-              <View style={{borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant, paddingTop: 14}}>
-                <Text style={{
-                  fontFamily: 'serif', fontStyle: 'italic',
-                  fontSize: 22, color: theme.colors.onSurface, textAlign: 'right',
-                }}>
-                  {'Signed: '}{name || '—'}
+              <LinearGradient
+                colors={['#FF6B00', '#FF2D00']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={{height: 64, justifyContent: 'center', alignItems: 'center'}}
+              >
+                <Text style={{color: '#FFFFFF', fontWeight: '900', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase'}}>
+                  Morning Contract
                 </Text>
+              </LinearGradient>
+
+              <View style={{padding: 24}}>
+                <Text variant="bodyLarge" style={{lineHeight: 30, marginBottom: 24}}>
+                  {"I, "}
+                  <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{name || 'I'}</Text>
+                  {", will rise at "}
+                  <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{timeStr}</Text>
+                  {" and do "}
+                  <Text style={{color: theme.colors.primary, fontWeight: '700'}}>{recommendedReps}</Text>
+                  {" push-ups."}
+                </Text>
+
+                <Text variant="labelSmall" style={{
+                  color: theme.colors.onSurfaceVariant,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  marginBottom: 8,
+                  fontWeight: '700',
+                }}>
+                  My Reason
+                </Text>
+
+                <TextInput
+                  mode="flat"
+                  value={grindingFor}
+                  onChangeText={setGrindingFor}
+                  placeholder="Write your reason here…"
+                  multiline
+                  numberOfLines={2}
+                  maxLength={120}
+                  editable={!commitSigned}
+                  underlineColor={theme.colors.primary}
+                  activeUnderlineColor={theme.colors.primary}
+                  style={{marginBottom: 24}}
+                />
+
+                <View style={{borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant, paddingTop: 16}}>
+                  <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <Text style={{fontSize: 12, fontWeight: '600', color: theme.colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5}}>
+                      Signed
+                    </Text>
+                    <Text style={{
+                      fontFamily: 'serif', fontStyle: 'italic',
+                      fontSize: 26, color: theme.colors.onSurface,
+                    }}>
+                      {name || '—'}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </Surface>
 
@@ -1006,15 +1161,24 @@ export default function OnboardingScreen() {
               <Animated.View style={{
                 alignSelf: 'center', marginBottom: 20,
                 opacity: commitSealAnim,
-                transform: [{scale: commitSealAnim.interpolate({inputRange: [0, 1], outputRange: [0.2, 1]})}],
+                transform: [{
+                  scale: commitSealAnim.interpolate({inputRange: [0, 1], outputRange: [0.2, 1]})
+                }, {
+                  rotate: commitSealAnim.interpolate({inputRange: [0, 1], outputRange: ['-30deg', '0deg']})
+                }],
               }}>
                 <View style={{
-                  width: 80, height: 80, borderRadius: 40,
+                  width: 96, height: 96, borderRadius: 48,
                   backgroundColor: theme.colors.primaryContainer,
                   borderWidth: 3, borderColor: theme.colors.primary,
                   justifyContent: 'center', alignItems: 'center',
+                  shadowColor: theme.colors.primary,
+                  shadowOffset: {width: 0, height: 4},
+                  shadowOpacity: 0.4,
+                  shadowRadius: 20,
+                  elevation: 8,
                 }}>
-                  <Text style={{fontSize: 38, lineHeight: 46}}>✓</Text>
+                  <Text style={{fontSize: 48, color: theme.colors.primary}}>✓</Text>
                 </View>
               </Animated.View>
             )}
@@ -1084,15 +1248,46 @@ export default function OnboardingScreen() {
       case 'streak-reminder':
         return (
           <View style={{flex: 1, paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center'}}>
-            <Text style={{fontSize: 13, fontWeight: '700', color: theme.colors.primary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12}}>
+            <View style={{alignItems: 'center', marginBottom: 40}}>
+              <View style={{
+                width: 100, height: 100, borderRadius: 50,
+                backgroundColor: theme.colors.primaryContainer,
+                alignItems: 'center', justifyContent: 'center',
+                shadowColor: theme.colors.primary,
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+                elevation: 6,
+              }}>
+                <Text style={{fontSize: 64}}>🛡️</Text>
+              </View>
+            </View>
+
+            <Text style={{fontSize: 13, fontWeight: '700', color: theme.colors.primary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, textAlign: 'center'}}>
               Protect your streak
             </Text>
-            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 12}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 12, textAlign: 'center'}}>
               We'll remind you{'\n'}before midnight.
             </Text>
-            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 36}}>
-              Haven't logged reps yet? We'll ping you so your streak survives.
-            </Text>
+
+            <Surface elevation={0} style={{
+              borderRadius: 12,
+              padding: 16,
+              backgroundColor: theme.colors.surfaceVariant,
+              marginBottom: 28,
+            }}>
+              <View style={{flexDirection: 'row', gap: 12, marginBottom: 12}}>
+                <Text style={{fontSize: 24}}>🔥</Text>
+                <View style={{flex: 1}}>
+                  <Text variant="labelMedium" style={{fontWeight: '700', marginBottom: 4}}>
+                    PushRise
+                  </Text>
+                  <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, lineHeight: 18}}>
+                    Streak in danger — log your reps now!
+                  </Text>
+                </View>
+              </View>
+            </Surface>
 
             <TouchableRipple onPress={() => setShowReminderPicker(true)} style={{alignItems: 'center', paddingVertical: 12, marginBottom: 4}}>
               <View style={{alignItems: 'center'}}>
