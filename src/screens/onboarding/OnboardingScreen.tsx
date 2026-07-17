@@ -42,7 +42,7 @@ const Q2_CARDS = [
 const Q3_OPTIONS = ['I just need to wake up on time', 'I want to get stronger', 'I need a complete reset — both'];
 const Q3_CARDS = [
   {emoji: '⏰', label: 'Just the wake-ups', sub: Q3_OPTIONS[0]},
-  {emoji: '💪', label: 'Get stronger', sub: Q3_OPTIONS[1]},
+  {emoji: '💪🏽', label: 'Get stronger', sub: Q3_OPTIONS[1]},
   {emoji: '🔥', label: 'Full reset', sub: Q3_OPTIONS[2]},
 ];
 const Q4_OPTIONS = ['5 or fewer', 'Around 10', '15–20', 'More than 20'];
@@ -312,6 +312,7 @@ export default function OnboardingScreen() {
   };
 
   const handleSnooze = () => {
+    Vibration.vibrate(50);
     const newCount = snoozeCountRef.current + 1;
     snoozeCountRef.current = newCount;
     setSnoozeCount(newCount);
@@ -902,7 +903,7 @@ export default function OnboardingScreen() {
       case 'daily-goal': {
         const GOAL_TIERS = [
           {value: 25, emoji: '🌱', tier: 'Warm-Up', desc: 'Build the habit first'},
-          {value: 50, emoji: '💪', tier: 'Committed', desc: 'The recommended start'},
+          {value: 50, emoji: '💪🏽', tier: 'Committed', desc: 'The recommended start'},
           {value: 100, emoji: '🔥', tier: 'Serious', desc: 'You mean business'},
           {value: 200, emoji: '⚡', tier: 'Elite', desc: 'Beast territory'},
         ];
@@ -979,7 +980,7 @@ export default function OnboardingScreen() {
         return (
           <View style={{paddingHorizontal: 24, paddingTop: 32}}>
             <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 28}}>
-              Pick your reward
+              Create your first reward.
             </Text>
 
             {/* Hero emoji */}
@@ -1022,7 +1023,7 @@ export default function OnboardingScreen() {
             {/* Name input */}
             <TextInput
               mode="outlined"
-              label="Reward name (e.g. TV Time, New Sneakers)"
+              label="New shoes, TV Time, etc"
               value={rewardTitle}
               onChangeText={setRewardTitle}
               maxLength={40}

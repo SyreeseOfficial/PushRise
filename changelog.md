@@ -6,6 +6,27 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-16 — Onboarding Micro-Polish: Haptics & Emoji Consistency
+
+### Haptic Feedback
+- **Snooze button:** Added `Vibration.vibrate(50)` to `handleSnooze` in OnboardingScreen. Single short vibration on each snooze tap for tactile feedback.
+- Used native `Vibration` API (already imported); no new dependencies.
+
+### Emoji Skin Tone Consistency
+- **Q3 "Why did you really download this?" screen:** Updated "Get stronger" card emoji from `💪` to `💪🏽` (medium skin tone) to match Q2 "Fitness level" card
+- **Daily goal screen:** Updated 50-rep "Committed" tier emoji from `💪` to `💪🏽` to match theme
+- All bicep emojis now use consistent medium skin tone across onboarding flow
+
+### Reward Creation Screen Copy
+- Header: "Pick your reward" → "Create your first reward."
+- Placeholder text: "Reward name (e.g. TV Time, New Sneakers)" → "New shoes, TV Time, etc"
+- Tone: more directional, friendlier placeholder
+
+### Status
+All MVP screens polished. Ready for Play Store submission.
+
+---
+
 ## 2026-07-15 — UI Polish: Nav Bar, Micro-interactions, Onboarding, Alarm UX
 
 ### Navigation Bar
