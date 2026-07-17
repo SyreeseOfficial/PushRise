@@ -13,7 +13,7 @@ import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
-import {useSubscriptionStore, isTrialExpired} from '../../store/subscriptionStore';
+import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
@@ -137,8 +137,8 @@ export default function AlarmFiringScreen() {
     vibrateOnAlarm, muteAudioDuringPushups,
     hapticOnRep, keepScreenOn, preferFrontCamera,
   } = useSettingsStore();
-  const {trialStartedAt, isSubscribed} = useSubscriptionStore();
-  const isLocked = !isSubscribed && isTrialExpired(trialStartedAt);
+  const {isSubscribed} = useSubscriptionStore();
+  const isLocked = !isSubscribed;
   const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');

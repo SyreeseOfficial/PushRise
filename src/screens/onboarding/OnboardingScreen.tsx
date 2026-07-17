@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform} from 'react-native';
+import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform, Alert} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput,
   TouchableRipple, useTheme, ProgressBar,
@@ -7,6 +7,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import LinearGradient from 'react-native-linear-gradient';
+import Purchases from 'react-native-purchases';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useBankStore} from '../../store/bankStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
@@ -19,12 +20,12 @@ const STEPS = [
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
   'create-alarm',
-  'daily-goal', 'create-reward', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall', 'free-trial',
+  'daily-goal', 'create-reward', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall',
 ] as const;
 
 type Step = typeof STEPS[number];
 
-const HIDE_BACK = new Set<Step>(['welcome', 'analyzing', 'persona', 'notif-perm', 'paywall', 'free-trial']);
+const HIDE_BACK = new Set<Step>(['welcome', 'analyzing', 'persona', 'notif-perm', 'paywall']);
 const PHASES = ['About You', 'Your Plan', 'Launch'] as const;
 
 const Q1_OPTIONS = [
@@ -39,11 +40,11 @@ const Q2_CARDS = [
   {emoji: '🏃', label: 'Occasionally moving', sub: Q2_OPTIONS[1]},
   {emoji: '💪🏽', label: 'Pretty consistent', sub: Q2_OPTIONS[2]},
 ];
-const Q3_OPTIONS = ['I just need to wake up on time', 'I want to get stronger', 'I need a complete reset — both'];
+const Q3_OPTIONS = ['I just need to wake up on time', 'I want to get stronger', 'I need a complete reset, both'];
 const Q3_CARDS = [
   {emoji: '⏰', label: 'My mornings are a mess', sub: Q3_OPTIONS[0]},
   {emoji: '💪🏽', label: 'I need to get my body back', sub: Q3_OPTIONS[1]},
-  {emoji: '🔥', label: 'Full reset — I\'m done coasting', sub: Q3_OPTIONS[2]},
+  {emoji: '🔥', label: 'Full reset. I\'m done coasting', sub: Q3_OPTIONS[2]},
 ];
 const Q4_OPTIONS = ['5 or fewer', 'Around 10', '15–20', 'More than 20'];
 const Q4_REPS = [5, 10, 15, 20];
@@ -68,15 +69,15 @@ function getPersona(q1: number, q2: number): 'sleeper' | 'inconsistent' | 'optim
 const PERSONA_DATA = {
   sleeper: {
     title: '😴 The Sleeper',
-    body: 'You\'ve been telling yourself "tomorrow" for months. Tomorrow has become never. The gap between who you are and who you could be is growing — and you feel it every morning. PushRise was built exactly for you.',
+    body: 'You\'ve been saying "tomorrow" for months. Tomorrow never came. You feel the gap. PushRise was built for you.',
   },
   inconsistent: {
     title: '⚡ The Restarter',
-    body: 'You start strong. Then life happens, you miss a day, and the streak\'s gone. You\'re not lazy — you just haven\'t had something with real stakes. Now you do.',
+    body: 'You start strong. Then life happens, you miss a day, and it\'s over. You\'re not lazy. You just need real stakes. Now you do.',
   },
   optimizer: {
     title: '🎯 The Optimizer',
-    body: 'You\'re already disciplined — but you know there\'s another level. You don\'t want good mornings. You want great ones, every single day, without exception. PushRise is the system.',
+    body: 'You\'re already disciplined, but you know there\'s another level. You don\'t want good mornings. You want great ones, every single day. PushRise is the system.',
   },
 };
 
@@ -148,6 +149,12 @@ export default function OnboardingScreen() {
   const [grindingFor, setGrindingFor] = useState('');
   const [commitSigned, setCommitSigned] = useState(false);
   const commitSealAnim = useRef(new Animated.Value(0)).current;
+
+  const [offerings, setOfferings] = useState<any>(null);
+  const [selectedPkgType, setSelectedPkgType] = useState<'annual' | 'weekly' | 'lifetime'>('annual');
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+
   const viewTypeAnim = useRef(new Animated.Value(0)).current;
   const personaCardAnim = useRef(new Animated.Value(0)).current;
   const chartBarAnims = useRef(CHART_HEIGHTS.map(() => new Animated.Value(0))).current;
@@ -307,6 +314,7 @@ export default function OnboardingScreen() {
       volume: 1.0,
       sound: 'alarm.mp3',
     });
+    settings.update({userName: userName.trim()});
     startTrial();
     completeOnboarding();
   };
@@ -337,6 +345,29 @@ export default function OnboardingScreen() {
   const toggleRewardGoal = (i: number) =>
     setRewardGoals(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
 
+  useEffect(() => {
+    Purchases.getOfferings().then(setOfferings).catch(() => {});
+  }, []);
+
+  const handlePurchase = async () => {
+    const pkg = offerings?.current?.availablePackages?.find((p: any) => {
+      if (selectedPkgType === 'annual') return p.packageType === Purchases.PACKAGE_TYPE.ANNUAL;
+      if (selectedPkgType === 'weekly') return p.packageType === Purchases.PACKAGE_TYPE.WEEKLY;
+      return p.packageType === Purchases.PACKAGE_TYPE.LIFETIME;
+    });
+    if (!pkg || purchaseLoading) return;
+    setPurchaseLoading(true);
+    setPurchaseError(null);
+    try {
+      await Purchases.purchasePackage(pkg);
+      await handleComplete();
+    } catch (e: any) {
+      if (!e.userCancelled) setPurchaseError('Purchase failed. Please try again.');
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+
   // ─── Step renders ─────────────────────────────────────────────────────────────
 
   const renderContent = () => {
@@ -353,7 +384,7 @@ export default function OnboardingScreen() {
               You're tired of being{'\n'}the guy who could.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              Potential means nothing without execution. Every morning you snooze, the version of you that you want to be gets further away. That changes now.
+              Potential means nothing without action. Every snooze takes you further from who you want to be. That changes now.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               I'm done →
@@ -394,10 +425,10 @@ export default function OnboardingScreen() {
                 "
               </Text>
               <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 28, fontStyle: 'italic', marginBottom: 24}}>
-                {"I was you. Snoozed through every alarm, skipped every workout, told myself tomorrow. I knew exactly what I was capable of — and I was wasting it. So I built something that wouldn't let me lie to myself anymore. Now I wake up knowing I already won. You can too."}
+                {"I was you. Snoozed every alarm, skipped every workout, told myself tomorrow. I knew what I could do, and I was wasting it. So I built something to keep me honest. Now I wake up knowing I already won. You can too."}
               </Text>
               <Text variant="labelSmall" style={{color: theme.colors.onSurfaceVariant, fontStyle: 'italic', textAlign: 'right'}}>
-                — Syreese
+                Syreese
               </Text>
             </Surface>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
@@ -441,7 +472,7 @@ export default function OnboardingScreen() {
               Let's figure out{'\n'}why you keep stopping.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              Not judging — diagnosing. We need the truth to build {name ? `${name}'s` : 'your'} plan.
+              Not judging. Diagnosing. We need the truth to build {name ? `${name}'s` : 'your'} plan.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Tell the truth →
@@ -506,7 +537,7 @@ export default function OnboardingScreen() {
               {name ? `${name}, that's` : "That's"} the habit{'\n'}killing your mornings.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              Not laziness — an untrained reflex. Every morning you practiced hitting snooze, you trained yourself to quit when it's uncomfortable. We're going to undo that.
+              Not laziness. An untrained reflex. Every time you hit snooze, you trained yourself to quit. We're going to undo that.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Let's undo it →
@@ -794,7 +825,7 @@ export default function OnboardingScreen() {
               })}
             </View>
             <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, lineHeight: 22, marginBottom: 32}}>
-              You'll wake up before the alarm. You'll do the reps without negotiating with yourself. You'll feel it in how you carry yourself. Not because you forced it — because it's who you are now.
+              You'll wake up before the alarm. You'll do the reps without thinking twice. You'll feel it in how you carry yourself. Not because you forced it. Because it's who you are now.
             </Text>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               I want that →
@@ -1128,7 +1159,7 @@ export default function OnboardingScreen() {
                   marginBottom: 8,
                   fontWeight: '700',
                 }}>
-                  Why this matters — be specific
+                  Why this matters
                 </Text>
 
                 <TextInput
@@ -1154,7 +1185,7 @@ export default function OnboardingScreen() {
                       fontFamily: 'serif', fontStyle: 'italic',
                       fontSize: 26, color: theme.colors.onSurface,
                     }}>
-                      {name || '—'}
+                      {name || 'You'}
                     </Text>
                   </View>
                 </View>
@@ -1291,7 +1322,7 @@ export default function OnboardingScreen() {
                     PushRise
                   </Text>
                   <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, lineHeight: 18}}>
-                    Streak in danger — log your reps now!
+                    Streak in danger. Log your reps now!
                   </Text>
                 </View>
               </View>
@@ -1377,87 +1408,114 @@ export default function OnboardingScreen() {
           </View>
         );
 
-      case 'paywall':
-        return (
-          <View style={{paddingHorizontal: 24, paddingTop: 16}}>
-            <TouchableRipple onPress={next} borderless style={{alignSelf: 'flex-end', borderRadius: 20, padding: 8, marginBottom: 8}}>
-              <Text style={{fontSize: 22, color: theme.colors.onSurfaceVariant}}>✕</Text>
-            </TouchableRipple>
+      case 'paywall': {
+        const weeklyPkg = offerings?.current?.availablePackages?.find((p: any) => p.packageType === Purchases.PACKAGE_TYPE.WEEKLY);
+        const annualPkg = offerings?.current?.availablePackages?.find((p: any) => p.packageType === Purchases.PACKAGE_TYPE.ANNUAL);
+        const lifetimePkg = offerings?.current?.availablePackages?.find((p: any) => p.packageType === Purchases.PACKAGE_TYPE.LIFETIME);
 
-            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 40, marginBottom: 10}}>
-              The last morning{'\n'}routine you'll ever need.
+        const PlanCard = ({type, title, price, subtext, badge}: any) => (
+          <TouchableRipple onPress={() => setSelectedPkgType(type)} borderless style={{borderRadius: 16, marginBottom: 12}}>
+            <Surface elevation={selectedPkgType === type ? 2 : 1} style={{
+              borderRadius: 16, padding: 20,
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              backgroundColor: selectedPkgType === type ? theme.colors.primary : theme.colors.surface,
+              borderColor: selectedPkgType === type ? theme.colors.primary : theme.colors.outlineVariant,
+              borderWidth: selectedPkgType === type ? 0 : 1,
+            }}>
+              <View>
+                {badge && (
+                  <Text variant="labelSmall" style={{color: selectedPkgType === type ? 'rgba(255,255,255,0.8)' : theme.colors.primary, letterSpacing: 0.5, marginBottom: 6, fontWeight: '600', textTransform: 'uppercase'}}>
+                    {badge}
+                  </Text>
+                )}
+                <Text variant="titleLarge" style={{color: selectedPkgType === type ? '#fff' : theme.colors.onSurface, fontWeight: '700'}}>
+                  {title}
+                </Text>
+                <Text variant="bodyMedium" style={{color: selectedPkgType === type ? 'rgba(255,255,255,0.8)' : theme.colors.onSurfaceVariant, marginTop: 2}}>
+                  {price}
+                </Text>
+                {subtext && (
+                  <Text variant="bodySmall" style={{color: selectedPkgType === type ? 'rgba(255,255,255,0.6)' : theme.colors.onSurfaceVariant, marginTop: 2}}>
+                    {subtext}
+                  </Text>
+                )}
+              </View>
+              <Text variant="headlineSmall" style={{color: selectedPkgType === type ? '#fff' : theme.colors.onSurfaceVariant}}>
+                →
+              </Text>
+            </Surface>
+          </TouchableRipple>
+        );
+
+        return (
+          <View style={{paddingHorizontal: 24, paddingTop: 24}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 40, marginBottom: 12}}>
+              Wake up a{'\n'}different person.
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 8}}>
-              7 days to prove it to yourself. No card required.
+              You've tried willpower. You've tried reminders.
             </Text>
             <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginBottom: 28}}>
-              You've tried motivation. You've tried alarms. None of it stuck because none of it had stakes. This does.
+              Nothing stuck because nothing had real stakes. PushRise makes showing up non-negotiable. Every morning you get up builds who you are.
             </Text>
 
-            <TouchableRipple onPress={handleComplete} borderless style={{borderRadius: 16, marginBottom: 12}}>
-              <Surface elevation={2} style={{
-                borderRadius: 16, padding: 20,
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                backgroundColor: theme.colors.primary,
-              }}>
-                <View>
-                  <Text variant="labelLarge" style={{color: 'rgba(255,255,255,0.7)', letterSpacing: 1, marginBottom: 4}}>
-                    MOST POPULAR
-                  </Text>
-                  <Text variant="titleLarge" style={{color: '#fff', fontWeight: '700'}}>Monthly</Text>
-                  <Text variant="bodyMedium" style={{color: 'rgba(255,255,255,0.8)', marginTop: 2}}>
-                    $2.99 / month
-                  </Text>
-                  <Text variant="bodySmall" style={{color: 'rgba(255,255,255,0.6)', marginTop: 2}}>
-                    Best way to start
-                  </Text>
-                </View>
-                <Text variant="headlineSmall" style={{color: '#fff'}}>→</Text>
-              </Surface>
-            </TouchableRipple>
+            <PlanCard
+              type="weekly"
+              title="Weekly"
+              price={weeklyPkg?.product.priceString || '$3.95 / week'}
+              subtext="Best for trying it out"
+            />
 
-            <TouchableRipple onPress={handleComplete} borderless style={{borderRadius: 16, marginBottom: 20}}>
-              <Surface elevation={1} style={{borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-                <View>
-                  <Text variant="titleLarge" style={{fontWeight: '700'}}>Lifetime</Text>
-                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
-                    $14.99 one-time
-                  </Text>
-                  <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 2}}>
-                    Never pay again
-                  </Text>
-                </View>
-                <Text variant="headlineSmall" style={{color: theme.colors.onSurfaceVariant}}>→</Text>
-              </Surface>
-            </TouchableRipple>
+            <PlanCard
+              type="annual"
+              title="Annual"
+              price={annualPkg?.product.priceString || '$19.95 / year'}
+              subtext="~$0.38/wk · Save 90%"
+              badge="BEST VALUE"
+            />
 
-            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20, marginBottom: 20}}>
-              No charge today. No charge until Day 8.{'\n'}Cancel before then and pay nothing.
+            <PlanCard
+              type="lifetime"
+              title="Lifetime"
+              price={lifetimePkg?.product.priceString || '$39.95'}
+              subtext="Own it forever"
+            />
+
+            {purchaseError && (
+              <Text variant="bodySmall" style={{color: theme.colors.error, marginBottom: 12}}>
+                {purchaseError}
+              </Text>
+            )}
+
+            <Button
+              mode="contained"
+              onPress={handlePurchase}
+              disabled={purchaseLoading || !offerings}
+              contentStyle={{paddingVertical: 10}}
+              style={{marginBottom: 12}}
+            >
+              {purchaseLoading ? '...' : 'Start My Free Trial →'}
+            </Button>
+
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20, marginBottom: 16}}>
+              7-day free trial. No charge today.{'\n'}Cancel anytime.
             </Text>
+
+            <Button
+              mode="text"
+              onPress={async () => {
+                try {
+                  await Purchases.restorePurchases();
+                  await handleComplete();
+                } catch {}
+              }}
+              contentStyle={{paddingVertical: 8}}
+            >
+              Restore purchases
+            </Button>
           </View>
         );
-
-      case 'free-trial':
-        return (
-          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
-            <Text variant="headlineLarge" style={{fontWeight: '800', marginBottom: 8}}>
-              7 days to change your mornings.
-            </Text>
-            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 32}}>
-              One week. If waking up before the alarm and knocking out push-ups doesn't feel different — cancel and pay nothing. But it will.
-            </Text>
-
-            <Button mode="contained" onPress={handleComplete} contentStyle={{paddingVertical: 10}} style={{marginBottom: 12}}>
-              Start My 7 Days →
-            </Button>
-            <Button mode="text" onPress={() => setStepIdx(s => s - 1)} style={{marginBottom: 8}}>
-              See pricing
-            </Button>
-            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20}}>
-              $2.99/mo after 7 days. Cancel anytime.
-            </Text>
-          </View>
-        );
+      }
 
       default:
         return null;

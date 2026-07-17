@@ -15,8 +15,7 @@ export default function PaywallScreen() {
   };
 
   const onDismiss = () => {
-    // ponytail: placeholder — navigate to Downsell1 once that screen exists
-    navigation.replace('Downsell1');
+    navigation.goBack();
   };
 
   return (

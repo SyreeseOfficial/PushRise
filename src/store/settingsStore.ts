@@ -15,6 +15,7 @@ export const SETTINGS_DEFAULTS = {
   preferFrontCamera: true,
   dailyGoal: 0,
   grindingFor: '',
+  userName: '',
   nudgeEnabled: true,
   nudgeHour: 21,
   nudgeMinute: 0,

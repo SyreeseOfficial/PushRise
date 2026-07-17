@@ -4,13 +4,14 @@ import {
   TouchableOpacity, ScrollView, Animated,
 } from 'react-native';
 import {Text, Button, TextInput, Snackbar, Icon, Divider, useTheme} from 'react-native-paper';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
 import {useFocusEffect} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useBankStore} from '../../store/bankStore';
 import {useSettingsStore} from '../../store/settingsStore';
-import {useSubscriptionStore, isTrialExpired} from '../../store/subscriptionStore';
+import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
@@ -86,9 +87,9 @@ function StatCard({value, label}: {value: string; label: string}) {
   );
 }
 
-function AvatarCard({totalReps, streak, freezeCount, equippedTitle, onPress}: {
+function AvatarCard({totalReps, streak, freezeCount, equippedTitle, userName, onPress}: {
   totalReps: number; streak: number; freezeCount: number;
-  equippedTitle: string | null; onPress: () => void;
+  equippedTitle: string | null; userName: string; onPress: () => void;
 }) {
   const theme = useTheme();
   const c = theme.colors;
@@ -125,16 +126,17 @@ function AvatarCard({totalReps, streak, freezeCount, equippedTitle, onPress}: {
       </View>
 
       <View style={{flex: 1}}>
+        {/* Name row */}
+        <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
+          {userName || 'Riser'}
+        </Text>
         {/* Title row with tap hint */}
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-          <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2}}>
+          <Text style={{fontSize: 12, color: c.onSurfaceVariant, fontWeight: '500'}}>
             {displayTitle}
           </Text>
           <Icon source="pencil-outline" size={13} color={c.onSurfaceVariant} />
         </View>
-        <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2, fontWeight: '500'}}>
-          {avatar.label}
-        </Text>
 
         {/* Level progress bar */}
         <View style={{marginTop: 10}}>
@@ -440,9 +442,10 @@ export default function ProgressScreen() {
     bossDefeatedWeek, defeatBoss,
     yesterdayHourlyReps, dailyHistory,
   } = useBankStore();
-  const {dailyGoal, grindingFor} = useSettingsStore();
-  const {trialStartedAt, isSubscribed} = useSubscriptionStore();
-  const isCameraLocked = !isSubscribed && isTrialExpired(trialStartedAt);
+  const {dailyGoal, grindingFor, userName} = useSettingsStore();
+  const {isSubscribed} = useSubscriptionStore();
+  const isCameraLocked = !isSubscribed;
+  const insets = useSafeAreaInsets();
 
   const [sheet, setSheet] = useState<Sheet>('closed');
   const [manualInput, setManualInput] = useState('');
@@ -569,6 +572,7 @@ export default function ProgressScreen() {
           streak={currentStreak}
           freezeCount={freezeCount}
           equippedTitle={equippedTitle}
+          userName={userName}
           onPress={() => setSheet('titles')}
         />
 
@@ -829,7 +833,7 @@ export default function ProgressScreen() {
 
                 <ScrollView
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{paddingHorizontal: 28, paddingBottom: 48}}>
+                  contentContainerStyle={{paddingHorizontal: 28, paddingBottom: 48 + insets.bottom}}>
                   {/* Auto option */}
                   <TouchableOpacity
                     onPress={() => { setEquippedTitle(null); closeSheet(); }}

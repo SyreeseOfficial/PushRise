@@ -17,7 +17,7 @@ import {scheduleNudge, cancelNudge} from '../../utils/notifee';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
-type DialogKey = 'theme' | 'defaultReps' | 'dailyGoal' | 'grindingFor' | 'about' | 'resetSettings' | 'resetAll' | null;
+type DialogKey = 'theme' | 'defaultReps' | 'dailyGoal' | 'grindingFor' | 'name' | 'about' | 'resetSettings' | 'resetAll' | null;
 
 const THEME_OPTIONS: {label: string; value: ThemeMode; icon: string}[] = [
   {label: 'Follow System', value: 'system', icon: 'theme-light-dark'},
@@ -41,6 +41,7 @@ export default function SettingsScreen() {
   const [tempReps, setTempReps] = useState('');
   const [tempGoal, setTempGoal] = useState('');
   const [tempGrinding, setTempGrinding] = useState('');
+  const [tempName, setTempName] = useState('');
   const [tempTheme, setTempTheme] = useState<ThemeMode>('system');
   const [showNudgePicker, setShowNudgePicker] = useState(false);
 
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
     if (key === 'defaultReps') setTempReps(String(settings.defaultReps));
     if (key === 'dailyGoal') setTempGoal(settings.dailyGoal > 0 ? String(settings.dailyGoal) : '');
     if (key === 'grindingFor') setTempGrinding(settings.grindingFor);
+    if (key === 'name') setTempName(settings.userName);
     if (key === 'theme') setTempTheme(mode);
     setDialog(key);
   };
@@ -56,6 +58,7 @@ export default function SettingsScreen() {
   const saveReps = () => { const n = parseInt(tempReps, 10); if (n >= 1) settings.update({defaultReps: n}); close(); };
   const saveGoal = () => { const n = parseInt(tempGoal, 10); settings.update({dailyGoal: n > 0 ? n : 0}); close(); };
   const saveGrinding = () => { settings.update({grindingFor: tempGrinding.trim()}); close(); };
+  const saveName = () => { settings.update({userName: tempName.trim()}); close(); };
   const saveTheme = () => { setMode(tempTheme); close(); };
   const handleResetSettings = () => { settings.reset(); close(); };
   const handleResetAll = async () => { settings.reset(); resetBank(); await resetAlarms(); close(); };
@@ -170,6 +173,17 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{paddingBottom: 48}} showsVerticalScrollIndicator={false}>
+
+        <SectionLabel label="Profile" />
+        <Card>
+          <TapRow
+            icon="account-outline"
+            title="Your name"
+            value={settings.userName || 'Not set'}
+            onPress={() => open('name')}
+            last
+          />
+        </Card>
 
         <SectionLabel label="Appearance" />
         <Card>
@@ -465,6 +479,24 @@ export default function SettingsScreen() {
           <Dialog.Actions>
             <Button onPress={close}>Cancel</Button>
             <Button onPress={saveGrinding}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={dialog === 'name'} onDismiss={close} style={{backgroundColor: c.surface}}>
+          <Dialog.Title>Your name</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              mode="outlined"
+              label="First name"
+              value={tempName}
+              onChangeText={setTempName}
+              maxLength={30}
+              autoFocus
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={close}>Cancel</Button>
+            <Button onPress={saveName}>Save</Button>
           </Dialog.Actions>
         </Dialog>
 

@@ -62,12 +62,12 @@ export default function App() {
   }, [nudgeEnabled, nudgeHour, nudgeMinute, todayReps]);
 
   useEffect(() => {
-    if (!trialStartedAt || isSubscribed) {
-      cancelTrialWarnings();
-    } else {
+    if (trialStartedAt) {
       scheduleTrialWarnings(trialStartedAt);
+    } else {
+      cancelTrialWarnings();
     }
-  }, [trialStartedAt, isSubscribed]);
+  }, [trialStartedAt]);
 
   useEffect(() => {
     initializePurchases();

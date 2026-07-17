@@ -15,8 +15,6 @@ import SettingsScreen from '../screens/settings/SettingsScreen';
 import PermissionsScreen from '../screens/settings/PermissionsScreen';
 import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import PaywallScreen from '../screens/paywall/PaywallScreen';
-import Downsell1Screen from '../screens/paywall/Downsell1Screen';
-import Downsell2Screen from '../screens/paywall/Downsell2Screen';
 import {useOnboardingStore} from '../store/onboardingStore';
 import {useSettingsStore} from '../store/settingsStore';
 import {scheduleNudge} from '../utils/notifee';
@@ -99,8 +97,6 @@ export default function RootNavigator() {
               component={SettingsScreen}
               options={{presentation: 'modal'}}
             />
-            <Stack.Screen name="Downsell1" component={Downsell1Screen} options={{headerShown: false}} />
-            <Stack.Screen name="Downsell2" component={Downsell2Screen} options={{headerShown: false}} />
           </>
         )}
       </Stack.Navigator>

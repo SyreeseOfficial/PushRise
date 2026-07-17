@@ -8,8 +8,6 @@ export type RootStackParamList = {
   BankCamera: undefined;
   Permissions: undefined;
   Paywall: undefined;
-  Downsell1: undefined;
-  Downsell2: undefined;
   Settings: undefined;
 };
 
