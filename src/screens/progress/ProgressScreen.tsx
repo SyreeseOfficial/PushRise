@@ -12,7 +12,6 @@ import {useFocusEffect} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useBankStore} from '../../store/bankStore';
 import {useSettingsStore} from '../../store/settingsStore';
-import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
@@ -457,8 +456,6 @@ export default function ProgressScreen() {
     yesterdayHourlyReps, dailyHistory,
   } = useBankStore();
   const {dailyGoal, grindingFor, userName} = useSettingsStore();
-  const {isSubscribed} = useSubscriptionStore();
-  const isCameraLocked = !isSubscribed;
   const insets = useSafeAreaInsets();
 
   const [sheet, setSheet] = useState<Sheet>('closed');
@@ -505,11 +502,6 @@ export default function ProgressScreen() {
   const handleIntroNext = () => { markIntroSeen(); setSheet('mode'); };
 
   const handleCamera = () => {
-    if (isCameraLocked) {
-      closeSheet();
-      setTimeout(() => navigation.navigate('Paywall'), 350);
-      return;
-    }
     closeSheet();
     setTimeout(() => navigation.navigate('BankCamera'), 350);
   };

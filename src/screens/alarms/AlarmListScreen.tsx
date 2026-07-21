@@ -3,7 +3,7 @@ import {Animated, PanResponder, Pressable, ScrollView, View, Vibration, Touchabl
 import {Switch, IconButton, Text, Icon, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useAlarmStore, Alarm} from '../../store/alarmStore';
 import {useBankStore} from '../../store/bankStore';
@@ -287,7 +287,9 @@ export default function AlarmListScreen() {
   const {totalReps} = useBankStore();
   const {isFirstLaunch, markFirstLaunchSeen} = useOnboardingStore();
   const theme = useTheme();
-  const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
+  // ponytail: 82 = tab bar bottom offset (12) + bar height (62) + gap (8)
+  const fabBottom = Math.max(insets.bottom, 8) + 82;
 
   // Toast
   const [toastMsg, setToastMsg] = useState('');
@@ -516,7 +518,7 @@ export default function AlarmListScreen() {
       <TouchableOpacity
         onPress={() => navigation.navigate('AddAlarm')}
         activeOpacity={0.85}
-        style={{position: 'absolute', bottom: tabBarHeight + 8, right: 24}}>
+        style={{position: 'absolute', bottom: fabBottom, right: 24}}>
         <LinearGradient
           colors={BRAND_GRADIENT.colors}
           start={BRAND_GRADIENT.start}
