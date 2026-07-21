@@ -4,7 +4,7 @@ import {
   View, Modal, KeyboardAvoidingView, Platform,
   TouchableOpacity, ScrollView, Animated,
 } from 'react-native';
-import {Text, Button, TextInput, Snackbar, Icon, Divider, useTheme} from 'react-native-paper';
+import {Text, Button, TextInput, Snackbar, Icon, IconButton, Divider, useTheme} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
@@ -156,14 +156,9 @@ function AvatarCard({totalReps, streak, freezeCount, equippedTitle, userName, on
               style={{height: 6, borderRadius: 100, width: `${Math.max(progress * 100, 4)}%`}}
             />
           </View>
-          {next && (
-            <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginTop: 4}}>
-              {(next - totalReps).toLocaleString()} reps to next level
-            </Text>
-          )}
           {nextRepTitle && (
-            <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginTop: 2}}>
-              🏷️ {nextTitleRepsNeeded.toLocaleString()} reps from {nextRepTitle.label}
+            <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginTop: 4}}>
+              🏷️ {nextTitleRepsNeeded.toLocaleString()} reps until {nextRepTitle.label}
             </Text>
           )}
         </View>
@@ -322,6 +317,13 @@ function ShareCardModal({visible, onClose, totalReps, streak, weekReps}: {
               <Text style={{fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '500'}}>DAY STREAK</Text>
             </View>
           </View>
+
+          <Text style={{textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: '600', letterSpacing: 0.2}}>
+            Think you can keep up? 👊
+          </Text>
+          <Text style={{textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.5, fontWeight: '500'}}>
+            PUSHRISE - IOS & ANDROID
+          </Text>
         </LinearGradient>
 
         {/* Instruction — outside the card so it's not in the screenshot */}
@@ -844,73 +846,6 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {sheet === 'titles' && (() => {
-            const unlocked = getUnlockedTitles(totalReps, currentStreak);
-            const autoTitle = getTitle(totalReps, currentStreak);
-            return (
-              <View style={[sheetBg, {padding: 0, paddingBottom: 0, maxHeight: '85%'}]}>
-                <View style={{paddingHorizontal: 28, paddingTop: 28}}>
-                  {handle}
-                  <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 4, letterSpacing: -0.3}}>
-                    Choose Your Title
-                  </Text>
-                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
-                    Tap any title you've earned to equip it.
-                  </Text>
-                </View>
-
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{paddingHorizontal: 28, paddingBottom: 48 + insets.bottom}}>
-                  {/* Auto option */}
-                  <TouchableOpacity
-                    onPress={() => { setEquippedTitle(null); closeSheet(); }}
-                    activeOpacity={0.7}
-                    style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12}}>
-                    <View style={{flex: 1}}>
-                      <Text style={{fontSize: 16, fontWeight: '700', color: !equippedTitle ? c.primary : c.onSurface}}>
-                        Auto
-                      </Text>
-                      <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
-                        Always shows your highest earned title ({autoTitle})
-                      </Text>
-                    </View>
-                    {!equippedTitle && <Icon source="check" size={18} color={c.primary} />}
-                  </TouchableOpacity>
-
-                  <Divider />
-
-                  {TITLES.map((title, i) => {
-                    const isUnlocked = unlocked.some(t => t.label === title.label);
-                    const isEquipped = equippedTitle === title.label;
-                    return (
-                      <React.Fragment key={title.label}>
-                        <TouchableOpacity
-                          onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); closeSheet(); } }}
-                          activeOpacity={isUnlocked ? 0.7 : 1}
-                          style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, opacity: isUnlocked ? 1 : 0.35}}>
-                          <View style={{flex: 1}}>
-                            <Text style={{fontSize: 16, fontWeight: '700', color: isEquipped ? c.primary : c.onSurface}}>
-                              {title.label}
-                            </Text>
-                            <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{title.unlock}</Text>
-                          </View>
-                          {isEquipped && <Icon source="check" size={18} color={c.primary} />}
-                          {!isEquipped && isUnlocked && <Icon source="check-outline" size={18} color={c.onSurfaceVariant} />}
-                          {!isUnlocked && <Icon source="lock-outline" size={16} color={c.onSurfaceVariant} />}
-                        </TouchableOpacity>
-                        {i < TITLES.length - 1 && <Divider />}
-                      </React.Fragment>
-                    );
-                  })}
-
-                  <Button mode="text" onPress={closeSheet} style={{marginTop: 8}}>
-                    Cancel
-                  </Button>
-                </ScrollView>
-              </View>
-            );
-          })()}
 
           {sheet === 'manual' && (
               <View style={sheetBg}>
@@ -942,6 +877,67 @@ export default function ProgressScreen() {
           )}
         </Animated.View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Title chooser — full screen */}
+      <Modal
+        visible={sheet === 'titles'}
+        animationType="slide"
+        onRequestClose={closeSheet}>
+        <View style={{flex: 1, backgroundColor: c.background, paddingTop: insets.top}}>
+          <View style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingTop: 8, paddingBottom: 4}}>
+            <IconButton icon="chevron-left" size={26} onPress={closeSheet} iconColor={c.onSurface} />
+            <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, letterSpacing: -0.3}}>
+              Choose Your Title
+            </Text>
+          </View>
+          <Text style={{fontSize: 13, color: c.onSurfaceVariant, paddingHorizontal: 28, marginBottom: 12}}>
+            Tap any title you've earned to equip it.
+          </Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{paddingHorizontal: 28, paddingBottom: 32 + insets.bottom}}>
+            <TouchableOpacity
+              onPress={() => { setEquippedTitle(null); closeSheet(); }}
+              activeOpacity={0.7}
+              style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12}}>
+              <View style={{flex: 1}}>
+                <Text style={{fontSize: 16, fontWeight: '700', color: !equippedTitle ? c.primary : c.onSurface}}>
+                  Auto
+                </Text>
+                <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
+                  Always shows your highest earned title ({getTitle(totalReps, currentStreak)})
+                </Text>
+              </View>
+              {!equippedTitle && <Icon source="check" size={18} color={c.primary} />}
+            </TouchableOpacity>
+            <Divider />
+            {TITLES.map((title, i) => {
+              const unlocked = getUnlockedTitles(totalReps, currentStreak);
+              const isUnlocked = unlocked.some(t => t.label === title.label);
+              const isEquipped = equippedTitle === title.label;
+              return (
+                <React.Fragment key={title.label}>
+                  <TouchableOpacity
+                    onPress={() => { if (isUnlocked) { setEquippedTitle(title.label); closeSheet(); } }}
+                    activeOpacity={isUnlocked ? 0.7 : 1}
+                    style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, opacity: isUnlocked ? 1 : 0.35}}>
+                    <View style={{flex: 1}}>
+                      <Text style={{fontSize: 16, fontWeight: '700', color: isEquipped ? c.primary : c.onSurface}}>
+                        {title.label}
+                      </Text>
+                      <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{title.unlock}</Text>
+                    </View>
+                    {isEquipped && <Icon source="check" size={18} color={c.primary} />}
+                    {!isEquipped && isUnlocked && <Icon source="check-outline" size={18} color={c.onSurfaceVariant} />}
+                    {!isUnlocked && <Icon source="lock-outline" size={16} color={c.onSurfaceVariant} />}
+                  </TouchableOpacity>
+                  {i < TITLES.length - 1 && <Divider />}
+                </React.Fragment>
+              );
+            })}
+          </ScrollView>
+        </View>
       </Modal>
 
       {/* Share card */}

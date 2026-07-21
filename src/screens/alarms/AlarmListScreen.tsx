@@ -419,7 +419,7 @@ export default function AlarmListScreen() {
             paddingHorizontal: 12, paddingVertical: 6,
             borderRadius: 100, gap: 4,
           }}>
-            <Text style={{fontSize: 16}}>🔥</Text>
+            <Text style={{fontSize: 16}}>💪🏽</Text>
             <AnimatedCounter
               value={totalReps}
               style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}

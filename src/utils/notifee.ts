@@ -6,7 +6,6 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 import type {TimestampTrigger} from '@notifee/react-native';
-import {Linking, Platform} from 'react-native';
 
 export const ALARM_CHANNEL_ID = 'pushrise-alarm';
 const NUDGE_CHANNEL_ID = 'pushrise-nudge';
@@ -33,12 +32,6 @@ export async function setupNotifee() {
 
 export async function requestNotificationPermission() {
   await notifee.requestPermission();
-  if (Platform.OS === 'android' && Platform.Version >= 34) {
-    const settings = await notifee.getNotificationSettings();
-    if (!settings.android.fullScreenIntent) {
-      Linking.openSettings();
-    }
-  }
 }
 
 function nextOccurrence(hour: number, minute: number, days: number[]): Date {
