@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState, useCallback} from 'react';
 import {View, StyleSheet, StatusBar, NativeModules, Vibration, Animated} from 'react-native';
 import {Button, Text} from 'react-native-paper';
+import Sound from 'react-native-sound';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import {useNavigation} from '@react-navigation/native';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
@@ -15,7 +16,7 @@ const c = DarkTheme.colors;
 
 export default function BankCameraScreen() {
   const navigation = useNavigation();
-  const {hapticOnRep, keepScreenOn, preferFrontCamera} = useSettingsStore();
+  const {hapticOnRep, keepScreenOn, preferFrontCamera, audioCueOnRep} = useSettingsStore();
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const {addReps} = useBankStore();
   const cameraRef = useRef<Camera>(null);
@@ -28,6 +29,14 @@ export default function BankCameraScreen() {
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
   const [debugAngle, setDebugAngle] = useState<number | null>(null);
+  const beepRef = useRef<Sound | null>(null);
+
+  useEffect(() => {
+    // ponytail: needs beep.mp3 in android/app/src/main/res/raw/
+    const beep = new Sound('beep.mp3', Sound.MAIN_BUNDLE, () => {});
+    beepRef.current = beep;
+    return () => beep.release();
+  }, []);
 
   useEffect(() => {
     if (keepScreenOn) {
@@ -56,6 +65,7 @@ export default function BankCameraScreen() {
             countRef.current += 1;
             setCount(countRef.current);
             if (hapticOnRep) Vibration.vibrate(40);
+            if (audioCueOnRep) { beepRef.current?.stop(); beepRef.current?.play(); }
             flashOpacity.setValue(0.55);
             Animated.timing(flashOpacity, {toValue: 0, duration: 220, useNativeDriver: true}).start();
           }
@@ -68,7 +78,7 @@ export default function BankCameraScreen() {
       }
     }, 200);
     return () => clearInterval(interval);
-  }, [hapticOnRep]);
+  }, [hapticOnRep, audioCueOnRep]);
 
   const done = useCallback(() => {
     if (countRef.current > 0) addReps(countRef.current);
@@ -107,7 +117,7 @@ export default function BankCameraScreen() {
           <Text variant="titleLarge" style={{color: '#fff', letterSpacing: 1, marginTop: -4}}>
             push-ups
           </Text>
-          {debugAngle !== null && (
+          {__DEV__ && debugAngle !== null && (
             <Text variant="labelSmall" style={{color: c.primary, opacity: 0.7, marginTop: 8}}>
               elbow: {debugAngle}°  phase: {phaseRef.current}
             </Text>

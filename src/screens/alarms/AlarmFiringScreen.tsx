@@ -22,13 +22,22 @@ const {PoseDetection} = NativeModules;
 Sound.setCategory('Alarm');
 
 function ManualCounter({
-  reps, onDone, onSkip, hapticOnRep,
-}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean}) {
+  reps, onDone, onSkip, hapticOnRep, audioCueOnRep,
+}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; audioCueOnRep: boolean}) {
   const {colors} = useTheme();
   const [count, setCount] = useState(0);
+  const beepRef = useRef<Sound | null>(null);
+
+  useEffect(() => {
+    // ponytail: needs beep.mp3 in android/app/src/main/res/raw/
+    const beep = new Sound('beep.mp3', Sound.MAIN_BUNDLE, () => {});
+    beepRef.current = beep;
+    return () => beep.release();
+  }, []);
 
   const tap = () => {
     if (hapticOnRep) Vibration.vibrate(40);
+    if (audioCueOnRep) { beepRef.current?.stop(); beepRef.current?.play(); }
     setCount(n => {
       const next = n + 1;
       if (next >= reps) onDone();
@@ -55,8 +64,8 @@ function ManualCounter({
 }
 
 function CameraCounter({
-  reps, onDone, onSkip, hapticOnRep, preferFrontCamera,
-}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; preferFrontCamera: boolean}) {
+  reps, onDone, onSkip, hapticOnRep, preferFrontCamera, audioCueOnRep,
+}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; preferFrontCamera: boolean; audioCueOnRep: boolean}) {
   const {colors} = useTheme();
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const cameraRef = useRef<Camera>(null);
@@ -67,6 +76,14 @@ function CameraCounter({
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
   const [debugAngle, setDebugAngle] = useState<number | null>(null);
+  const beepRef = useRef<Sound | null>(null);
+
+  useEffect(() => {
+    // ponytail: needs beep.mp3 in android/app/src/main/res/raw/
+    const beep = new Sound('beep.mp3', Sound.MAIN_BUNDLE, () => {});
+    beepRef.current = beep;
+    return () => beep.release();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -88,6 +105,7 @@ function CameraCounter({
             countRef.current += 1;
             setCount(countRef.current);
             if (hapticOnRep) Vibration.vibrate(40);
+            if (audioCueOnRep) { beepRef.current?.stop(); beepRef.current?.play(); }
             if (countRef.current >= reps) onDone();
           }
           phaseRef.current = newPhase;
@@ -99,7 +117,7 @@ function CameraCounter({
       }
     }, 200);
     return () => clearInterval(interval);
-  }, [reps, onDone, hapticOnRep]);
+  }, [reps, onDone, hapticOnRep, audioCueOnRep]);
 
   if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} hapticOnRep={hapticOnRep} />;
 
@@ -113,7 +131,7 @@ function CameraCounter({
         <Text variant="titleLarge" style={{color: colors.onSurface, marginTop: -8}}>
           / {reps} push-ups
         </Text>
-        {debugAngle !== null && (
+        {__DEV__ && debugAngle !== null && (
           <Text variant="labelSmall" style={{color: colors.primary, marginTop: 4, opacity: 0.8}}>
             elbow angle: {debugAngle}°  phase: {phaseRef.current}
           </Text>
@@ -136,6 +154,7 @@ export default function AlarmFiringScreen() {
   const {
     vibrateOnAlarm, muteAudioDuringPushups,
     hapticOnRep, keepScreenOn, preferFrontCamera,
+    autoCompleteAlarm, audioCueOnRep,
   } = useSettingsStore();
   const {isSubscribed} = useSubscriptionStore();
   const isLocked = !isSubscribed;
@@ -207,6 +226,12 @@ export default function AlarmFiringScreen() {
     setMode('done');
   }, []);
 
+  useEffect(() => {
+    if (mode !== 'done' || !autoCompleteAlarm) return;
+    const t = setTimeout(() => cleanup(true), 800);
+    return () => clearTimeout(t);
+  }, [mode, autoCompleteAlarm, cleanup]);
+
   const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
   const startCamera = async () => {
@@ -274,6 +299,7 @@ export default function AlarmFiringScreen() {
           onSkip={dismiss}
           hapticOnRep={hapticOnRep}
           preferFrontCamera={preferFrontCamera}
+          audioCueOnRep={audioCueOnRep}
         />
       )}
       {mode === 'manual' && (
@@ -282,6 +308,7 @@ export default function AlarmFiringScreen() {
           onDone={complete}
           onSkip={dismiss}
           hapticOnRep={hapticOnRep}
+          audioCueOnRep={audioCueOnRep}
         />
       )}
 

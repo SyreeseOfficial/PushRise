@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform, Alert} from 'react-native';
+import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform, Alert, Linking} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput,
   TouchableRipple, useTheme, ProgressBar,
@@ -1403,6 +1403,17 @@ export default function OnboardingScreen() {
                 </View>
               ))}
             </Surface>
+            <Button
+              mode="outlined"
+              onPress={() =>
+                Linking.sendIntent('android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', [
+                  {key: 'android.provider.extra.APP_PACKAGE', value: 'com.pushrise'},
+                ]).catch(() => Linking.openSettings())
+              }
+              style={{marginBottom: 12}}
+              contentStyle={{paddingVertical: 8}}>
+              Open Battery Settings →
+            </Button>
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Done →
             </Button>
