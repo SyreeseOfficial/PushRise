@@ -6,6 +6,15 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-21 — Google Play Console Setup
+
+- Play Console app created: PushRise, Free, App type
+- Store listing completed
+- Attempted to create subscription products — blocked. Play Console requires at least one AAB uploaded to a testing track before the Monetize tab unlocks product creation
+- Next step: build signed release AAB, upload to internal testing track, then create products
+
+---
+
 ## 2026-07-20 — UI Polish Tiers 1–4 Complete
 
 ### Tier 1 — Broken Feature Fixes

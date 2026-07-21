@@ -28,8 +28,11 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
   - [x] RevenueCat account created
   - [x] Entitlement created: `PushRise Pro`
   - [x] Packages created: `monthly` and `lifetime`
-  - [x] **Google Play identity verification complete** — now ready to:
-    - [ ] Create subscription product in Play Console: ID `monthly`, price $2.99/mo, base plan ID `monthly-base`
+  - [x] **Google Play identity verification complete**
+  - [x] Play Console app created (PushRise, Free, App)
+  - [x] Store listing filled out
+  - [ ] Upload first signed AAB to internal testing track ← **required before products can be created**
+  - [ ] Create subscription product in Play Console: ID `monthly`, price $2.99/mo, base plan ID `monthly-base`
     - [ ] Create one-time product in Play Console: ID `lifetime`, price $14.99
     - [ ] Create discounted subscription: ID `monthly-discounted`, price $1.49/mo, base plan ID `monthly-discounted-base`
     - [ ] Import all 3 products into RevenueCat (Product catalog → Products → + New product)

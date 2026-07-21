@@ -14,7 +14,6 @@ import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
-import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
 
 type Route = RouteProp<RootStackParamList, 'AlarmFiring'>;
@@ -171,8 +170,6 @@ export default function AlarmFiringScreen() {
     hapticOnRep, keepScreenOn, preferFrontCamera,
     autoCompleteAlarm, audioCueOnRep, dailyGoal,
   } = useSettingsStore();
-  const {isSubscribed} = useSubscriptionStore();
-  const isLocked = !isSubscribed;
   const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
@@ -279,17 +276,7 @@ export default function AlarmFiringScreen() {
 
       {mode === 'idle' && (
         <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 16}}>
-          {isLocked ? (
-            <>
-              <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 16}}>
-                Your trial has ended. Upgrade to dismiss alarms with push-ups.
-              </Text>
-              <Button mode="contained" onPress={() => navigation.navigate('Paywall')} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
-                Upgrade Now
-              </Button>
-            </>
-          ) : (
-            <>
+          <>
               <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
                 {reps}
               </Text>
@@ -305,7 +292,6 @@ export default function AlarmFiringScreen() {
                 Use manual count instead
               </Button>
             </>
-          )}
           <Button mode="text" textColor={c.outline} onPress={dismiss}>
             Skip (no push-ups)
           </Button>
