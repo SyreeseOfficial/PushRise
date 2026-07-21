@@ -590,6 +590,18 @@ export default function ProgressScreen() {
         contentContainerStyle={{paddingHorizontal: 16, gap: 12, paddingBottom: 120}}
         showsVerticalScrollIndicator={false}>
 
+        {currentStreak > 0 && todayReps === 0 && new Date().getHours() >= 20 && (
+          <View style={{
+            backgroundColor: theme.dark ? 'rgba(255,193,7,0.15)' : 'rgba(255,193,7,0.2)',
+            borderRadius: 16, padding: 14,
+            borderWidth: 1, borderColor: 'rgba(255,180,0,0.35)',
+          }}>
+            <Text style={{fontSize: 14, fontWeight: '600', color: theme.dark ? '#FFD54F' : '#7B5800', lineHeight: 20}}>
+              ⚠️ Log reps before midnight to keep your {currentStreak}-day streak.
+            </Text>
+          </View>
+        )}
+
         {/* Avatar + title */}
         <AvatarCard
           totalReps={totalReps}

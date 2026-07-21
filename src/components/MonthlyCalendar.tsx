@@ -2,7 +2,7 @@ import React, {useState, useRef} from 'react';
 import {
   View, Animated, PanResponder, TouchableOpacity, Text, Modal, TouchableWithoutFeedback,
 } from 'react-native';
-import {useTheme} from 'react-native-paper';
+import {useTheme, IconButton} from 'react-native-paper';
 import {cardShadow} from '../theme';
 
 interface Props {
@@ -133,15 +133,11 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
 
   return (
     <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 16}, theme.dark ? {} : cardShadow]}>
-      <Text style={{
-        fontSize: 15,
-        fontWeight: '700',
-        color: c.onSurface,
-        marginBottom: 12,
-        textAlign: 'center',
-      }}>
-        {monthLabel}
-      </Text>
+      <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12}}>
+        <IconButton icon="chevron-left" size={20} onPress={() => changeMonth(-1)} style={{margin: 0}} iconColor={c.onSurface} />
+        <Text style={{fontSize: 15, fontWeight: '700', color: c.onSurface}}>{monthLabel}</Text>
+        <IconButton icon="chevron-right" size={20} onPress={() => changeMonth(1)} style={{margin: 0}} iconColor={c.onSurface} />
+      </View>
 
       <Animated.View
         style={{transform: [{translateX: slideX}]}}

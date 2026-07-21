@@ -4,6 +4,7 @@ import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useThe
 import LinearGradient from 'react-native-linear-gradient';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import {useBankStore, Reward} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 
@@ -322,6 +323,7 @@ export default function RewardsScreen() {
   const theme = useTheme();
   const c = theme.colors;
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward} = useBankStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
@@ -408,7 +410,7 @@ export default function RewardsScreen() {
       <TouchableOpacity
         onPress={openAdd}
         activeOpacity={0.85}
-        style={{position: 'absolute', bottom: 100, right: 24}}>
+        style={{position: 'absolute', bottom: tabBarHeight + 8, right: 24}}>
         <LinearGradient
           colors={BRAND_GRADIENT.colors}
           start={BRAND_GRADIENT.start}
