@@ -2,10 +2,11 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Animated, PanResponder, Pressable, ScrollView, View, Vibration, TouchableOpacity} from 'react-native';
 import {Switch, IconButton, Text, Icon, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useAlarmStore, Alarm} from '../../store/alarmStore';
 import {useBankStore} from '../../store/bankStore';
+import {useOnboardingStore} from '../../store/onboardingStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {getTickerMessages} from '../../utils/engagement';
 import type {RootStackParamList} from '../../navigation/navigationRef';
@@ -283,6 +284,7 @@ export default function AlarmListScreen() {
   const navigation = useNavigation<Nav>();
   const {alarms, reorderAlarmToIndex} = useAlarmStore();
   const {totalReps} = useBankStore();
+  const {isFirstLaunch, markFirstLaunchSeen} = useOnboardingStore();
   const theme = useTheme();
 
   // Toast
@@ -295,6 +297,15 @@ export default function AlarmListScreen() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
   };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isFirstLaunch) {
+        showToast("You're in. Tomorrow starts here. 💪");
+        markFirstLaunchSeen();
+      }
+    }, [isFirstLaunch]),
+  );
 
   // Drag state
   const [draggingId, setDraggingId] = useState<string | null>(null);

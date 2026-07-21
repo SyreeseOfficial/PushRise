@@ -1,4 +1,5 @@
 import React, {useState, useRef, useEffect} from 'react';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import {
   View, Modal, KeyboardAvoidingView, Platform,
   TouchableOpacity, ScrollView, Animated,
@@ -102,6 +103,14 @@ function AvatarCard({totalReps, streak, freezeCount, equippedTitle, userName, on
     ? Math.min((totalReps - prevThreshold) / (next - prevThreshold), 1)
     : 1;
 
+  const nextRepTitle = [...TITLES].reverse().find(t => {
+    const m = /^([\d,]+) reps$/.exec(t.unlock);
+    return m ? parseInt(m[1].replace(/,/g, ''), 10) > totalReps : false;
+  });
+  const nextTitleRepsNeeded = nextRepTitle
+    ? parseInt(nextRepTitle.unlock.match(/^([\d,]+) reps/)![1].replace(/,/g, ''), 10) - totalReps
+    : 0;
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -151,6 +160,11 @@ function AvatarCard({totalReps, streak, freezeCount, equippedTitle, userName, on
           {next && (
             <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginTop: 4}}>
               {(next - totalReps).toLocaleString()} reps to next level
+            </Text>
+          )}
+          {nextRepTitle && (
+            <Text style={{fontSize: 10, color: c.onSurfaceVariant, marginTop: 2}}>
+              🏷️ {nextTitleRepsNeeded.toLocaleString()} reps from {nextRepTitle.label}
             </Text>
           )}
         </View>
@@ -508,6 +522,16 @@ export default function ProgressScreen() {
   };
 
   const goalProgress = dailyGoal > 0 ? Math.min(todayReps / dailyGoal, 1) : 0;
+
+  // Fire confetti once per session when daily goal is first crossed
+  const confettiRef = useRef<any>(null);
+  const goalFiredRef = useRef(false);
+  useEffect(() => {
+    if (dailyGoal > 0 && todayReps >= dailyGoal && !goalFiredRef.current) {
+      goalFiredRef.current = true;
+      confettiRef.current?.start();
+    }
+  }, [todayReps, dailyGoal]);
 
   // #11 — spring-animate the daily goal progress bar width
   const barAnim = useRef(new Animated.Value(0)).current;
@@ -941,6 +965,8 @@ export default function ProgressScreen() {
         freezeCount={freezeCount}
         onClose={() => { setShowFreezeEarned(false); clearFreezeEarned(); }}
       />
+
+      <ConfettiCannon ref={confettiRef} count={80} origin={{x: -20, y: 0}} autoStart={false} fadeOut />
 
       {/* Freeze auto-used toast */}
       <Snackbar

@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {View, Vibration, StatusBar, Alert, NativeModules, Animated} from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import {Button, Text, useTheme} from 'react-native-paper';
 import Sound from 'react-native-sound';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
@@ -22,8 +23,8 @@ const {PoseDetection} = NativeModules;
 Sound.setCategory('Alarm');
 
 function ManualCounter({
-  reps, onDone, onSkip, hapticOnRep, audioCueOnRep,
-}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; audioCueOnRep: boolean}) {
+  reps, onDone, onSkip, hapticOnRep, audioCueOnRep, dailyGoal, todayReps,
+}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; audioCueOnRep: boolean; dailyGoal: number; todayReps: number}) {
   const {colors} = useTheme();
   const [count, setCount] = useState(0);
   const beepRef = useRef<Sound | null>(null);
@@ -59,13 +60,20 @@ function ManualCounter({
       <Button mode="text" textColor={colors.onSurfaceVariant} onPress={onSkip}>
         Skip (no push-ups)
       </Button>
+      {dailyGoal > 0 && (
+        <Text variant="labelSmall" style={{color: colors.onSurfaceVariant, opacity: 0.7}}>
+          {todayReps + count >= dailyGoal
+            ? "Today's goal hit! 🎉"
+            : `Today: ${todayReps + count} / ${dailyGoal}`}
+        </Text>
+      )}
     </View>
   );
 }
 
 function CameraCounter({
-  reps, onDone, onSkip, hapticOnRep, preferFrontCamera, audioCueOnRep,
-}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; preferFrontCamera: boolean; audioCueOnRep: boolean}) {
+  reps, onDone, onSkip, hapticOnRep, preferFrontCamera, audioCueOnRep, dailyGoal, todayReps,
+}: {reps: number; onDone: () => void; onSkip: () => void; hapticOnRep: boolean; preferFrontCamera: boolean; audioCueOnRep: boolean; dailyGoal: number; todayReps: number}) {
   const {colors} = useTheme();
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
   const cameraRef = useRef<Camera>(null);
@@ -119,7 +127,7 @@ function CameraCounter({
     return () => clearInterval(interval);
   }, [reps, onDone, hapticOnRep, audioCueOnRep]);
 
-  if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} hapticOnRep={hapticOnRep} />;
+  if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} hapticOnRep={hapticOnRep} audioCueOnRep={audioCueOnRep} dailyGoal={dailyGoal} todayReps={todayReps} />;
 
   return (
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
@@ -136,6 +144,13 @@ function CameraCounter({
             elbow angle: {debugAngle}°  phase: {phaseRef.current}
           </Text>
         )}
+        {dailyGoal > 0 && (
+          <Text variant="labelSmall" style={{color: colors.onSurfaceVariant, marginTop: 6, opacity: 0.8}}>
+            {todayReps + count >= dailyGoal
+              ? "Today's goal hit! 🎉"
+              : `Today: ${todayReps + count} / ${dailyGoal}`}
+          </Text>
+        )}
       </View>
       <Button mode="text" textColor={colors.onSurfaceVariant} onPress={onSkip} style={{position: 'absolute', bottom: 24}}>
         Skip (no push-ups)
@@ -149,12 +164,12 @@ export default function AlarmFiringScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const {colors: c} = useTheme();
   const {alarmId, reps, sound, volume} = route.params;
-  const {addReps, totalReps} = useBankStore();
+  const {addReps, totalReps, currentStreak, todayReps} = useBankStore();
   const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));
   const {
     vibrateOnAlarm, muteAudioDuringPushups,
     hapticOnRep, keepScreenOn, preferFrontCamera,
-    autoCompleteAlarm, audioCueOnRep,
+    autoCompleteAlarm, audioCueOnRep, dailyGoal,
   } = useSettingsStore();
   const {isSubscribed} = useSubscriptionStore();
   const isLocked = !isSubscribed;
@@ -162,6 +177,7 @@ export default function AlarmFiringScreen() {
 
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
   const soundRef = useRef<Sound | null>(null);
+  const confettiRef = useRef<any>(null);
   // #8 — press-in scale for primary action buttons
   const btnScale = useRef(new Animated.Value(1)).current;
   const pressBtnIn = () => Animated.spring(btnScale, {toValue: 0.95, useNativeDriver: true}).start();
@@ -232,6 +248,10 @@ export default function AlarmFiringScreen() {
     return () => clearTimeout(t);
   }, [mode, autoCompleteAlarm, cleanup]);
 
+  useEffect(() => {
+    if (mode === 'done') confettiRef.current?.start();
+  }, [mode]);
+
   const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
   const startCamera = async () => {
@@ -300,6 +320,8 @@ export default function AlarmFiringScreen() {
           hapticOnRep={hapticOnRep}
           preferFrontCamera={preferFrontCamera}
           audioCueOnRep={audioCueOnRep}
+          dailyGoal={dailyGoal}
+          todayReps={todayReps}
         />
       )}
       {mode === 'manual' && (
@@ -309,6 +331,8 @@ export default function AlarmFiringScreen() {
           onSkip={dismiss}
           hapticOnRep={hapticOnRep}
           audioCueOnRep={audioCueOnRep}
+          dailyGoal={dailyGoal}
+          todayReps={todayReps}
         />
       )}
 
@@ -321,6 +345,16 @@ export default function AlarmFiringScreen() {
           <Text variant="titleLarge" style={{color: c.onSurfaceVariant, textAlign: 'center'}}>
             banked. You won this morning.
           </Text>
+          {currentStreak > 1 && (
+            <Text variant="titleMedium" style={{color: c.primary, textAlign: 'center'}}>
+              Day {currentStreak} in a row 🔥
+            </Text>
+          )}
+          {currentStreak === 1 && (
+            <Text variant="titleMedium" style={{color: c.primary, textAlign: 'center'}}>
+              Streak started! 🔥
+            </Text>
+          )}
           <Animated.View style={{marginTop: 16, transform: [{scale: btnScale}]}}>
             <Button
               mode="contained"
@@ -333,6 +367,7 @@ export default function AlarmFiringScreen() {
           </Animated.View>
         </View>
       )}
+      <ConfettiCannon ref={confettiRef} count={80} origin={{x: 200, y: 0}} autoStart={false} fadeOut />
     </View>
   );
 }

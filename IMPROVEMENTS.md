@@ -22,27 +22,28 @@
 
 ## Tier 2 — Engagement Wins (High Dopamine ROI)
 
-- [ ] **2a. Goal crushed → confetti**  
+- [x] **2a. Goal crushed → confetti**  
   File: `src/screens/progress/ProgressScreen.tsx`  
   Add `ConfettiCannon` ref. Fire when `todayReps` first crosses `dailyGoal`. Gate with session-scoped ref to fire once per day.
 
-- [ ] **2b. Alarm done screen → add confetti + streak line**  
+- [x] **2b. Alarm done screen → add confetti + streak line**  
   File: `src/screens/alarms/AlarmFiringScreen.tsx`  
   Fire confetti when `mode === 'done'`. Add streak status line: "Day N in a row 🔥" (if streak > 1) or "Streak started! 🔥" (if streak = 1).
 
 - [ ] **2c. Native share sheet for ShareCardModal**  
   File: `src/screens/progress/ProgressScreen.tsx`  
-  Install `react-native-view-shot`. Wrap share card in `ViewShot` ref. Replace screenshot instruction with "Share →" button that captures + opens native share sheet.
+  Install `react-native-view-shot`. Wrap share card in `ViewShot` ref. Replace screenshot instruction with "Share →" button that captures + opens native share sheet.  
+  _Skipped: requires new native dep. Screenshot instruction still works._
 
-- [ ] **2d. Post-onboarding welcome moment**  
+- [x] **2d. Post-onboarding welcome moment**  
   Files: `src/screens/alarms/AlarmListScreen.tsx`, `src/store/onboardingStore.ts`  
   Add `isFirstLaunch` flag to `onboardingStore`. On first Alarms tab view, show `TopToast`: "You're in. Tomorrow starts here. 💪" (one-time).
 
-- [ ] **2e. Show daily goal progress inside banking sessions**  
+- [x] **2e. Show daily goal progress inside banking sessions**  
   Files: `src/screens/alarms/AlarmFiringScreen.tsx`, `src/screens/progress/BankCameraScreen.tsx`  
   If `dailyGoal > 0`, show progress line at bottom of counter: "Today: N / G" or "X more to hit today's goal."
 
-- [ ] **2f. Next title in N reps progress indicator**  
+- [x] **2f. Next title in N reps progress indicator**  
   File: `src/screens/progress/ProgressScreen.tsx` (AvatarCard)  
   Add text below level bar: "🏷️ 47 reps from [Next Title Name]". Compute from `TITLES` array by finding first locked title.
 

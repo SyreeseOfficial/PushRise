@@ -16,9 +16,9 @@ const c = DarkTheme.colors;
 
 export default function BankCameraScreen() {
   const navigation = useNavigation();
-  const {hapticOnRep, keepScreenOn, preferFrontCamera, audioCueOnRep} = useSettingsStore();
+  const {hapticOnRep, keepScreenOn, preferFrontCamera, audioCueOnRep, dailyGoal} = useSettingsStore();
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
-  const {addReps} = useBankStore();
+  const {addReps, todayReps} = useBankStore();
   const cameraRef = useRef<Camera>(null);
   // #12 — white flash on each counted rep
   const flashOpacity = useRef(new Animated.Value(0)).current;
@@ -123,6 +123,13 @@ export default function BankCameraScreen() {
             </Text>
           )}
         </View>
+        {dailyGoal > 0 && (
+          <Text variant="labelLarge" style={{color: 'rgba(255,255,255,0.55)', marginBottom: 16}}>
+            {todayReps + count >= dailyGoal
+              ? "Today's goal hit! 🎉"
+              : `Today: ${todayReps + count} / ${dailyGoal}`}
+          </Text>
+        )}
         <Button
           mode="contained"
           onPress={done}
