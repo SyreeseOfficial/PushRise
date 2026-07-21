@@ -51,11 +51,11 @@
 
 ## Tier 3 — Onboarding Polish
 
-- [ ] **3a. Fix silent 3-char minimum on commitment contract**  
+- [x] **3a. Fix silent 3-char minimum on commitment contract**  
   File: `src/screens/onboarding/OnboardingScreen.tsx` (`commitment` step)  
   Show helper text below input: "Type at least a few words to lock it in." (only when `grindingFor.length > 0 && grindingFor.trim().length <= 2`).
 
-- [ ] **3b. Pending celebration badge on Progress tab**  
+- [x] **3b. Pending celebration badge on Progress tab**  
   File: `src/navigation/CustomTabBar.tsx`  
   Read `bankStore.pendingCelebration`. If set, show small orange dot badge on Progress tab icon.
 

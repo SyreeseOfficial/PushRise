@@ -1174,8 +1174,13 @@ export default function OnboardingScreen() {
                   editable={!commitSigned}
                   underlineColor={theme.colors.primary}
                   activeUnderlineColor={theme.colors.primary}
-                  style={{marginBottom: 24}}
+                  style={{marginBottom: grindingFor.length > 0 && grindingFor.trim().length <= 2 ? 4 : 24}}
                 />
+                {grindingFor.length > 0 && grindingFor.trim().length <= 2 && (
+                  <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginBottom: 20}}>
+                    Type at least a few words to lock it in.
+                  </Text>
+                )}
 
                 <View style={{borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant, paddingTop: 16}}>
                   <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>

@@ -3,6 +3,7 @@ import {View, Animated, Pressable, Vibration} from 'react-native';
 import {Icon, useTheme} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import type {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import {useBankStore} from '../store/bankStore';
 
 const ICONS: Record<string, string> = {
   Alarms: 'alarm',
@@ -13,6 +14,7 @@ const ICONS: Record<string, string> = {
 export default function CustomTabBar({state, navigation}: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const pendingCelebration = useBankStore(s => s.pendingCelebration);
   const isDark = theme.dark;
   const [tabWidth, setTabWidth] = useState(0);
   const pillX = useRef(new Animated.Value(0)).current;
@@ -106,11 +108,20 @@ export default function CustomTabBar({state, navigation}: BottomTabBarProps) {
                 paddingVertical: 14,
               }}>
               <Animated.View style={{transform: [{scale: iconScales[i]}]}}>
-                <Icon
-                  source={ICONS[route.name] ?? 'circle'}
-                  color={focused ? iconFocused : iconUnfocused}
-                  size={22}
-                />
+                <View>
+                  <Icon
+                    source={ICONS[route.name] ?? 'circle'}
+                    color={focused ? iconFocused : iconUnfocused}
+                    size={22}
+                  />
+                  {route.name === 'Progress' && !!pendingCelebration && (
+                    <View style={{
+                      position: 'absolute', top: -2, right: -2,
+                      width: 8, height: 8, borderRadius: 4,
+                      backgroundColor: '#FF6B00',
+                    }} />
+                  )}
+                </View>
               </Animated.View>
             </Pressable>
           );
