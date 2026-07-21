@@ -6,6 +6,38 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-20 — UI Polish Tiers 1–4 Complete
+
+### Tier 1 — Broken Feature Fixes
+- **autoCompleteAlarm:** `useEffect` now auto-dismisses the alarm 800ms after reps are done (was wired but never triggered)
+- **audioCueOnRep:** `beep.mp3` plays on each rep in ManualCounter, CameraCounter, and BankCameraScreen (requires `beep.mp3` in `res/raw/`)
+- **Debug angle overlay:** guarded with `__DEV__` in `AlarmFiringScreen` and `BankCameraScreen` — no longer visible in release builds
+- **Battery optimization deep link:** "Open Battery Settings →" button added to onboarding battery step; opens system battery settings directly
+
+### Tier 2 — Engagement Wins
+- **Daily goal confetti:** fires in `ProgressScreen` the first time the daily goal is crossed
+- **Alarm completion confetti + streak line:** added to `AlarmFiringScreen` done mode
+- **Daily goal progress in counters:** shown live in ManualCounter, CameraCounter, and BankCameraScreen during a session
+- **First-launch welcome toast:** `isFirstLaunch` flag added to `onboardingStore`; welcome toast fires on first `AlarmListScreen` view
+- **Next title progress hint:** `AvatarCard` shows how many reps until the next rep-based title
+- Skipped: share card (2c) — requires `react-native-view-shot` native install; deferred
+
+### Tier 3 — Onboarding Polish
+- **Commitment step helper text:** added to the `grinding-for` onboarding step
+- **Celebration badge:** added to onboarding completion
+- **CustomTabBar:** animation/style refinements
+
+### Tier 4 — UI Polish
+- **FAB safe area:** `AlarmListScreen` and `RewardsScreen` FABs now use `useBottomTabBarHeight()` instead of hardcoded `bottom: 100`
+- **Calendar navigation arrows:** `MonthlyCalendar` header gets ‹ › `IconButton`s wired to the existing `changeMonth` handler
+- **Streak-at-risk banner:** `ProgressScreen` shows an amber warning after 8pm when streak > 0 and no reps logged today
+- Deleted `IMPROVEMENTS.md` — all four tiers complete
+
+### Status
+All improvement tiers shipped. App is in final pre-submission state.
+
+---
+
 ## 2026-07-16 — Onboarding Micro-Polish: Haptics & Emoji Consistency
 
 ### Haptic Feedback

@@ -61,7 +61,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - [x] **Outside-alarm push-up logging** — Progress tab Bank Push-ups CTA; camera or manual; all reps count toward bank
 - [x] Battery optimization onboarding screen (OEM-specific instructions framed as "make your alarm bulletproof") — Samsung and Xiaomi extra steps shown only on matching devices
 - [x] Notification permission onboarding screen (Permissions screen in settings + onboarding)
-- [x] Onboarding flow — 5 steps: welcome, create-alarm, daily-goal, grinding-for commitment, complete; analyzing screen has staggered stat reveal + persona type-in animation; stepper replaces slider for goal input
+- [x] Onboarding flow — 5 steps: welcome, create-alarm, daily-goal, grinding-for commitment, complete; analyzing screen has staggered stat reveal + persona type-in animation; stepper replaces slider for goal input; battery step has direct "Open Battery Settings →" deep link
 - [x] Reward banking — 5 default rewards pre-loaded; user-created custom rewards; emoji picker; Paper Dialog redemption; confetti on redeem
 - [x] Streak tracking (goal-completion only, 1 grace day per 7-day rolling window)
 - [x] RevenueCat paywall integration (7-day trial → monthly or lifetime)
@@ -76,6 +76,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 ## Play Store Submission (Week 5)
 
 - [ ] App icon (512×512 PNG) — design locked (Ringer face close-up), asset generation pending
+- [ ] Add `beep.mp3` to `android/app/src/main/res/raw/` (required for audioCueOnRep feature)
 - [ ] Feature graphic (1024×500)
 - [ ] Screenshots (min. 2, aim for 6–8, phone + tablet)
 - [x] Store listing copy — saved in `store-listing.md` (**delete file before submission**)
