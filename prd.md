@@ -1,6 +1,6 @@
 # PushRise — Updated PRD
 
-> Last revised: 2026-07-08
+> Last revised: 2026-07-22
 
 ---
 
@@ -12,7 +12,18 @@ An alarm app where push-ups are the only snooze button. The pain point is valida
 1. The alarm actually going off (Android is hostile to background processes)
 2. The camera detection being good enough that users don't bounce
 
-Both are unvalidated. Both must be proven in Week 1 before anything else is built.
+Both have been partially validated. Alarm reliability is proven (setAlarmClock + foreground service works). Camera detection remains unvalidated on budget hardware—must monitor closely post-launch.
+
+---
+
+## Brand Identity
+
+**Minimal, confident, premium.** Nike's boldness + Apple Fitness's polish. The "cool older brother" who actually works out — no hype, no fluff, just gets it done.
+
+- **Primary color:** `#FF5500` (orange-red) + gradients to `#FF2D00`
+- **Aesthetic:** Geometric sans-serif, clean edges, bold headlines. Pure white and pure black surfaces, subtle sunrise ambient glow (backgrounds only).
+- **UI system:** Google Material Design 3 (M3) via react-native-paper. Dark/light/system theme modes.
+- **Icon language:** MaterialCommunityIcons. Solid, geometric, confident.
 
 ---
 
@@ -24,113 +35,173 @@ Both are unvalidated. Both must be proven in Week 1 before anything else is buil
 - **Fitness level:** Can do roughly 5–10 push-ups. Default rep count: **10**
 - **Device reality:** Likely a mid-range or budget Android phone, potentially in low light
 
-> Hypothesis. Validate with real users before locking in marketing spend.
+> Hypothesis. Validate with real users post-launch. Adjust messaging / features if needed.
 
 ---
 
-## MVP Scope
+## MVP Scope (Shipped)
 
-**In:**
-- Alarm (one-time + recurring)
-- Camera-based push-up detection with manual fallback
-- Adjustable volume + device sounds + custom file sounds
+**Core Mechanics:**
+- Alarm (one-time + recurring) with full-screen takeover
+- Camera-based push-up detection (MediaPipe) + manual fallback
+- Adjustable volume, device sounds, custom file sounds
 - Outside-alarm push-up logging (camera or manual; all reps count toward bank)
 - Reward banking (honor system, alarm reps + outside reps both count)
-- Streak tracking (goal-completion only — not "open the app" streaks)
-- Full onboarding flow (20 screens — see below)
-- Paywall + free trial + downsell
+- Streak tracking (goal-completion only, one grace day per week)
+- **Streak freezes:** earn 1 per 7-day milestone (max 3), auto-used to save streaks
+- **Customizable titles:** unlock via streaks, equip to profile
+- **Celebration modals:** cinematic level-up screens on major milestones
+- **Daily goal tracking:** progress card on home screen
+- **Engagement modes:** Leaderboard, Boss Battle, Community Challenge, Ghost Mode (compete with anonymous rivals)
+- **Anonymous rival notifications:** 30–90min delay, fake persona, pseudo-social pressure
+- Full onboarding flow (18 steps: hook, quiz, persona, alarm setup, rewards, commitment, permissions, paywall)
+- Theme system (light/dark/system) configurable in settings
+- Micro-interactions: haptic feedback, audio cues, confetti, toast notifications
+- M3 design system throughout (cards, buttons, surfaces, typography, elevation)
 
 **Out (post-launch):**
-- Social features, leaderboards, friend challenges
-- Accounts / backend
-- Achievement share cards
+- Accounts / backend (MVP uses local-only state)
+- Real leaderboards (currently fake seeded data)
+- Hyper-local leaderboards (city/school level — requires backend)
+- Social features, friend challenges
+- Achievement share cards (Instagram/TikTok export)
 - Family plans
-- Referral program (needs backend + accounts — deferred, see `todo.md`)
+- Referral program
 
 ---
 
 ## Core Mechanic — Alarm Flow
 
-1. Alarm fires → full-screen takeover (`FLAG_SHOW_WHEN_LOCKED` + `FLAG_TURN_SCREEN_ON`), loud sound
+1. Alarm fires → full-screen takeover (`FLAG_SHOW_WHEN_LOCKED` + `FLAG_TURN_SCREEN_ON`), loud sound, Doze-bypass via `setAlarmClock()`
 2. User sees **"I'm Ready"** button — intentional tap required, no auto-camera
 3. Camera activates, rep counter overlays camera view
-4. Reps accumulate; **partial reps do not count** (full range of motion required)
-5. If user stops mid-set, count pauses and resumes when they restart — no penalty, no reset
-6. Alarm dismisses when rep target is hit
-7. All reps from the alarm session are added to the push-up bank
+4. Reps accumulate in real-time; **partial reps do not count** (full range of motion required)
+5. If user stops mid-set, counter pauses and resumes when they restart — no penalty, no reset
+6. **Celebration modal** pops on alarm completion: cinematic animation, confetti, encouragement copy
+7. Alarm dismisses when rep target is hit
+8. All reps banked, streak updated, title progress tracked
 
-**Alarm sound behavior:** User-configurable — alarm can stop when camera opens, or continue until push-ups are complete. Default: stops when camera opens.
+**Alarm sound behavior:** User-configurable — alarm can stop when camera opens, or continue until push-ups are complete. Default: stops when camera opens. Configurable via SettingsScreen.
 
 ---
 
 ## Outside-Alarm Push-up Logging
 
-Users can log push-ups anytime, not just during alarms. All reps count toward the push-up bank.
+Users can log push-ups anytime, not just during alarms. All reps count toward the push-up bank and daily goals.
 
-- Accessible from the Progress tab (floating action button or dedicated "Log Push-ups" button)
+- Accessible from Progress tab via FAB
 - Options: camera-based counting (same MediaPipe detection) or manual entry
-- Manual entry has no friction — it's the honor system. A user who logs fake reps is only cheating themselves.
+- Manual entry has no friction — it's the honor system
+- Reps immediately visible on daily progress card
+- Counts toward daily goal and streak
 
 ---
 
 ## Push-up Detection
 
-**Primary:** Camera-based (MediaPipe)
+**Primary:** Camera-based (MediaPipe pose detection + custom ROM angle logic)
 
-**Known risk:** Cheap Android hardware + bad lighting + varied body sizes = unreliable detection. Must be tested Week 1.
+**Known risk:** Cheap Android hardware + bad lighting + varied body sizes = imperfect detection. Acceptable for MVP — users understand detection is approximate and can fallback to manual if frustrated.
 
-**Fallback (Manual):** Hold-button-per-rep. More friction than camera to preserve intent — but still available. Retention safety valve.
+**Fallback (Manual):** Tap-per-rep button. More friction than camera to preserve intent — but always available as retention valve.
 
-**Anti-cheat:** Cannot be enforced. Honor system. Messaging handles it.
+**Anti-cheat:** Cannot be enforced. Honor system. Onboarding and messaging reinforce that cheating only hurts the user. Celebration copy emphasizes authenticity ("The only person you're competing with is yourself").
 
 ---
 
-## Android Alarm Reliability — Existential Risk
+## Reward Banking
 
-OEM battery optimization (Xiaomi, Samsung, Huawei, OnePlus) will silently kill background apps.
+Default pre-loaded rewards (TV time, gaming time, dessert, money, sleep-in hours, etc.). Users can add, delete, edit rewards and costs.
 
-**Must solve before launch:**
+- All push-ups count: alarm sessions + outside logging
+- Redemption is honor system — user marks as redeemed
+- **No cosmetic/paywall restriction:** all reward features available to paid users post-onboarding
+
+---
+
+## Streak Tracking
+
+Earned by dismissing an alarm with push-ups — not by opening the app or passive activity.
+
+**Grace day:** One missed day per week doesn't break the streak. Reduces churn from streak anxiety.
+
+**Streak freezes:** Earned 1 per 7-day milestone. Visible on ProgressScreen, auto-used when streak breaks (after grace expended). Max 3 freezes accumulated.
+
+---
+
+## Customizable Titles
+
+Users unlock titles by hitting streak milestones (Day 7, Day 14, Day 30, etc.). Titles have unlock descriptions ("The Consistent," "The Unstoppable," etc.). Users can equip a single title to their avatar card. If a user un-earns a title (streak breaks past frozen point), title becomes locked again.
+
+All titles available to paid users post-onboarding.
+
+---
+
+## Engagement Modes
+
+Available on ProgressScreen alongside daily goal and streak tracking. All modes are **fake data for MVP** — designed for retention, social proof, and competition psychology.
+
+### Leaderboard
+Seeded fake leaderboard showing 10 top local users by total reps. Rank system (Bronze → Silver → Gold → Platinum → Diamond). User's position visible. Updates weekly to create "progress" illusion.
+
+### Boss Battle
+Single weekly opponent with escalating rep count. User competes against a fake persona. Win → reward points + badge.
+
+### Community Challenge
+Weekly group challenge (e.g., "1000 total reps this week"). Shows progress bar, % of community completion, user contribution. Creates group cohesion.
+
+### Ghost Mode
+User competes against a past-version snapshot of themselves (7 days ago). Shows daily comparison. Designed for self-competition, not external pressure.
+
+All modes reinforce daily alarm completion. No backend required (all data seeded locally).
+
+---
+
+## Android Alarm Reliability
+
+OEM battery optimization (Xiaomi, Samsung, Huawei, OnePlus) will silently kill background apps if not whitelisted.
+
+**Implemented:**
 - `AlarmManager.setAlarmClock()` — bypasses Doze, shown in status bar
 - `SCHEDULE_EXACT_ALARM` permission (Android 12+)
-- Foreground service to survive OEM kill behavior
-- Onboarding screen guiding users through disabling battery optimization manually
+- Foreground service with notification during alarm window
+- Onboarding `battery` step: OEM-specific deep-link guide to disable battery optimization
 - Reference: [dontkillmyapp.com](https://dontkillmyapp.com)
-- Test on Samsung + Xiaomi (worst offenders)
+
+**Testing:** Validated on at least one OEM phone (personal device recommended; BrowserStack for additional OEMs).
 
 ---
 
-## Onboarding Flow — Full Sequence (20 Screens)
+## Onboarding Flow — Full Sequence (18 Steps)
 
-**Goal:** Duolingo model — user sets their first alarm and experiences the core loop before the paywall. 15+ minutes of investment before they're asked to pay. Sunk cost creates conversion.
+**Goal:** Duolingo model — user sets their first alarm and experiences the core loop before hitting paywall. ~12–15 minutes of investment (quiz + alarm creation + reward setup) before payment gate. Sunk cost + momentum creates conversion.
 
-**Conversion psychology applied throughout:** identity destruction + reconstruction, loss framing, loaded questions, progressive commitment, sunk cost exploitation, contrast pricing.
+**Conversion psychology applied throughout:** identity destruction + reconstruction ("You keep hitting snooze" → "You become someone who doesn't"), loss framing, loaded questions, progressive commitment, sunk cost, pain contrast.
 
 ---
 
 ### Phase 1 — Hook (Screens 1–3)
 
 **Screen 1: Welcome**
-> *"The snooze button is making you weak."*
-> *"Every morning you give in, you train yourself to quit. It's time to train yourself to win."*
-> **[I'm ready to change →]**
+> *"You keep hitting snooze."*
+> *"Every snooze is a small loss. It adds up. Let's stop it."*
+> **[Let's fix it →]**
 
 **Screen 2: Founder's Note**
-Digital handwritten-style note (cursive font), placeholder selfie image.
+Digital handwritten-style note (cursive font), small profile image.
 > *"Hey [Name],*
 > *I built PushRise because I was you.*
-> *Six alarms. Snoozed every single one. Then spent the rest of the day feeling behind before it even started.*
-> *The problem wasn't my alarm. It was me.*
+> *Six alarms. Snoozed every single one.*
+> *Then spent the rest of the day feeling behind before it even started.*
 > *I needed something that wouldn't let me off the hook. So I built it.*
 > *Now I wake up every morning knowing I already won.*
 > *You can too.*
 > *— Syreese"*
-> [Cursive digital signature] [Placeholder founder photo]
 
 **Screen 3: Social Proof**
-Three early user testimonials (replace with real reviews post-launch):
-> ★★★★★ *"I've tried every alarm app. This is the only one I actually respect. It doesn't let me lie to myself."* — Marcus, 22
+Two testimonials (real reviews post-launch, or representative personas):
 > ★★★★★ *"Day 14. Never made it past day 3 with anything else. The push-ups are brutal at 6am — that's the point."* — Jordan, 19
-> ★★★★★ *"My roommate started using it after he saw me wake up on time for two weeks straight. Now we compete."* — Tyler, 24
+> ★★★★★ *"I've tried every app. This one works because you can't skip it."* — Marcus, 22
 
 ---
 
@@ -140,7 +211,7 @@ Three early user testimonials (replace with real reviews post-launch):
 > *"Let's be honest with each other."*
 > *"A few questions so we can build your plan."*
 
-**Screen 5: Q1 — Snooze severity**
+**Screen 5: Q1 — Snooze Severity**
 > *"How bad is the snooze problem — really?"*
 - "I wake up fine most days"
 - "I hit snooze once or twice"
@@ -150,73 +221,70 @@ Three early user testimonials (replace with real reviews post-launch):
 **Screen 6: Q1 Reflection** *(shows after answering Q1)*
 > *"You're not lazy. You're untrained. There's a difference — and it's fixable."*
 
-**Screen 7: Q2 — Fitness level**
-> *"What does your body look like right now? Be honest."*
-- "I never really work out"
-- "I work out here and there"
-- "I'm pretty consistent"
+**Screen 7: Q2 — Fitness Level**
+Card-based selection with emojis:
+- 🛋️ "Starting from zero"
+- 🏃 "Occasionally moving"
+- 💪 "Pretty consistent"
 
-**Screen 8: Q3 — Real goal**
-> *"Why did you really download this?"*
-*(Every answer confirms the need for PushRise — loaded by design)*
-- "I just need to wake up on time"
-- "I want to get stronger"
-- "I need a complete reset — both"
+**Screen 8: Q3 — Real Goal**
+Card-based selection (every answer confirms need):
+- ⏰ "My mornings are a mess"
+- 💪 "I need to get my body back"
+- 🔥 "Full reset. I'm done coasting"
 
-**Screen 9: Q4 — Push-up count**
+**Screen 9: Q4 — Push-up Baseline**
 > *"No ego. How many push-ups can you actually do right now?"*
 - "5 or fewer"
 - "Around 10"
 - "15–20"
 - "More than 20"
 
-**Screen 10: Q5 — Wake time + Q6 — Reward**
-> *"When do you need to wake up?"* [Time picker]
-> *"What would make waking up worth it?"* [Multi-select]
+**Screen 10: Q5 — Reward Motivation**
+Multi-select (checkboxes):
 - More time before my day starts
 - A stronger body
 - Actually hitting my goals
 - Feeling proud of myself
-- Just not being late anymore
+- Stop being late
 
 ---
 
 ### Phase 3 — The Plan (Screens 11–14)
 
-**Screen 11: Fake "Analyzing" Loading Screen**
+**Screen 11: Fake "Analyzing" Loading**
 Progress bar, 3–4 seconds. Cycling subtext:
 - "Analyzing your wake-up patterns..."
-- "Calculating your push-up baseline..."
+- "Calculating your baseline..."
 - "Designing your reward system..."
 - "Building your personalized plan..."
 
 **Screen 12: Persona Reveal**
-Based on quiz answers, one of three types:
+Based on quiz answers, one of three types (localized copy):
 
 *Severe snoozer + beginner:*
-**"The Sleeper"**
-> *"You know you should be doing more. You're tired of feeling behind before the day starts. PushRise was literally built for you — the people who need this most are the ones who keep hitting snooze. That stops today."*
+**"😴 The Sleeper"**
+> *"You keep saying 'tomorrow.' Tomorrow never comes. PushRise was built for this."*
 
 *Moderate snoozer + some fitness:*
-**"The Inconsistent"**
-> *"You have the drive — you just can't get it started in the morning. Your push-ups are going to fix that. Every morning you do them is a morning you win before the day begins."*
+**"⚡ The Restarter"**
+> *"You start strong, then stop. You're not lazy — you just need real stakes. Now you have them."*
 
 *Light snoozer + consistent:*
-**"The Optimizer"**
-> *"You're already disciplined. PushRise gives you a system to turn that discipline into real results. Track everything. Bank every rep. Earn what you spend."*
+**"🎯 The Optimizer"**
+> *"You're already doing well. You know there's another level. PushRise gets you there."*
 
 **Screen 13: Dream Outcome**
-Chart showing push-ups per week climbing over 30 days.
+Chart showing push-ups per week climbing over 30 days (staggered stat reveal animation).
 > *"In 30 days, you'll be a different person."*
 > *"Users who complete 7 days don't quit. The first morning is the hardest. After that, it becomes who you are."*
-> *(Small print: "Results depend on consistency. The app makes it non-optional.")*
 
 **Screen 14: Journey Summary**
 > *"Here's your plan, [Name]."*
 - Wake time: [their answer]
 - Starting reps: [based on their count]
 - Goal: [their stated goal]
-- Reward: [what they said]
+- Reward: [what they're grinding for]
 > *"In 7 days, this won't feel like a choice. It'll feel like who you are."*
 > **[Set Your First Alarm →]**
 
@@ -225,12 +293,14 @@ Chart showing push-ups per week climbing over 30 days.
 ### Phase 4 — Investment (Screen 15)
 
 **Screen 15: Create First Alarm**
-Embedded alarm creation UI inside onboarding — time picker + rep count. They invest before they sign up (IKEA effect).
+Embedded alarm creation UI inside onboarding — time picker + rep count.
 > *"Now set it. Don't overthink — just pick a time you actually need to wake up."*
+
+IKEA effect in action: they invest before payment, commitment hardens.
 
 ---
 
-### Phase 5 — Close (Screens 16–20)
+### Phase 5 — Close (Screens 16–18)
 
 **Screen 16: Commitment Screen**
 > *"Before we go any further."*
@@ -246,90 +316,38 @@ If anything other than "Fully committed":
 **Screen 17: Permission Pre-Warning**
 > *"Before we finish setup..."*
 > *"We need a couple permissions to make sure your alarm never fails. Here's what we'll ask for and why:"*
+> 🔔 Notifications — streak reminders + trial warnings
 > 🔋 Battery access — so your alarm fires even when your phone tries to save power
-> 🔔 Notifications — so we warn you before your trial ends
 > **[Got it →]**
 
-**Screen 18: Notification Permission**
-System prompt, preceded by Screen 17 framing.
+**Screen 18: Paywall — Hard Gate (No Trial)**
+> **"Wake up a different person."**
+>
+> *"Willpower doesn't work. Reminders don't stick. Nothing worked because nothing had real stakes. PushRise makes skipping impossible."*
 
-**Screen 19: Battery Optimization**
-Step-by-step guide (OEM-specific where possible) to disable battery optimization for PushRise.
-> *"This is the most important step. Skip it and your alarm might not go off."*
+Three plan options:
 
-**Screen 20: Price Comparison → Trial → Paywall**
-Price comparison card:
-> ☕ *"One coffee: $5–7. Lasts 20 minutes."*
-> 💪 *"PushRise: $2.99/month. Lasts forever."*
-> *"Or own it for life for $14.99 — less than three coffees."*
-> *"You spend more on things that make you feel worse."*
+| Plan | Price | Subtext |
+|---|---|---|
+| 📅 **Weekly** | $3.99/week | Try it out |
+| 📆 **Annual** | $19.99/year | **Save 90%** — best value |
+| 🏆 **Lifetime** | $39.99 | Pay once, keep forever |
 
-Then the paywall:
-> **"Start Free. Stay Because It Works."**
-> *"7 days. Full access. No credit card required. We'll remind you before it ends."*
+Copy below paywall:
+> *"All plans include:"*
+> ✓ Unlimited alarms  
+> ✓ Camera + manual rep logging  
+> ✓ Reward banking  
+> ✓ Streak tracking & freezes  
+> ✓ Customizable titles  
+> ✓ Engagement modes (leaderboard, boss battle, challenges)  
+> ✓ Dark/light/system themes
 
-| Plan | Price |
-|---|---|
-| 🏆 Monthly (Most Popular) | $2.99/month |
-| Lifetime | $14.99 one-time |
+**[Purchase →]** (button text changes based on selected plan: "Start Weekly," "Start Annual," "Own Lifetime")
 
-> *"No charge today. No charge until Day 8. Cancel before then and pay nothing."*
+No "Skip" or "Continue Free" option. **Hard gate:** users must purchase one of the three tiers to proceed to the main app.
 
-Trust signals: ✓ Camera push-up detection ✓ Reward banking ✓ Streak tracking ✓ No ads
-
----
-
-## Post-Trial Paywall
-
-Shown when trial expires. Lock push-up mechanic, alarm still fires.
-
-> **"The old you would quit here."**
-> *"You've built [X] days of momentum. [X] push-ups banked. Don't let that die for less than a coffee a week."*
-
-[Same pricing display as onboarding paywall]
-
----
-
-## Downsell Flow
-
-If user declines paywall:
-
-**Downsell 1:**
-> *"Wait. One more thing."*
-> *"We don't want to lose you. Here's a deal we don't offer twice:"*
-> $1.99/month or $9.99 lifetime
-> Real 15-minute countdown timer.
-> **[Claim Offer]** / [No thanks]
-
-**Downsell 2** (if they decline Downsell 1):
-> *"Get 3 more days free. On us."*
-> **[Extend My Trial]** / [No thanks, I'll miss out]
-
-Note: "No thanks, I'll miss out" is intentional loss-aversion copy. Standard dark pattern, TOS-compliant.
-
----
-
-## Reward Banking
-
-- Default rewards pre-loaded (TV time, restaurant money, video game time, dessert)
-- Users can add/delete/edit rewards and costs
-- All push-ups count: alarm sessions + outside logging
-- Redemption is honor system — user marks as redeemed
-- Custom rewards paywalled (trial users get defaults only)
-
----
-
-## Streak Tracking
-
-Earned by dismissing an alarm with push-ups — not by opening the app.
-
-**Grace day:** one missed day per week doesn't break the streak. Reduces churn from streak anxiety.
-
----
-
-## Review Prompt
-
-**Not during onboarding.** Fires after the first alarm is successfully dismissed with push-ups. That's the emotional peak — the first real win. That's when you ask.
+Purchase triggers: start trial marker (for notification scheduling, eventual backend), complete onboarding, navigate to MainTabs.
 
 ---
 
@@ -337,111 +355,148 @@ Earned by dismissing an alarm with push-ups — not by opening the app.
 
 | Option | Price |
 |---|---|
-| Monthly | $2.99/month |
-| Lifetime | $14.99 one-time |
+| Weekly | $3.99/week |
+| Annual | $19.99/year |
+| Lifetime | $39.99 |
 
-- 7-day free trial, no credit card
-- Warning notifications: Day 5 and Day 7
-- Post-trial: push-up mechanic locked, alarm still fires
-- Downsell: discounted price + 15-min timer, then 3-day extension offer
+**Model:** Hard paywall at end of onboarding. No free trial, no freemium features. One-time purchase unlocks all features forever (lifetime tier) or recurring subscription (weekly/annual).
 
-### Revenue Math
+**Billing:** RevenueCat handles all payments. Anonymous users supported (no accounts required).
 
-5,000 downloads × 5% conversion = 250 paying users
-- 150 monthly × $2.99 = **$449/month recurring**
-- 100 lifetime × $14.99 = **$1,499 one-time**
+**Post-payment:** User has immediate access to all features. No gating. No "trial expired" walls.
 
-Month 1: ~$1,950 | Month 2+ (80% retention): ~$360/month recurring
+### Revenue Math (Provisional)
 
-Bottleneck is top-of-funnel downloads, not conversion rate.
+5,000 downloads × 8% conversion rate (hard wall) = 400 paying users
+- 250 annual tier × $19.99 = **$4,997 one-time**
+- 100 lifetime × $39.99 = **$3,999 one-time**
+- 50 weekly × $3.99 × 52 = **$10,374 annual recurring**
 
----
+Month 1: ~$8,996 (annual + lifetime split) | Month 2+: ~$865/month (weekly recurring)
 
-## Marketing
-
-**Phase 1:** r/fitness, r/bodyweightfitness, fitness Discords, college dorm groups. Personal founder posts. Authentic > polished.
-
-**Phase 2:** Micro-influencers (fitness TikTok, under 100k). Send the app, let them react.
-
-**Phase 3:** Paid ads, retargeting, larger influencers. Only after Phase 1 proves product-market fit.
+Bottleneck is top-of-funnel conversions. Hard paywall will reduce download volume but increase per-user revenue and retention (users who pay are invested).
 
 ---
 
-## Social Features (Post-Launch Roadmap)
+## Review Prompt
 
-- Friend challenges (1-day or 1-week push-up duels)
-- Hyper-local leaderboards (city/school level — achievable competition)
-- Achievement share cards (Instagram/TikTok — organic growth engine)
-- Referral program (invite a friend, earn bank bonus)
+**Not during onboarding.** Fires after first alarm is successfully dismissed with push-ups. That's the emotional peak — the first real win. That's when you ask for a review.
 
-All require accounts + Supabase backend. Build after launch.
+Native Android in-app review API (Google Play review library).
+
+---
+
+## Notifications
+
+**Trial/payment reminders:** (Deferred with backend if needed; local notification scheduling works fine for MVP)
+- Day 5: "You've got 2 days left" (informational, not pushy)
+- Day 7: "Last chance today before trial expires" (if trial system ever re-added)
+
+**Streak reminder:** Daily at user-configurable time (default 9pm). Toggleable in SettingsScreen.
+> *"You're on a [X]-day streak. Tomorrow's the day to keep it alive."*
+
+**Anonymous rival notifications:** 30–90min delay after user completes an alarm.
+> *"Marcus crushed 15 reps this morning. You did 10. Match him tomorrow?"*
+
+Fake persona, seeded data, designed for social proof + motivation.
 
 ---
 
 ## Design System
 
-All UI follows **Google Material Design 3 (M3)**. Every design decision — color, typography, spacing, shape, components — must conform to M3 spec.
+All UI follows **Google Material Design 3 (M3)**. Every design decision — color, typography, spacing, shape, components — conforms to M3 spec.
 
 ### Color
-- Seed color: `#FF6B00` (orange) — generates the full M3 tonal palette
-- Light and dark schemes both derived from the same seed via M3 HCT color system
-- User can choose Light / Dark / Follow System in app settings (gear icon, Alarms tab)
-- Never use hardcoded hex in screens — always reference `theme.colors.*` from `react-native-paper`'s `useTheme()`
-- Exception: AlarmFiringScreen and BankCameraScreen always force dark theme (camera/alarm context)
+- **Seed color:** `#FF5500` (orange-red) — generates full M3 tonal palette via HCT color system
+- **Light and dark schemes:** Both auto-derived from seed
+- **Theme modes:** Light / Dark / Follow System (user selectable in SettingsScreen)
+- **Exceptions:** AlarmFiringScreen and BankCameraScreen always force dark theme (camera overlay context)
+- **Never hardcode hex:** Always use `theme.colors.*` from react-native-paper's `useTheme()`
 
 ### Typography
-- Use Paper's `Text` component with `variant` prop for all text: `displaySmall`, `headlineMedium`, `titleLarge`, `bodyLarge`, `labelMedium`, etc.
-- No custom font sizes unless a specific display element requires it (e.g., large clock face in alarm screens)
+- Paper's `Text` component with `variant` prop: `displaySmall`, `headlineMedium`, `titleLarge`, `bodyLarge`, `labelMedium`, etc.
+- No custom font sizes unless required (e.g., large clock face in alarm screens)
 
 ### Shape
-- Cards / surfaces: `borderRadius: 16` (M3 "large") by default
-- Bottom sheets: `borderTopLeftRadius: 28, borderTopRightRadius: 28` (M3 "extra large")
-- FABs: `borderRadius: 16` (M3 "large")
-- Chips: `borderRadius: 8` (M3 "small")
+- **Cards/surfaces:** `borderRadius: 16` (M3 "large")
+- **Bottom sheets:** `borderTopLeftRadius: 28, borderTopRightRadius: 28` (M3 "extra large")
+- **FABs:** `borderRadius: 16` (M3 "large")
+- **Chips:** `borderRadius: 8` (M3 "small")
 
 ### Components
-- `react-native-paper` v5 for all M3 components: `Appbar.Header`, `FAB`, `Button`, `Card`, `Surface`, `TextInput`, `Switch`, `Chip`, `SegmentedButtons`, `RadioButton`, `Dialog`, `ProgressBar`, `Divider`, `TouchableRipple`
-- All buttons use Paper's `Button` with `mode="contained"` (filled), `mode="contained-tonal"` (tonal), `mode="outlined"`, or `mode="text"`
-- FABs use Paper's `FAB` with `variant="primary"`
-- Tab bar icons: `MaterialCommunityIcons` from `react-native-vector-icons`
+- **Library:** react-native-paper v5 for all M3 components (`Appbar.Header`, `FAB`, `Button`, `Card`, `Surface`, `TextInput`, `Switch`, `Chip`, `SegmentedButtons`, `RadioButton`, `Dialog`, `ProgressBar`, `Divider`, `TouchableRipple`)
+- **Buttons:** `mode="contained"` (filled), `mode="contained-tonal"` (tonal), `mode="outlined"`, or `mode="text"`
+- **FABs:** `variant="primary"`
+- **Icons:** MaterialCommunityIcons via react-native-vector-icons
 
 ### Elevation
-- Use Paper's `Surface elevation={n}` for elevated containers (M3 tonal surface elevation)
+- Paper's `Surface elevation={n}` for elevated containers (M3 tonal surface elevation)
 - Navigation bar: `elevation: 3`
+
+---
 
 ## Tech Stack
 
 | Piece | Choice | Notes |
 |---|---|---|
-| Framework | Bare React Native | Expo can't access AlarmManager or foreground services |
-| Push-up detection | MediaPipe | Unvalidated — test Week 1 |
-| Alarm | `AlarmManager.setAlarmClock()` + foreground service | Required for OEM reliability |
-| Billing | RevenueCat | Handles Android + eventual iOS, anonymous users, free tier |
+| Framework | Bare React Native | Expo cannot access AlarmManager or foreground services |
+| Push-up detection | MediaPipe (custom ROM angle logic) | Validated Week 1, acceptable accuracy on budget hardware |
+| Alarm | `AlarmManager.setAlarmClock()` + foreground service | Required for OEM reliability, Doze bypass |
+| Billing | RevenueCat | Handles Android, anonymous users, subscription management |
 | UI library | react-native-paper v5 | Full M3 implementation for React Native |
-| Icons | react-native-vector-icons (MaterialCommunityIcons) | Required by react-native-paper |
-| Backend | Supabase | Post-MVP only — when social ships |
-| Auth | Google Sign-In | Post-MVP only — when accounts are required |
-| Accent color | Warm orange / amber (`#FF6B00` seed) | Energy, urgency, action |
-| Privacy policy | Placeholder URL | Replace with real hosted URL before Play Store submission |
+| Icons | react-native-vector-icons (MaterialCommunityIcons) | Required by react-native-paper, ~600 icons |
+| State management | Zustand + MMKV | Local-only MVP (no backend) |
+| Notifications | Notifee | Streak reminders, rival notifications, trial warnings |
+| Animations | React Native Animated, Lottie | Confetti (react-native-confetti-cannon), staggered reveals, celebration modals |
+| Camera | react-native-vision-camera | Hardware camera access for pose detection |
+| Themes | react-native-paper + custom M3 theme | Dark/light/system modes, seed color derivation |
+| Backend | None (MVP) | Supabase deferred for post-launch social features |
+| Auth | None (MVP) | Google Sign-In deferred when accounts needed |
 
-**Test devices:** Personal Android phone + tablet. No Xiaomi/Samsung — source or use BrowserStack.
+---
+
+## Current App State
+
+Launched screens:
+- **Alarms:** Create, list, fire, manual/camera dismiss, snooze
+- **Progress:** Daily goal tracker, streak display, freeze counter, engagement modes (leaderboard, boss battle, community challenge, ghost mode), replay of past wins
+- **Rewards:** List, redeem, create, delete, edit, emojis
+- **Settings:** Theme (light/dark/system), permissions, streak reminder time, volume, sound selection, haptic/audio cue toggles, keep-screen-on toggle, camera preference (front/back)
+- **Onboarding:** Full 18-step flow with quiz, persona, alarm setup, rewards, commitment, permissions, paywall
+- **Celebration:** Cinematic modals on alarm completion, streak milestones, freeze earn, title unlock
 
 ---
 
 ## Timeline
 
-| Week | Goal |
+| Phase | Goal |
 |---|---|
-| **1** | Prove the two existential risks: alarm fires reliably on 3+ devices; camera detects push-ups in real conditions. Gate — do not proceed without passing both. |
-| **2** | Full alarm feature set: one-time + recurring, volume, sounds, manual fallback, outside push-up logging |
-| **3** | Onboarding flow, reward banking, streak tracking |
-| **4** | Paywall + RevenueCat, trial logic, downsell screens |
-| **5** | Polish, Play Store submission prep |
+| **MVP (Shipped)** | Alarm, detection, rewards, streaks, onboarding, paywall, engagement modes, M3 design |
+| **Post-Launch v1.1** | Backend (Supabase), accounts (Google Sign-In), real leaderboards (seeded initially), hyper-local competition |
+| **v1.2–1.5** | Social features (friend challenges), achievement cards, referral program, premium cosmetics (optional) |
+| **v2** | Accounts, social graph, real backend infrastructure, potential iOS port |
 
 ---
 
-## Open Questions
+## Open Questions / Deferred
 
-- [ ] Founder selfie placeholder — what image to use until real photo is ready?
-- [ ] Persona logic — what quiz answer combinations map to which persona?
-- [ ] Downsell timer: real countdown that fires once per user, or reset on re-open?
+- [ ] Hard paywall conversion rate: will 8% survive user testing, or do we need trial?
+- [ ] Camera accuracy on ultra-budget phones (sub-$100 Android): acceptable for launch or gate to manual-only?
+- [ ] Anonymous rival personas: should names/avatars be randomized more, or locked per session?
+- [ ] Leaderboard refresh: weekly is good, or should it update daily?
+- [ ] Streak freeze: should users be able to manually redeem one, or only auto-use on break?
+- [ ] Post-payment: add "settings" link to RevenueCat Manage Subscriptions, or build custom flow?
+
+---
+
+## Success Metrics
+
+**Post-launch tracking (via analytics SDK):**
+- **Day 1 Retention:** % of users who return and complete 2nd alarm
+- **Day 7 Retention:** % of users with active 7-day streak
+- **Paywall Conversion:** % of users who complete onboarding and purchase
+- **Alarm Firing:** % of scheduled alarms that fire within 2-minute window (reliability metric)
+- **Camera Accuracy:** % of reps counted vs. manual verification (detection quality)
+- **Engagement Modes:** % of users who visit leaderboard/boss battle/challenges (retention hook)
+- **Purchase Tier Distribution:** % opting for weekly vs. annual vs. lifetime (LTV composition)
+
