@@ -6,6 +6,23 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-21 — Level-Up Celebration Modal
+
+### Feature
+Added a cinematic full-screen celebration when the user hits a new avatar level (10 levels total, Seedling → Legend).
+
+### Implementation
+- **Detection:** `addReps()` in `bankStore.ts` now compares `getAvatarLevel(s.totalReps)` (before) vs `getAvatarLevel(newTotal)` (after) on every rep submission. On a level change, sets `pendingLevelUp: { fromLevel, fromEmoji, toLevel, toEmoji, toLabel }` — same pattern as `pendingCelebration`.
+- **Component:** `src/components/LevelUpModal.tsx` — full-screen black overlay with a sequenced animation: old emoji fades/shrinks out → new emoji springs in → level number + brand gradient title pill slides up → "Let's gooo 💪" button appears → confetti cannon fires (140 particles). "✦ SCREENSHOT TO SHARE ✦" hint below the button.
+- **Global mount:** `<LevelUpModal />` added to `App.tsx` inside `PaperProvider`, so it fires regardless of which screen triggered the rep submission (camera screen, manual entry, etc.).
+
+### Files changed
+- `src/store/bankStore.ts` — added `LevelUp` interface, `pendingLevelUp` state to `BankStore` + `BANK_DEFAULTS`, level-up detection in `addReps()`, `clearLevelUp()` reducer
+- `src/components/LevelUpModal.tsx` — new file
+- `App.tsx` — imports and renders `<LevelUpModal />`
+
+---
+
 ## 2026-07-21 — Google Play Console Setup
 
 - Play Console app created: PushRise, Free, App type

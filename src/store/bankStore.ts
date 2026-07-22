@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {getBonus, checkMilestone, getWeekStart} from '../utils/engagement';
+import {getBonus, checkMilestone, getWeekStart, getAvatarLevel} from '../utils/engagement';
 import {makeMMKVStorage} from './mmkvStorage';
 
 const mmkvStorage = makeMMKVStorage();
@@ -16,6 +16,14 @@ export interface Reward {
 export interface Celebration {
   bonus: number;
   milestone: number | null;
+}
+
+export interface LevelUp {
+  fromLevel: number;
+  fromEmoji: string;
+  toLevel: number;
+  toEmoji: string;
+  toLabel: string;
 }
 
 interface BankStore {
@@ -37,11 +45,13 @@ interface BankStore {
   hasSeenBankIntro: boolean;
   seenMilestones: number[];
   pendingCelebration: Celebration | null;
+  pendingLevelUp: LevelUp | null;
   bossDefeatedWeek: string | null;
   dailyHistory: Record<string, number>;
   rewards: Reward[];
   addReps: (n: number) => void;
   clearCelebration: () => void;
+  clearLevelUp: () => void;
   clearFreezeEarned: () => void;
   clearFreezeUsed: () => void;
   setEquippedTitle: (t: string | null) => void;
@@ -114,6 +124,7 @@ const BANK_DEFAULTS = {
   hasSeenBankIntro: false,
   seenMilestones: [] as number[],
   pendingCelebration: null as Celebration | null,
+  pendingLevelUp: null as LevelUp | null,
   bossDefeatedWeek: null as string | null,
   dailyHistory: {} as Record<string, number>,
   rewards: DEFAULT_REWARDS,
@@ -135,6 +146,12 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
 
     const newTotal = s.totalReps + totalAdded;
     const milestone = checkMilestone(s.totalReps, newTotal, s.seenMilestones);
+
+    const oldAvatarLevel = getAvatarLevel(s.totalReps);
+    const newAvatarLevel = getAvatarLevel(newTotal);
+    const levelUp: LevelUp | null = newAvatarLevel.level > oldAvatarLevel.level
+      ? {fromLevel: oldAvatarLevel.level, fromEmoji: oldAvatarLevel.emoji, toLevel: newAvatarLevel.level, toEmoji: newAvatarLevel.emoji, toLabel: newAvatarLevel.label}
+      : null;
 
     const isNewDay = s.todayDate !== today;
     const isNewWeek = s.weekStartDate !== weekStart;
@@ -167,6 +184,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       weekStartDate: weekStart,
       seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,
       pendingCelebration: celebration,
+      pendingLevelUp: levelUp ?? s.pendingLevelUp,
       dailyHistory: isNewDay
         ? {...s.dailyHistory, ...(s.todayDate ? {[s.todayDate]: s.todayReps} : {}), [today]: newTodayReps}
         : {...s.dailyHistory, [today]: newTodayReps},
@@ -178,6 +196,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
   },
 
   clearCelebration: () => set({pendingCelebration: null}),
+  clearLevelUp: () => set({pendingLevelUp: null}),
   clearFreezeEarned: () => set({pendingFreezeEarned: false}),
   clearFreezeUsed: () => set({pendingFreezeUsed: false}),
   setEquippedTitle: (t) => set({equippedTitle: t}),

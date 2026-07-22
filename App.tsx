@@ -22,6 +22,7 @@ import {useThemeStore} from './src/store/themeStore';
 import {DarkTheme, LightTheme} from './src/theme';
 import {useBankStore} from './src/store/bankStore';
 import {useSettingsStore} from './src/store/settingsStore';
+import LevelUpModal from './src/components/LevelUpModal';
 
 function alarmParamsFromData(id: string, data?: Record<string, string>) {
   return {
@@ -106,6 +107,7 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <RootNavigator />
+        <LevelUpModal />
       </PaperProvider>
     </SafeAreaProvider>
   );
