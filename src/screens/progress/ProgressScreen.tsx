@@ -645,10 +645,10 @@ export default function ProgressScreen() {
           <Text style={{fontSize: 36}}>🎰</Text>
           <View style={{flex: 1}}>
             <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
-              Rep Slots
+              Feeling lucky?
             </Text>
             <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 3}}>
-              {totalReps >= 10 ? 'Wager reps — win up to 7x or lose it all' : 'Need 10+ reps to spin'}
+              {totalReps >= 10 ? 'Gamble banked reps — win up to 7x or lose it all.' : 'Need 10+ reps to spin'}
             </Text>
           </View>
           <Text style={{fontSize: 22, color: c.onSurfaceVariant, fontWeight: '300'}}>›</Text>
