@@ -24,6 +24,11 @@ import type {RootStackParamList} from '../../navigation/navigationRef';
 type Nav = StackNavigationProp<RootStackParamList>;
 type Sheet = 'closed' | 'intro' | 'mode' | 'manual' | 'titles' | 'slots-wager';
 
+const REP_TITLES = [...TITLES]
+  .reverse()
+  .filter(t => /^[\d,]+ reps$/.test(t.unlock))
+  .map(t => ({...t, repCount: parseInt(t.unlock.replace(/[^\d]/g, ''), 10)}));
+
 function GhostCard({yesterdayHourlyReps, todayReps}: {yesterdayHourlyReps: number[]; todayReps: number}) {
   const theme = useTheme();
   const c = theme.colors;
@@ -103,13 +108,11 @@ function AvatarCard({totalReps, streak, freezeCount, equippedTitle, userName, on
     ? Math.min((totalReps - prevThreshold) / (next - prevThreshold), 1)
     : 1;
 
-  const nextRepTitle = [...TITLES].reverse().find(t => {
-    const m = /^([\d,]+) reps$/.exec(t.unlock);
-    return m ? parseInt(m[1].replace(/,/g, ''), 10) > totalReps : false;
-  });
-  const nextTitleRepsNeeded = nextRepTitle
-    ? parseInt(nextRepTitle.unlock.match(/^([\d,]+) reps/)![1].replace(/,/g, ''), 10) - totalReps
-    : 0;
+  const nextRepTitle = React.useMemo(
+    () => REP_TITLES.find(t => t.repCount > totalReps),
+    [totalReps],
+  );
+  const nextTitleRepsNeeded = nextRepTitle ? nextRepTitle.repCount - totalReps : 0;
 
   return (
     <TouchableOpacity
@@ -188,7 +191,7 @@ function AvatarCard({totalReps, streak, freezeCount, equippedTitle, userName, on
 function LeaderboardCard({weekReps}: {weekReps: number}) {
   const theme = useTheme();
   const c = theme.colors;
-  const entries = getLeaderboard(weekReps);
+  const entries = React.useMemo(() => getLeaderboard(weekReps), [weekReps]);
 
   return (
     <View style={[{
@@ -473,7 +476,10 @@ export default function ProgressScreen() {
   const [showBossWin, setShowBossWin] = useState(false);
 
   const weekStart = useBankStore(s => s.weekStartDate) || getWeekStart();
-  const boss = getBoss(weekReps, weekStart, bossDefeatedWeek);
+  const boss = React.useMemo(
+    () => getBoss(weekReps, weekStart, bossDefeatedWeek),
+    [weekReps, weekStart, bossDefeatedWeek],
+  );
 
   // Refresh community goal number every 30s for live feel
   React.useEffect(() => {

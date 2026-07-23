@@ -30,6 +30,7 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
   const [reels, setReels] = useState<[string, string, string]>(['🎰', '🎰', '🎰']);
   const [outcome, setOutcome] = useState<{payout: number; symbols: [string, string, string]; stopSequence: [number, number, number]} | null>(null);
   const ivals = useRef<(ReturnType<typeof setInterval> | null)[]>([null, null, null]);
+  const lockedReels = useRef<boolean[]>([false, false, false]);
   const confettiRef = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const skullScale = useRef(new Animated.Value(0)).current;
@@ -46,6 +47,7 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
       setPhase('idle');
       setReels(['🎰', '🎰', '🎰']);
       setOutcome(null);
+      lockedReels.current = [false, false, false];
       shakeAnim.setValue(0);
       skullScale.setValue(0);
       reelScale.setValue(1);
@@ -113,27 +115,30 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
     Vibration.vibrate([30, 50, 30]);
     startPulse();
 
-    [0, 1, 2].forEach(i => {
-      ivals.current[i] = setInterval(() => {
-        setReels(prev => {
-          const next = [...prev] as [string, string, string];
-          next[i] = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-          return next;
-        });
-      }, 50);
-      Vibration.vibrate(20);
-    });
+    lockedReels.current = [false, false, false];
+    // ponytail: one interval, one setState/tick (was 3×50ms intervals = ~60 updates/sec)
+    ivals.current[0] = setInterval(() => {
+      setReels(prev => [
+        lockedReels.current[0] ? prev[0] : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        lockedReels.current[1] ? prev[1] : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        lockedReels.current[2] ? prev[2] : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+      ]);
+    }, 50);
+    Vibration.vibrate(20);
 
     result.stopSequence.forEach((delay, i) => {
       setTimeout(() => {
         Vibration.vibrate(100);
-        clearInterval(ivals.current[i]!);
+        lockedReels.current[i] = true;
         setReels(prev => {
           const next = [...prev] as [string, string, string];
           next[i] = result.symbols[i];
           return next;
         });
-        if (i === 2) setTimeout(() => showResult(result), 500);
+        if (i === 2) {
+          clearInterval(ivals.current[0]!);
+          setTimeout(() => showResult(result), 500);
+        }
       }, delay);
     });
   };

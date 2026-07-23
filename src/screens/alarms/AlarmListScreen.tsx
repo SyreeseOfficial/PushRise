@@ -161,8 +161,8 @@ function AlarmCard({
   const handleToggle = () => {
     Vibration.vibrate(30);
     Animated.sequence([
-      Animated.spring(cardScale, {toValue: 1.025, useNativeDriver: false, speed: 40}),
-      Animated.spring(cardScale, {toValue: 1, useNativeDriver: false, speed: 25}),
+      Animated.spring(cardScale, {toValue: 1.025, useNativeDriver: true, speed: 40}),
+      Animated.spring(cardScale, {toValue: 1, useNativeDriver: true, speed: 25}),
     ]).start();
     onShowToast(enabled ? 'Alarm disabled' : 'Alarm enabled');
     toggleAlarm(alarm.id);
@@ -179,11 +179,11 @@ function AlarmCard({
     }
     setPendingDelete(true);
     Animated.sequence([
-      Animated.timing(shakeX, {toValue: -9, duration: 55, useNativeDriver: false}),
-      Animated.timing(shakeX, {toValue: 9, duration: 55, useNativeDriver: false}),
-      Animated.timing(shakeX, {toValue: -6, duration: 55, useNativeDriver: false}),
-      Animated.timing(shakeX, {toValue: 6, duration: 55, useNativeDriver: false}),
-      Animated.timing(shakeX, {toValue: 0, duration: 55, useNativeDriver: false}),
+      Animated.timing(shakeX, {toValue: -9, duration: 55, useNativeDriver: true}),
+      Animated.timing(shakeX, {toValue: 9, duration: 55, useNativeDriver: true}),
+      Animated.timing(shakeX, {toValue: -6, duration: 55, useNativeDriver: true}),
+      Animated.timing(shakeX, {toValue: 6, duration: 55, useNativeDriver: true}),
+      Animated.timing(shakeX, {toValue: 0, duration: 55, useNativeDriver: true}),
     ]).start();
     clearTimeout(deleteTimer.current);
     deleteTimer.current = setTimeout(() => setPendingDelete(false), 3000);
@@ -296,12 +296,12 @@ export default function AlarmListScreen() {
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const showToast = (msg: string) => {
+  const showToast = React.useCallback((msg: string) => {
     setToastMsg(msg);
     setToastVisible(true);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
-  };
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {

@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useCallback} from 'react';
 import {
   View, Animated, PanResponder, TouchableOpacity, Text, Modal, TouchableWithoutFeedback,
 } from 'react-native';
@@ -22,8 +22,9 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
   const slideX = useRef(new Animated.Value(0)).current;
   const popupScale = useRef(new Animated.Value(0.9)).current;
 
-  const toKey = (day: number) =>
-    `${viewMonth.year}-${String(viewMonth.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const toKey = useCallback((day: number) =>
+    `${viewMonth.year}-${String(viewMonth.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    [viewMonth]);
 
   const firstDay = new Date(viewMonth.year, viewMonth.month, 1).getDay();
   const daysInMonth = new Date(viewMonth.year, viewMonth.month + 1, 0).getDate();
@@ -72,7 +73,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
   const monthLabel = new Date(viewMonth.year, viewMonth.month, 1)
     .toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
 
-  const renderCell = (day: number | null, idx: number) => {
+  const renderCell = useCallback((day: number | null, idx: number) => {
     if (day === null) {
       return (
         <View key={idx} style={{width: '14.285714%', aspectRatio: 1}} />
@@ -129,7 +130,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [viewMonth, selectedDate, dailyHistory, c, toKey, popupScale]);
 
   return (
     <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 16}, theme.dark ? {} : cardShadow]}>
