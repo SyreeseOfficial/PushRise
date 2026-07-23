@@ -58,6 +58,7 @@ interface BankStore {
   setEquippedTitle: (t: string | null) => void;
   defeatBoss: (weekStart: string) => void;
   markIntroSeen: () => void;
+  gamblingResult: (wager: number, payout: number) => void;
   addReward: (data: Omit<Reward, 'id'>) => void;
   editReward: (id: string, data: Omit<Reward, 'id'>) => void;
   deleteReward: (id: string) => void;
@@ -206,6 +207,9 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
   defeatBoss: (weekStart) => set({bossDefeatedWeek: weekStart}),
 
   markIntroSeen: () => set({hasSeenBankIntro: true}),
+
+  // ponytail: pure balance swap for gambling — no streak/daily/milestone side effects
+  gamblingResult: (wager, payout) => set(s => ({totalReps: Math.max(0, s.totalReps - wager + payout)})),
 
   addReward: (data) => set(s => ({
     rewards: [...s.rewards, {...data, id: Date.now().toString()}],

@@ -12,6 +12,7 @@ import InAppReview from 'react-native-in-app-review';
 import {cancelAlarm, dismissFiredAlarm, scheduleAlarm, scheduleRivalNotif, scheduleSnoozeAlarm} from '../../utils/notifee';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
+import RepSlotsModal from '../../components/RepSlotsModal';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useOnboardingStore} from '../../store/onboardingStore';
@@ -174,6 +175,8 @@ export default function AlarmFiringScreen() {
   const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
+  const [showSlots, setShowSlots] = useState(false);
+  const slotPayoutRef = useRef<number | null>(null);
   const soundRef = useRef<Sound | null>(null);
   const confettiRef = useRef<any>(null);
   // #8 — press-in scale for primary action buttons
@@ -224,8 +227,9 @@ export default function AlarmFiringScreen() {
       await cancelAlarm(alarmId);
     }
     if (completed) {
-      addReps(reps);
-      scheduleRivalNotif(totalReps + reps);
+      const earned = slotPayoutRef.current !== null ? slotPayoutRef.current : reps;
+      if (earned > 0) addReps(earned);
+      scheduleRivalNotif(totalReps + (earned > 0 ? earned : 0));
       if (!hasPromptedReview && InAppReview.isAvailable()) {
         markReviewPrompted();
         InAppReview.RequestInAppReview();
@@ -389,9 +393,21 @@ export default function AlarmFiringScreen() {
               Dismiss Alarm
             </Button>
           </Animated.View>
+          {!autoCompleteAlarm && slotPayoutRef.current === null && (
+            <Button mode="outlined" onPress={() => setShowSlots(true)} style={{marginTop: 8}}>
+              🎰 Try Your Luck — wager {reps} reps
+            </Button>
+          )}
         </View>
       )}
       <ConfettiCannon ref={confettiRef} count={80} origin={{x: 200, y: 0}} autoStart={false} fadeOut />
+
+      <RepSlotsModal
+        visible={showSlots}
+        wager={reps}
+        onResult={payout => { slotPayoutRef.current = payout; }}
+        onClose={() => setShowSlots(false)}
+      />
     </View>
   );
 }
