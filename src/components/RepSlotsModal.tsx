@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect} from 'react';
-import {Modal, View, Animated, Dimensions} from 'react-native';
+import {Modal, View, Animated, Dimensions, Vibration} from 'react-native';
 import {Text, Button, useTheme} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import ConfettiCannon from 'react-native-confetti-cannon';
@@ -8,13 +8,13 @@ import {BRAND_GRADIENT, cardShadow} from '../theme';
 const SYMBOLS = ['🍋', '🔔', '💎', '⭐', '7️⃣'];
 const {width} = Dimensions.get('window');
 
-function roll(wager: number): {payout: number; symbols: [string, string, string]} {
+function roll(wager: number): {payout: number; symbols: [string, string, string]; stopSequence: [number, number, number]} {
   const r = Math.random();
-  if (r < 0.02) return {payout: wager * 7, symbols: ['7️⃣', '7️⃣', '7️⃣']};
-  if (r < 0.07) return {payout: wager * 5, symbols: ['💎', '💎', '💎']};
-  if (r < 0.17) return {payout: wager * 3, symbols: ['⭐', '⭐', '⭐']};
-  if (r < 0.37) return {payout: wager * 2, symbols: ['🔔', '🔔', '🔔']};
-  return {payout: 0, symbols: ['🍋', '🔔', '💎']};
+  if (r < 0.02) return {payout: wager * 7, symbols: ['7️⃣', '7️⃣', '7️⃣'], stopSequence: [800, 1200, 1600]};
+  if (r < 0.07) return {payout: wager * 5, symbols: ['💎', '💎', '💎'], stopSequence: [750, 1150, 1550]};
+  if (r < 0.17) return {payout: wager * 3, symbols: ['⭐', '⭐', '⭐'], stopSequence: [700, 1100, 1500]};
+  if (r < 0.37) return {payout: wager * 2, symbols: ['🔔', '🔔', '🔔'], stopSequence: [650, 1050, 1450]};
+  return {payout: 0, symbols: ['🍋', '🔔', '💎'], stopSequence: [900, 1300, 1700]};
 }
 
 interface Props {
@@ -28,7 +28,7 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
   const {colors: c, dark} = useTheme();
   const [phase, setPhase] = useState<'idle' | 'spinning' | 'result'>('idle');
   const [reels, setReels] = useState<[string, string, string]>(['🎰', '🎰', '🎰']);
-  const [outcome, setOutcome] = useState<{payout: number; symbols: [string, string, string]} | null>(null);
+  const [outcome, setOutcome] = useState<{payout: number; symbols: [string, string, string]; stopSequence: [number, number, number]} | null>(null);
   const ivals = useRef<(ReturnType<typeof setInterval> | null)[]>([null, null, null]);
   const confettiRef = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -36,7 +36,11 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
   const reelScale = useRef(new Animated.Value(1)).current;
   const resultScale = useRef(new Animated.Value(0)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const spinButtonScale = useRef(new Animated.Value(1)).current;
+  const headerShake = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
+  // ponytail: useEffect dependencies include all animated values to avoid stale closures
   useEffect(() => {
     if (visible) {
       setPhase('idle');
@@ -46,8 +50,11 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
       skullScale.setValue(0);
       reelScale.setValue(1);
       resultScale.setValue(0);
+      spinButtonScale.setValue(1);
+      headerShake.setValue(0);
+      glowAnim.setValue(0);
     }
-  }, [visible]);
+  }, [visible, shakeAnim, skullScale, reelScale, resultScale, spinButtonScale, headerShake, glowAnim]);
 
   const stopPulse = () => {
     pulseLoop.current?.stop();
@@ -57,29 +64,43 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
   const startPulse = () => {
     pulseLoop.current = Animated.loop(
       Animated.sequence([
-        Animated.timing(reelScale, {toValue: 1.05, duration: 280, useNativeDriver: true}),
-        Animated.timing(reelScale, {toValue: 1, duration: 280, useNativeDriver: true}),
+        Animated.timing(reelScale, {toValue: 1.08, duration: 200, useNativeDriver: true}),
+        Animated.timing(reelScale, {toValue: 1, duration: 200, useNativeDriver: true}),
       ])
     );
     pulseLoop.current.start();
   };
 
-  const showResult = (result: {payout: number; symbols: [string, string, string]}) => {
+  const animateSpinButton = () => {
+    Animated.sequence([
+      Animated.spring(spinButtonScale, {toValue: 0.92, useNativeDriver: true, tension: 100, friction: 5}),
+      Animated.spring(spinButtonScale, {toValue: 1.05, useNativeDriver: true, tension: 100, friction: 5}),
+      Animated.spring(spinButtonScale, {toValue: 1, useNativeDriver: true, tension: 80, friction: 8}),
+    ]).start();
+  };
+
+  const showResult = (result: {payout: number; symbols: [string, string, string]; stopSequence: [number, number, number]}) => {
     stopPulse();
     setPhase('result');
-    Animated.spring(resultScale, {toValue: 1, useNativeDriver: true, tension: 200, friction: 7}).start();
+    Vibration.vibrate([50, 100, 50, 100, 50]);
+    Animated.spring(resultScale, {toValue: 1, useNativeDriver: true, tension: 220, friction: 6}).start();
 
     if (result.payout > 0) {
-      setTimeout(() => confettiRef.current?.start(), 150);
+      Animated.timing(headerShake, {
+        toValue: 0, useNativeDriver: true, duration: 500,
+      }).start();
+      setTimeout(() => confettiRef.current?.start(), 100);
+      if (result.payout >= wager * 7) {
+        Vibration.vibrate([100, 50, 100, 50, 100]);
+      }
     } else {
-      // shake the card + bounce skull in
       Animated.sequence([
-        ...Array(5).fill(null).flatMap((_, i) => [
-          Animated.timing(shakeAnim, {toValue: i % 2 === 0 ? 14 : -14, duration: 55, useNativeDriver: true}),
+        ...Array(6).fill(null).flatMap((_, i) => [
+          Animated.timing(shakeAnim, {toValue: i % 2 === 0 ? 16 : -16, duration: 50, useNativeDriver: true}),
         ]),
-        Animated.timing(shakeAnim, {toValue: 0, duration: 55, useNativeDriver: true}),
+        Animated.timing(shakeAnim, {toValue: 0, duration: 50, useNativeDriver: true}),
       ]).start();
-      Animated.spring(skullScale, {toValue: 1, useNativeDriver: true, tension: 220, friction: 5}).start();
+      Animated.spring(skullScale, {toValue: 1, useNativeDriver: true, tension: 250, friction: 4}).start();
     }
   };
 
@@ -89,6 +110,7 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
     setPhase('spinning');
     skullScale.setValue(0);
     resultScale.setValue(0);
+    Vibration.vibrate([30, 50, 30]);
     startPulse();
 
     [0, 1, 2].forEach(i => {
@@ -98,18 +120,20 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
           next[i] = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
           return next;
         });
-      }, 80);
+      }, 50);
+      Vibration.vibrate(20);
     });
 
-    [1200, 1600, 2000].forEach((delay, i) => {
+    result.stopSequence.forEach((delay, i) => {
       setTimeout(() => {
+        Vibration.vibrate(100);
         clearInterval(ivals.current[i]!);
         setReels(prev => {
           const next = [...prev] as [string, string, string];
           next[i] = result.symbols[i];
           return next;
         });
-        if (i === 2) setTimeout(() => showResult(result), 400);
+        if (i === 2) setTimeout(() => showResult(result), 500);
       }, delay);
     });
   };
@@ -118,86 +142,124 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
   const multiplier = wager > 0 && outcome ? outcome.payout / wager : 0;
   const isJackpot = multiplier === 7;
 
-  const reelBg = (i: number): [string, string] => {
+  const reelBg = (_i: number): [string, string] => {
     if (phase === 'result' && won) return BRAND_GRADIENT.colors as [string, string];
     if (phase === 'spinning') return ['#1a1a2e', '#16213e'];
     return [c.surface, c.surface];
   };
 
+  const handleSpin = () => {
+    animateSpinButton();
+    spin();
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={phase === 'idle' ? onClose : undefined}>
-      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', alignItems: 'center', justifyContent: 'center', padding: 24}}>
+      <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: 20}}>
 
         <ConfettiCannon
           ref={confettiRef}
-          count={220}
-          origin={{x: width / 2, y: 0}}
+          count={280}
+          origin={{x: width / 2, y: -50}}
           autoStart={false}
           fadeOut
-          explosionSpeed={350}
-          fallSpeed={3000}
+          explosionSpeed={420}
+          fallSpeed={2500}
         />
 
         <Animated.View style={[
-          {backgroundColor: c.surface, borderRadius: 32, padding: 28, alignItems: 'center', width: '100%'},
+          {width: '100%', alignItems: 'center'},
+          {transform: [{translateX: headerShake}]},
+        ]}>
+          <Text style={{fontSize: 20, fontWeight: '700', color: c.primary, letterSpacing: 1.2, marginBottom: 20, textTransform: 'uppercase'}}>
+            ⭐ LUCKY SPIN ⭐
+          </Text>
+        </Animated.View>
+
+        <Animated.View style={[
+          {backgroundColor: c.surface, borderRadius: 40, padding: 32, alignItems: 'center', width: '100%'},
           dark ? {} : cardShadow,
           {transform: [{translateX: shakeAnim}]},
         ]}>
 
-          <Text style={{fontSize: 28, fontWeight: '900', color: c.onSurface, letterSpacing: -0.5, marginBottom: 4}}>
-            Place your bets! 🎰
+          <Text style={{fontSize: 26, fontWeight: '900', color: c.onSurface, letterSpacing: -0.5, marginBottom: 2}}>
+            All in on {wager} reps! 🎰
           </Text>
-          <Text style={{fontSize: 14, color: c.onSurfaceVariant, marginBottom: 24}}>
-            Balance:{' '}
-            <Text style={{fontWeight: '800', color: c.primary}}>{wager} reps</Text>
+          <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 28, fontWeight: '500'}}>
+            Win up to <Text style={{fontWeight: '900', color: c.primary}}>{wager * 7}x</Text> or lose it all
           </Text>
 
-          {/* Reels */}
-          <Animated.View style={{
-            flexDirection: 'row', gap: 10, marginBottom: 28,
-            backgroundColor: c.surfaceVariant, borderRadius: 22, padding: 16,
-            transform: [{scale: reelScale}],
+          {/* Reels with glass effect */}
+          <View style={{
+            borderRadius: 28, overflow: 'hidden', marginBottom: 32,
+            borderWidth: 3, borderColor: c.primaryContainer,
+            backgroundColor: 'rgba(0,0,0,0.4)',
           }}>
-            {reels.map((sym, i) => (
-              <LinearGradient
-                key={i}
-                colors={reelBg(i)}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={{width: 80, height: 80, borderRadius: 16, alignItems: 'center', justifyContent: 'center'}}>
-                <Text style={{fontSize: 42}}>{sym}</Text>
-              </LinearGradient>
-            ))}
-          </Animated.View>
+            <Animated.View style={{
+              flexDirection: 'row', gap: 8,
+              padding: 12,
+              transform: [{scale: reelScale}],
+            }}>
+              {reels.map((sym, i) => (
+                <View key={i} style={{
+                  width: 90, height: 100, borderRadius: 18,
+                  overflow: 'hidden',
+                  borderWidth: 2,
+                  borderColor: phase === 'spinning' && i === reels.length - 1 ? c.primary : c.outlineVariant,
+                }}>
+                  <LinearGradient
+                    colors={reelBg(i)}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={{width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center'}}>
+                    <Text style={{fontSize: 48, fontWeight: '900'}}>{sym}</Text>
+                  </LinearGradient>
+                </View>
+              ))}
+            </Animated.View>
+          </View>
 
           {phase === 'idle' && (
             <>
-              <View style={{flexDirection: 'row', gap: 6, marginBottom: 22, flexWrap: 'wrap', justifyContent: 'center'}}>
-                {['2x', '3x', '5x', '🎰 7x JACKPOT'].map(m => (
-                  <View key={m} style={{backgroundColor: c.primaryContainer, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5}}>
-                    <Text style={{fontSize: 12, fontWeight: '800', color: c.primary}}>{m}</Text>
-                  </View>
-                ))}
+              <View style={{flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center'}}>
+                <View style={{
+                  backgroundColor: c.errorContainer, borderRadius: 12,
+                  paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1.5, borderColor: c.error,
+                }}>
+                  <Text style={{fontSize: 13, fontWeight: '900', color: c.error}}>🎰 7x JACKPOT</Text>
+                </View>
+                <View style={{backgroundColor: c.primaryContainer, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8}}>
+                  <Text style={{fontSize: 12, fontWeight: '800', color: c.primary}}>Max: 5x 💎</Text>
+                </View>
               </View>
-              <LinearGradient
-                colors={BRAND_GRADIENT.colors}
-                start={BRAND_GRADIENT.start}
-                end={BRAND_GRADIENT.end}
-                style={{borderRadius: 100, marginBottom: 10, width: '100%'}}>
-                <Button mode="text" onPress={spin} textColor="#fff" contentStyle={{paddingVertical: 10}}>
-                  SPIN 🎰
-                </Button>
-              </LinearGradient>
-              <Button mode="text" textColor={c.onSurfaceVariant} onPress={onClose}>
-                Nah, keep my reps
+              <Animated.View style={{width: '100%', transform: [{scale: spinButtonScale}]}}>
+                <LinearGradient
+                  colors={BRAND_GRADIENT.colors}
+                  start={BRAND_GRADIENT.start}
+                  end={BRAND_GRADIENT.end}
+                  style={{
+                    borderRadius: 20, marginBottom: 14, width: '100%',
+                    shadowColor: BRAND_GRADIENT.colors[0], shadowOffset: {width: 0, height: 8},
+                    shadowOpacity: 0.5, shadowRadius: 16, elevation: 12,
+                  }}>
+                  <Button mode="text" onPress={handleSpin} textColor="#fff" contentStyle={{paddingVertical: 16}}>
+                    <Text style={{fontSize: 18, fontWeight: '900', letterSpacing: 0.5}}>🎰 SPIN IT 🎰</Text>
+                  </Button>
+                </LinearGradient>
+              </Animated.View>
+              <Button mode="text" textColor={c.onSurfaceVariant} onPress={onClose} contentStyle={{paddingVertical: 4}}>
+                Keep my reps safe
               </Button>
             </>
           )}
 
           {phase === 'spinning' && (
-            <Text style={{fontSize: 16, color: c.onSurfaceVariant, fontWeight: '700', letterSpacing: 0.5}}>
-              Come on... 🤞
-            </Text>
+            <View style={{alignItems: 'center', marginVertical: 8}}>
+              <Text style={{fontSize: 20, fontWeight: '900', color: c.primary, marginBottom: 8}}>
+                🤞 Come on! 🤞
+              </Text>
+              <Text style={{fontSize: 48}}>⏳</Text>
+            </View>
           )}
 
           {phase === 'result' && outcome && (
@@ -205,42 +267,70 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
               {won ? (
                 <>
                   {isJackpot && (
-                    <Text style={{fontSize: 22, fontWeight: '900', color: '#FFD700', marginBottom: 8, letterSpacing: 1}}>
-                      🚨 JACKPOT 🚨
-                    </Text>
+                    <>
+                      <Text style={{fontSize: 28, fontWeight: '900', color: '#FFD700', marginBottom: 4, letterSpacing: 2}}>
+                        🚨 JACKPOT!! 🚨
+                      </Text>
+                      <Text style={{fontSize: 14, color: '#FFD700', marginBottom: 14, fontWeight: '700'}}>
+                        YOU HIT THE 7️⃣ 7️⃣ 7️⃣
+                      </Text>
+                    </>
                   )}
-                  <LinearGradient
-                    colors={BRAND_GRADIENT.colors}
-                    start={BRAND_GRADIENT.start}
-                    end={BRAND_GRADIENT.end}
-                    style={{borderRadius: 100, paddingHorizontal: 24, paddingVertical: 12, marginBottom: 8}}>
-                    <Text style={{fontSize: 22, fontWeight: '900', color: '#fff'}}>
-                      +{outcome.payout} reps! ({multiplier}x) 🎉
-                    </Text>
-                  </LinearGradient>
-                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
-                    +{outcome.payout - wager} bonus reps banked!
+                  <View style={{marginBottom: 8}}>
+                    <LinearGradient
+                      colors={BRAND_GRADIENT.colors}
+                      start={BRAND_GRADIENT.start}
+                      end={BRAND_GRADIENT.end}
+                      style={{
+                        borderRadius: 24, paddingHorizontal: 28, paddingVertical: 16,
+                        alignItems: 'center',
+                      }}>
+                      <Text style={{fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600', letterSpacing: 0.5}}>
+                        YOU WON
+                      </Text>
+                      <Text style={{fontSize: 40, fontWeight: '900', color: '#fff', marginTop: 4}}>
+                        +{outcome.payout} 💪
+                      </Text>
+                      <Text style={{fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2}}>
+                        {multiplier}x multiplier
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                  <Text style={{fontSize: 12, color: c.primary, marginBottom: 24, fontWeight: '700'}}>
+                    +{outcome.payout - wager} bonus reps in the bank 🏦
                   </Text>
                 </>
               ) : (
                 <>
-                  <Animated.Text style={{fontSize: 56, marginBottom: 6, transform: [{scale: skullScale}]}}>
+                  <Animated.Text style={{fontSize: 72, marginBottom: 12, marginTop: 8, transform: [{scale: skullScale}]}}>
                     💀
                   </Animated.Text>
-                  <Text style={{fontSize: 24, fontWeight: '900', color: c.error, marginBottom: 4}}>
-                    -{wager} reps. Rekt.
+                  <Text style={{fontSize: 26, fontWeight: '900', color: c.error, marginBottom: 6}}>
+                    HOUSE WINS
                   </Text>
-                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
-                    House always wins. 😈
+                  <Text style={{fontSize: 18, fontWeight: '900', color: c.error, marginBottom: 4}}>
+                    -{wager} reps gone
+                  </Text>
+                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 24}}>
+                    Better luck next time 😈 That's the gamble!
                   </Text>
                 </>
               )}
-              <Button
-                mode="contained"
-                onPress={() => {onResult(outcome.payout); onClose();}}
-                contentStyle={{paddingHorizontal: 40, paddingVertical: 8}}>
-                {won ? 'Collect 💰' : 'Take the L'}
-              </Button>
+              <LinearGradient
+                colors={won ? BRAND_GRADIENT.colors : ['#333333', '#1a1a1a']}
+                start={BRAND_GRADIENT.start}
+                end={BRAND_GRADIENT.end}
+                style={{width: '100%', borderRadius: 16}}>
+                <Button
+                  mode="text"
+                  onPress={() => {onResult(outcome.payout); onClose();}}
+                  textColor="#fff"
+                  contentStyle={{paddingVertical: 12}}>
+                  <Text style={{fontSize: 16, fontWeight: '900'}}>
+                    {won ? 'COLLECT 💰' : 'MOVE ON'}
+                  </Text>
+                </Button>
+              </LinearGradient>
             </Animated.View>
           )}
 

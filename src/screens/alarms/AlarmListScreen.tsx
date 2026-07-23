@@ -189,9 +189,10 @@ function AlarmCard({
     deleteTimer.current = setTimeout(() => setPendingDelete(false), 3000);
   };
 
-  // Drag handle — captures touch immediately, inner wins over swipePan
+  // Drag handle — captures touch immediately
   const dragPan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (evt) => {
       dragCallbacksRef.current.onStart(alarm.id, evt.nativeEvent.pageY);
     },
@@ -325,6 +326,7 @@ export default function AlarmListScreen() {
   const listContainerRef = useRef<View>(null);
   const listScreenTopRef = useRef(0);
   const scrollOffsetRef = useRef(0);
+  const scrollRef = useRef<ScrollView>(null);
   const itemLayoutsRef = useRef<Map<string, {y: number; height: number}>>(new Map());
 
   // Compute where to insert (index in list-without-dragging-item space)
@@ -351,7 +353,8 @@ export default function AlarmListScreen() {
 
   dragCallbacksRef.current.onStart = (id, pageY) => {
     const layout = itemLayoutsRef.current.get(id);
-    const cardScreenTop = listScreenTopRef.current + (layout?.y ?? 0) - scrollOffsetRef.current;
+    if (!layout) return;
+    const cardScreenTop = listScreenTopRef.current + layout.y - scrollOffsetRef.current;
     intraCardOffsetRef.current = pageY - cardScreenTop;
     ghostAnimY.setValue(cardScreenTop - rootTopRef.current);
     draggingIdRef.current = id;
@@ -447,6 +450,7 @@ export default function AlarmListScreen() {
         }}
       >
         <ScrollView
+          ref={scrollRef}
           scrollEnabled={!draggingId}
           onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }}
           scrollEventThrottle={16}
