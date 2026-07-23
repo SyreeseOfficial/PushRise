@@ -9,7 +9,7 @@ import type {RouteProp} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 import InAppReview from 'react-native-in-app-review';
-import {cancelAlarm, dismissFiredAlarm, scheduleAlarm, scheduleRivalNotif} from '../../utils/notifee';
+import {cancelAlarm, dismissFiredAlarm, scheduleAlarm, scheduleRivalNotif, scheduleSnoozeAlarm} from '../../utils/notifee';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
@@ -162,13 +162,14 @@ export default function AlarmFiringScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const {colors: c} = useTheme();
-  const {alarmId, reps, sound, volume} = route.params;
-  const {addReps, totalReps, currentStreak, todayReps} = useBankStore();
+  const {alarmId, reps, sound, volume, snoozeCount = 0} = route.params;
+  const {addReps, spendReps, totalReps, currentStreak, todayReps} = useBankStore();
   const alarm = useAlarmStore(s => s.alarms.find(a => a.id === alarmId));
   const {
     vibrateOnAlarm, muteAudioDuringPushups,
     hapticOnRep, keepScreenOn, preferFrontCamera,
     autoCompleteAlarm, audioCueOnRep, dailyGoal,
+    emergencyBypassEnabled, emergencyBypassCost,
   } = useSettingsStore();
   const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
@@ -251,6 +252,24 @@ export default function AlarmFiringScreen() {
 
   const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
+  const handleSnooze = useCallback(async (minutes: number) => {
+    Vibration.cancel();
+    soundRef.current?.stop();
+    await scheduleSnoozeAlarm(alarmId, reps + minutes, sound ?? 'alarm.mp3', volume ?? 1.0, snoozeCount + 1, minutes);
+    navigation.goBack();
+  }, [alarmId, reps, snoozeCount, sound, volume, navigation]);
+
+  const handleEmergencyBypass = () => {
+    Alert.alert(
+      'Emergency Skip',
+      `Use ${emergencyBypassCost} banked reps to skip this alarm? Your streak won't count for today.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Skip', style: 'destructive', onPress: () => { spendReps(emergencyBypassCost); cleanup(false); }},
+      ],
+    );
+  };
+
   const startCamera = async () => {
     const permission = await Camera.requestCameraPermission();
     if (permission === 'granted') {
@@ -292,6 +311,25 @@ export default function AlarmFiringScreen() {
                 Use manual count instead
               </Button>
             </>
+          {alarm?.snoozeEnabled && snoozeCount < 3 && (
+            <View style={{alignItems: 'center', gap: 6}}>
+              <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>
+                Snooze ({3 - snoozeCount} left) — adds reps
+              </Text>
+              <View style={{flexDirection: 'row', gap: 10}}>
+                {[5, 10, 15].map(min => (
+                  <Button key={min} mode="outlined" compact onPress={() => handleSnooze(min)}>
+                    {min}m +{min}
+                  </Button>
+                ))}
+              </View>
+            </View>
+          )}
+          {emergencyBypassEnabled && totalReps >= emergencyBypassCost && (
+            <Button mode="text" textColor={c.error} onPress={handleEmergencyBypass}>
+              Emergency Skip (-{emergencyBypassCost} reps)
+            </Button>
+          )}
           <Button mode="text" textColor={c.outline} onPress={dismiss}>
             Skip (no push-ups)
           </Button>

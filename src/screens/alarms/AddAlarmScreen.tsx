@@ -56,6 +56,7 @@ export default function AddAlarmScreen() {
   const [days, setDays] = useState<number[]>(existing?.days ?? []);
   const [volume, setVolume] = useState<number>(existing?.volume ?? 1.0);
   const [sound, setSound] = useState(existing?.sound ?? 'alarm.mp3');
+  const [snoozeEnabled, setSnoozeEnabled] = useState(existing?.snoozeEnabled ?? false);
 
   const toggleDay = (d: number) =>
     setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -82,6 +83,7 @@ export default function AddAlarmScreen() {
       days: recurring ? days : [],
       volume,
       sound,
+      snoozeEnabled,
     };
     if (alarmId) {
       await updateAlarm(alarmId, data);
@@ -249,6 +251,19 @@ export default function AddAlarmScreen() {
             onChangeText={setLabel}
             placeholder="Morning grind…"
           />
+        </View>
+
+        {/* Snooze */}
+        <View style={card}>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+            <View style={{flex: 1, marginRight: 12}}>
+              <Text variant="labelLarge" style={{color: c.onSurfaceVariant}}>Allow Snooze</Text>
+              <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7, marginTop: 2}}>
+                5/10/15 min — adds equal pushups to required count
+              </Text>
+            </View>
+            <Switch value={snoozeEnabled} onValueChange={setSnoozeEnabled} />
+          </View>
         </View>
 
         {/* Repeat */}

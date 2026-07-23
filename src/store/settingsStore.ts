@@ -19,6 +19,8 @@ export const SETTINGS_DEFAULTS = {
   nudgeEnabled: true,
   nudgeHour: 21,
   nudgeMinute: 0,
+  emergencyBypassEnabled: false,
+  emergencyBypassCost: 50,
 };
 
 type SettingsData = typeof SETTINGS_DEFAULTS;

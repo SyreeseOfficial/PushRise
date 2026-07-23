@@ -101,7 +101,7 @@ export async function dismissFiredAlarm(id: string) {
 }
 
 export function setupForegroundHandler(
-  onAlarmFired: (alarmId: string, reps: number, sound: string, volume: number) => void,
+  onAlarmFired: (alarmId: string, reps: number, sound: string, volume: number, snoozeCount: number) => void,
 ) {
   return notifee.onForegroundEvent(({type, detail}) => {
     if (type === EventType.DELIVERED || type === EventType.PRESS) {
@@ -112,9 +112,37 @@ export function setupForegroundHandler(
       const reps = parseInt(String(data.reps ?? '10'), 10);
       const sound = String(data.sound ?? 'alarm.mp3');
       const volume = parseFloat(String(data.volume ?? '1.0'));
-      if (id) onAlarmFired(id, reps, sound, volume);
+      const snoozeCount = parseInt(String(data.snoozeCount ?? '0'), 10);
+      if (id) onAlarmFired(id, reps, sound, volume, snoozeCount);
     }
   });
+}
+
+export async function scheduleSnoozeAlarm(
+  alarmId: string, reps: number, sound: string, volume: number, snoozeCount: number, minutes: number,
+) {
+  await notifee.cancelNotification(alarmId);
+  await notifee.createTriggerNotification(
+    {
+      id: alarmId,
+      title: 'Time to wake up.',
+      body: `Do ${reps} push-ups to dismiss`,
+      data: {reps: String(reps), sound, volume: String(volume), snoozeCount: String(snoozeCount)},
+      android: {
+        channelId: ALARM_CHANNEL_ID,
+        importance: AndroidImportance.HIGH,
+        fullScreenAction: {id: 'default'},
+        vibrationPattern: [500, 500],
+        ongoing: true,
+        autoCancel: false,
+      },
+    },
+    {
+      type: TriggerType.TIMESTAMP,
+      timestamp: Date.now() + minutes * 60 * 1000,
+      alarmManager: {type: AlarmType.SET_ALARM_CLOCK},
+    } as TimestampTrigger,
+  );
 }
 
 // ─── Daily Nudge ─────────────────────────────────────────────────────────────

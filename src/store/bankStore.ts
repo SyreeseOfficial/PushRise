@@ -50,6 +50,7 @@ interface BankStore {
   dailyHistory: Record<string, number>;
   rewards: Reward[];
   addReps: (n: number) => void;
+  spendReps: (n: number) => void;
   clearCelebration: () => void;
   clearLevelUp: () => void;
   clearFreezeEarned: () => void;
@@ -194,6 +195,8 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       pendingFreezeUsed: freezeUsed || s.pendingFreezeUsed,
     });
   },
+
+  spendReps: (n) => set(s => ({totalReps: Math.max(0, s.totalReps - n)})),
 
   clearCelebration: () => set({pendingCelebration: null}),
   clearLevelUp: () => set({pendingLevelUp: null}),

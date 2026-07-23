@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform, Alert, Linking} from 'react-native';
 import {
-  Text, Button, Surface, Chip, TextInput,
+  Text, Button, Surface, Chip, TextInput, Switch,
   TouchableRipple, useTheme, ProgressBar,
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -19,7 +19,7 @@ const STEPS = [
   'welcome', 'name-input', 'founder', 'social',
   'quiz-intro', 'q1', 'q1-reflect', 'q2', 'q3', 'q4', 'q56',
   'analyzing', 'persona', 'outcome', 'summary',
-  'create-alarm',
+  'create-alarm', 'emergency-bypass',
   'daily-goal', 'create-reward', 'commitment', 'perm-warn', 'notif-perm', 'streak-reminder', 'battery', 'paywall',
 ] as const;
 
@@ -148,6 +148,9 @@ export default function OnboardingScreen() {
   const rewardHeroAnim = useRef(new Animated.Value(1)).current;
   const [grindingFor, setGrindingFor] = useState('');
   const [commitSigned, setCommitSigned] = useState(false);
+
+  const [bypassEnabled, setBypassEnabled] = useState(false);
+  const [bypassCost, setBypassCost] = useState(50);
   const commitSealAnim = useRef(new Animated.Value(0)).current;
 
   const [offerings, setOfferings] = useState<any>(null);
@@ -314,7 +317,7 @@ export default function OnboardingScreen() {
       volume: 1.0,
       sound: 'alarm.mp3',
     });
-    settings.update({userName: userName.trim()});
+    settings.update({userName: userName.trim(), emergencyBypassEnabled: bypassEnabled, emergencyBypassCost: bypassCost});
     startTrial();
     completeOnboarding();
   };
@@ -360,6 +363,7 @@ export default function OnboardingScreen() {
     setPurchaseError(null);
     try {
       const {customerInfo} = await Purchases.purchasePackage(pkg);
+      settings.update({emergencyBypassEnabled: bypassEnabled, emergencyBypassCost: bypassCost});
       startTrial();
       completeOnboarding();
     } catch (e: any) {
@@ -931,6 +935,68 @@ export default function OnboardingScreen() {
             </Button>
           </View>
         );
+
+      case 'emergency-bypass': {
+        const BYPASS_COST_PRESETS = [25, 50, 75, 100];
+        return (
+          <View style={{paddingHorizontal: 24, paddingTop: 32}}>
+            <Text variant="headlineMedium" style={{fontWeight: '800', lineHeight: 38, marginBottom: 8}}>
+              What if you have a real emergency?
+            </Text>
+            <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 28}}>
+              Enable emergency skip to silence an alarm using banked reps — for true emergencies only. You'll lose those reps and your streak for the day.
+            </Text>
+
+            <Surface elevation={1} style={{borderRadius: 16, padding: 20, marginBottom: 24}}>
+              <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+                <View style={{flex: 1, marginRight: 16}}>
+                  <Text variant="titleMedium" style={{fontWeight: '700'}}>Enable Emergency Skip</Text>
+                  <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginTop: 4, lineHeight: 18}}>
+                    Shows a skip button when you can't do push-ups
+                  </Text>
+                </View>
+                <Switch value={bypassEnabled} onValueChange={setBypassEnabled} />
+              </View>
+
+              {bypassEnabled && (
+                <View style={{marginTop: 20}}>
+                  <Text variant="labelMedium" style={{color: theme.colors.onSurfaceVariant, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5}}>
+                    Cost in banked reps
+                  </Text>
+                  <View style={{flexDirection: 'row', gap: 10}}>
+                    {BYPASS_COST_PRESETS.map(n => (
+                      <TouchableRipple
+                        key={n}
+                        onPress={() => setBypassCost(n)}
+                        borderless
+                        style={{flex: 1, borderRadius: 12}}>
+                        <Surface
+                          elevation={0}
+                          style={{
+                            borderRadius: 12, padding: 14, alignItems: 'center',
+                            backgroundColor: bypassCost === n ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                            borderWidth: bypassCost === n ? 2 : 0,
+                            borderColor: theme.colors.primary,
+                          }}>
+                          <Text style={{
+                            fontSize: 20, fontWeight: '800',
+                            color: bypassCost === n ? theme.colors.primary : theme.colors.onSurface,
+                          }}>{n}</Text>
+                          <Text style={{fontSize: 10, color: theme.colors.onSurfaceVariant, marginTop: 2}}>reps</Text>
+                        </Surface>
+                      </TouchableRipple>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </Surface>
+
+            <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}} style={{marginBottom: 12}}>
+              {bypassEnabled ? 'Got it →' : 'No thanks →'}
+            </Button>
+          </View>
+        );
+      }
 
       case 'daily-goal': {
         const GOAL_TIERS = [

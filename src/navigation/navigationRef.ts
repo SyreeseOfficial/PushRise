@@ -3,7 +3,7 @@ import {createNavigationContainerRef} from '@react-navigation/native';
 export type RootStackParamList = {
   Onboarding: undefined;
   MainTabs: undefined;
-  AlarmFiring: {alarmId: string; reps: number; sound: string; volume: number};
+  AlarmFiring: {alarmId: string; reps: number; sound: string; volume: number; snoozeCount?: number};
   AddAlarm: {alarmId?: string} | undefined;
   BankCamera: undefined;
   Permissions: undefined;

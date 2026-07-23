@@ -17,7 +17,7 @@ import {scheduleNudge, cancelNudge} from '../../utils/notifee';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
-type DialogKey = 'theme' | 'defaultReps' | 'dailyGoal' | 'grindingFor' | 'name' | 'about' | 'resetSettings' | 'resetAll' | null;
+type DialogKey = 'theme' | 'defaultReps' | 'dailyGoal' | 'grindingFor' | 'name' | 'about' | 'resetSettings' | 'resetAll' | 'emergencyBypassCost' | null;
 
 const THEME_OPTIONS: {label: string; value: ThemeMode; icon: string}[] = [
   {label: 'Follow System', value: 'system', icon: 'theme-light-dark'},
@@ -43,6 +43,7 @@ export default function SettingsScreen() {
   const [tempGrinding, setTempGrinding] = useState('');
   const [tempName, setTempName] = useState('');
   const [tempTheme, setTempTheme] = useState<ThemeMode>('system');
+  const [tempBypassCost, setTempBypassCost] = useState('');
   const [showNudgePicker, setShowNudgePicker] = useState(false);
 
   const open = (key: DialogKey) => {
@@ -51,11 +52,13 @@ export default function SettingsScreen() {
     if (key === 'grindingFor') setTempGrinding(settings.grindingFor);
     if (key === 'name') setTempName(settings.userName);
     if (key === 'theme') setTempTheme(mode);
+    if (key === 'emergencyBypassCost') setTempBypassCost(String(settings.emergencyBypassCost));
     setDialog(key);
   };
   const close = () => setDialog(null);
 
   const saveReps = () => { const n = parseInt(tempReps, 10); if (n >= 1) settings.update({defaultReps: n}); close(); };
+  const saveBypassCost = () => { const n = parseInt(tempBypassCost, 10); if (n >= 1) settings.update({emergencyBypassCost: n}); close(); };
   const saveGoal = () => { const n = parseInt(tempGoal, 10); settings.update({dailyGoal: n > 0 ? n : 0}); close(); };
   const saveGrinding = () => { settings.update({grindingFor: tempGrinding.trim()}); close(); };
   const saveName = () => { settings.update({userName: tempName.trim()}); close(); };
@@ -205,6 +208,29 @@ export default function SettingsScreen() {
             onPress={() => open('defaultReps')}
             last
           />
+        </Card>
+
+        <SectionLabel label="Emergency Bypass" />
+        <Card>
+          <SwitchRow
+            icon="alert-circle-outline"
+            iconBg={c.errorContainer}
+            iconFg={c.onErrorContainer}
+            title="Emergency Skip"
+            description="Spend banked reps to silence an alarm without push-ups"
+            value={settings.emergencyBypassEnabled}
+            onChange={v => settings.update({emergencyBypassEnabled: v})}
+            last={!settings.emergencyBypassEnabled}
+          />
+          {settings.emergencyBypassEnabled && (
+            <TapRow
+              icon="counter"
+              title="Skip Cost"
+              value={`${settings.emergencyBypassCost} reps`}
+              onPress={() => open('emergencyBypassCost')}
+              last
+            />
+          )}
         </Card>
 
         <SectionLabel label="Alarm Behavior" />
@@ -431,6 +457,30 @@ export default function SettingsScreen() {
           <Dialog.Actions>
             <Button onPress={close}>Cancel</Button>
             <Button onPress={saveReps}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={dialog === 'emergencyBypassCost'} onDismiss={close} style={{backgroundColor: c.surface}}>
+          <Dialog.Title>Emergency Skip Cost</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+              How many banked reps it costs to use emergency skip.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Reps"
+              value={tempBypassCost}
+              onChangeText={setTempBypassCost}
+              keyboardType="number-pad"
+              maxLength={4}
+              selectTextOnFocus
+              autoFocus
+              contentStyle={{fontSize: 32, fontWeight: '300', color: c.primary}}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={close}>Cancel</Button>
+            <Button onPress={saveBypassCost}>Save</Button>
           </Dialog.Actions>
         </Dialog>
 

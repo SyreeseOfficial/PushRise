@@ -79,12 +79,12 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ## Play Store Submission (Week 5)
 
-- [ ] App icon (512×512 PNG) — design locked (Ringer face close-up), asset generation pending
-- [ ] Add `beep.mp3` to `android/app/src/main/res/raw/` (required for audioCueOnRep feature)
-- [ ] Feature graphic (1024×500)
-- [ ] Screenshots (min. 2, aim for 6–8, phone + tablet)
-- [x] Store listing copy — saved in `store-listing.md` (**delete file before submission**)
-- [x] Privacy policy — copy drafted (see below), needs to go live at syreese.com/pushrise/privacy-policy
+- [x] App icon (512×512 PNG) — uploaded to Play Console
+- [x] Add `beep.wav` to `android/app/src/main/res/raw/` (required for audioCueOnRep feature)
+- [x] Feature graphic (1024×500) — uploaded to Play Console
+- [x] Screenshots — uploaded to Play Console
+- [x] Store listing copy — uploaded to Play Console
+- [x] Privacy policy — live at syreese.com/pushrise/privacy-policy
 - [ ] Camera permission justification statement for Play Store review
 - [x] Subscription terms copy — saved in `subscription-terms.md` (**delete file before submission**); still needs to be wired into the paywall UI near the purchase buttons
 - [ ] Test full purchase flow end-to-end on a real device with a test account

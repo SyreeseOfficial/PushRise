@@ -30,6 +30,7 @@ function alarmParamsFromData(id: string, data?: Record<string, string>) {
     reps: parseInt(String(data?.reps ?? '10'), 10),
     sound: String(data?.sound ?? 'alarm.mp3'),
     volume: parseFloat(String(data?.volume ?? '1.0')),
+    snoozeCount: parseInt(String(data?.snoozeCount ?? '0'), 10),
   };
 }
 
@@ -93,8 +94,8 @@ export default function App() {
       if (state === 'active') checkForActiveAlarm();
     });
 
-    const unsub = setupForegroundHandler((alarmId, reps, sound, volume) => {
-      navigate('AlarmFiring', {alarmId, reps, sound, volume});
+    const unsub = setupForegroundHandler((alarmId, reps, sound, volume, snoozeCount) => {
+      navigate('AlarmFiring', {alarmId, reps, sound, volume, snoozeCount});
     });
 
     return () => {

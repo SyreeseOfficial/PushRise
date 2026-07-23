@@ -15,6 +15,7 @@ export interface Alarm {
   days: number[]; // 0=Sun..6=Sat, empty = one-time
   volume: number; // 0–1
   sound: string;  // bundled filename, e.g. 'alarm.mp3'
+  snoozeEnabled?: boolean;
 }
 
 interface AlarmStore {
