@@ -114,11 +114,11 @@ Findings from a full codebase audit. Grouped by effort. Fix the XS/S items befor
 
 ### Touch Feedback (broken or missing)
 
-- [ ] **[XS] Wire the dead `Pressable` on alarm cards** — `AlarmListScreen.tsx:231`: `<Pressable style={{flex: 1}}>` has no `onPress` and blocks ripple from children. Wire it to `navigation.navigate('AddAlarm', {alarmId: alarm.id})` so tapping the card body opens edit (same as the pencil icon).
-- [ ] **[S] Replace `TouchableOpacity` with `TouchableRipple` in all Settings rows** — `SettingsScreen.tsx:113,135,157`: `TapRow`, `SwitchRow`, `DangerRow` all use `TouchableOpacity activeOpacity={0.6}`. On a white card this is invisible. Swap all three to `TouchableRipple` from `react-native-paper`.
-- [ ] **[S] Replace `TouchableOpacity` with `TouchableRipple` on the two Progress hero cards** — `ProgressScreen.tsx:619` ("Bank Push-ups") and `643` ("Feeling lucky?"). These are the two primary actions on the tab; they deserve visible tap feedback.
-- [ ] **[S] Same for mode-sheet option rows (Camera / Manual)** — `ProgressScreen.tsx:845,859`. Both use `TouchableOpacity activeOpacity={0.8}` over a card background. Swap to `TouchableRipple`.
-- [ ] **[M] FABs on Alarms and Rewards use `TouchableOpacity` over a gradient** — `AlarmListScreen.tsx:522`, `RewardsScreen.tsx:411`. Wrap the `LinearGradient` in a `Pressable` with `android_ripple` or use `TouchableRipple borderless` for native Android feel.
+- [x] **[XS] Wire the dead `Pressable` on alarm cards** — `AlarmListScreen.tsx:231`: `<Pressable style={{flex: 1}}>` has no `onPress` and blocks ripple from children. Wire it to `navigation.navigate('AddAlarm', {alarmId: alarm.id})` so tapping the card body opens edit (same as the pencil icon).
+- [x] **[S] Replace `TouchableOpacity` with `TouchableRipple` in all Settings rows** — `SettingsScreen.tsx:113,135,157`: `TapRow`, `SwitchRow`, `DangerRow` all use `TouchableOpacity activeOpacity={0.6}`. On a white card this is invisible. Swap all three to `TouchableRipple` from `react-native-paper`.
+- [x] **[S] Replace `TouchableOpacity` with `TouchableRipple` on the two Progress hero cards** — `ProgressScreen.tsx:619` ("Bank Push-ups") and `643` ("Feeling lucky?"). These are the two primary actions on the tab; they deserve visible tap feedback.
+- [x] **[S] Same for mode-sheet option rows (Camera / Manual)** — `ProgressScreen.tsx:845,859`. Both use `TouchableOpacity activeOpacity={0.8}` over a card background. Swap to `TouchableRipple`.
+- [x] **[M] FABs on Alarms and Rewards use `TouchableOpacity` over a gradient** — `AlarmListScreen.tsx:522`, `RewardsScreen.tsx:411`. Wrap the `LinearGradient` in a `Pressable` with `android_ripple` or use `TouchableRipple borderless` for native Android feel.
 
 ---
 

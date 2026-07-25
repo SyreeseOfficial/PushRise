@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {Animated, Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
+import {Animated, Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity, Pressable} from 'react-native';
 import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import ConfettiCannon from 'react-native-confetti-cannon';
@@ -410,10 +410,10 @@ export default function RewardsScreen() {
       />
 
       {/* Gradient FAB */}
-      <TouchableOpacity
+      <Pressable
         onPress={openAdd}
-        activeOpacity={0.85}
-        style={{position: 'absolute', bottom: fabBottom, right: 24}}>
+        style={{position: 'absolute', bottom: fabBottom, right: 24}}
+        android_ripple={{color: 'rgba(255,255,255,0.25)', borderless: true, radius: 60}}>
         <LinearGradient
           colors={BRAND_GRADIENT.colors}
           start={BRAND_GRADIENT.start}
@@ -429,7 +429,7 @@ export default function RewardsScreen() {
           }}>
           <Icon source="plus" size={28} color="#FFFFFF" />
         </LinearGradient>
-      </TouchableOpacity>
+      </Pressable>
 
       <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar('')} duration={3000} wrapperStyle={{bottom: Math.max(insets.bottom, 8) + 80}}>
         {snackbar}

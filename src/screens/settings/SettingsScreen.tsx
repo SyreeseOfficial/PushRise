@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
-import {View, ScrollView, Linking, Alert, TouchableOpacity} from 'react-native';
+import {View, ScrollView, Linking, Alert} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   Text, Switch, Portal, Dialog, Button,
-  RadioButton, TextInput, useTheme, Icon, Divider,
+  RadioButton, TextInput, useTheme, Icon, Divider, TouchableRipple,
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
     onPress: () => void; last?: boolean;
   }) => (
     <>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={{
+      <TouchableRipple onPress={onPress} style={{
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 16, paddingVertical: 14, gap: 12,
       }}>
@@ -118,7 +118,7 @@ export default function SettingsScreen() {
         <Text style={{flex: 1, fontSize: 15, color: c.onSurface}}>{title}</Text>
         {value && <Text style={{fontSize: 14, color: c.onSurfaceVariant}}>{value}</Text>}
         <Icon source="chevron-right" size={18} color={c.onSurfaceVariant} />
-      </TouchableOpacity>
+      </TouchableRipple>
       {!last && <Divider style={{marginLeft: 64}} />}
     </>
   );
@@ -132,7 +132,7 @@ export default function SettingsScreen() {
     value: boolean; onChange: (v: boolean) => void; last?: boolean;
   }) => (
     <>
-      <TouchableOpacity onPress={() => onChange(!value)} activeOpacity={0.6} style={{
+      <TouchableRipple onPress={() => onChange(!value)} style={{
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 16, paddingVertical: 12, gap: 12,
       }}>
@@ -144,7 +144,7 @@ export default function SettingsScreen() {
           )}
         </View>
         <Switch value={value} onValueChange={onChange} />
-      </TouchableOpacity>
+      </TouchableRipple>
       {!last && <Divider style={{marginLeft: 64}} />}
     </>
   );
@@ -154,14 +154,14 @@ export default function SettingsScreen() {
     title: string; description?: string; onPress: () => void; last?: boolean;
   }) => (
     <>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={{
+      <TouchableRipple onPress={onPress} style={{
         paddingHorizontal: 16, paddingVertical: 14,
       }}>
         <Text style={{fontSize: 15, color: c.error, fontWeight: '600'}}>{title}</Text>
         {description && (
           <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>{description}</Text>
         )}
-      </TouchableOpacity>
+      </TouchableRipple>
       {!last && <Divider />}
     </>
   );

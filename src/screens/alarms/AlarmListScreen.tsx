@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Animated, PanResponder, Pressable, ScrollView, View, Vibration, TouchableOpacity} from 'react-native';
-import {Switch, IconButton, Text, Icon, useTheme} from 'react-native-paper';
+import {Animated, PanResponder, Pressable, ScrollView, View, Vibration} from 'react-native';
+import {Switch, IconButton, Text, Icon, useTheme, TouchableRipple} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -218,7 +218,7 @@ function AlarmCard({
               </View>
 
               {/* Card content */}
-              <Pressable style={{flex: 1}}>
+              <Pressable style={{flex: 1}} onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}>
                 <View style={{flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between'}}>
                   <View style={{flexDirection: 'row', alignItems: 'flex-end', gap: 6}}>
                     <Text style={{
@@ -506,10 +506,10 @@ export default function AlarmListScreen() {
       )}
 
       {/* Gradient FAB */}
-      <TouchableOpacity
+      <Pressable
         onPress={() => navigation.navigate('AddAlarm')}
-        activeOpacity={0.85}
-        style={{position: 'absolute', bottom: fabBottom, right: 24}}>
+        style={{position: 'absolute', bottom: fabBottom, right: 24}}
+        android_ripple={{color: 'rgba(255,255,255,0.25)', borderless: true, radius: 60}}>
         <LinearGradient
           colors={BRAND_GRADIENT.colors}
           start={BRAND_GRADIENT.start}
@@ -525,7 +525,7 @@ export default function AlarmListScreen() {
           }}>
           <Icon source="plus" size={28} color="#FFFFFF" />
         </LinearGradient>
-      </TouchableOpacity>
+      </Pressable>
 
       <TopToast message={toastMsg} visible={toastVisible} />
     </View>

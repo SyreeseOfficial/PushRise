@@ -622,7 +622,7 @@ export default function ProgressScreen() {
         />
 
         {/* Bank Push-ups hero */}
-        <TouchableOpacity onPress={openBank} activeOpacity={0.9}>
+        <TouchableRipple onPress={openBank} borderless style={{borderRadius: 24}}>
           <LinearGradient
             colors={BRAND_GRADIENT.colors}
             start={BRAND_GRADIENT.start} end={BRAND_GRADIENT.end}
@@ -643,28 +643,32 @@ export default function ProgressScreen() {
             </View>
             <Text style={{fontSize: 22, color: 'rgba(255,255,255,0.8)', fontWeight: '300'}}>›</Text>
           </LinearGradient>
-        </TouchableOpacity>
+        </TouchableRipple>
 
         {/* Rep Slots */}
-        <TouchableOpacity
+        <TouchableRipple
           onPress={() => totalReps >= 10 ? setSheet('slots-wager') : undefined}
-          activeOpacity={totalReps >= 10 ? 0.9 : 1}
+          borderless
           style={[{
+            borderRadius: 24,
+            opacity: totalReps >= 10 ? 1 : 0.5,
+          }]}>
+          <View style={[{
             backgroundColor: c.surface, borderRadius: 24, padding: 22,
             flexDirection: 'row', alignItems: 'center', gap: 16,
-            opacity: totalReps >= 10 ? 1 : 0.5,
           }, theme.dark ? {} : cardShadow]}>
-          <Text style={{fontSize: 36}}>🎰</Text>
-          <View style={{flex: 1}}>
-            <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
-              Feeling lucky?
-            </Text>
-            <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 3}}>
-              {totalReps >= 10 ? 'Gamble banked reps — win up to 7x or lose it all.' : 'Need 10+ reps to spin'}
-            </Text>
+            <Text style={{fontSize: 36}}>🎰</Text>
+            <View style={{flex: 1}}>
+              <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
+                Feeling lucky?
+              </Text>
+              <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 3}}>
+                {totalReps >= 10 ? 'Gamble banked reps — win up to 7x or lose it all.' : 'Need 10+ reps to spin'}
+              </Text>
+            </View>
+            <Text style={{fontSize: 22, color: c.onSurfaceVariant, fontWeight: '300'}}>›</Text>
           </View>
-          <Text style={{fontSize: 22, color: c.onSurfaceVariant, fontWeight: '300'}}>›</Text>
-        </TouchableOpacity>
+        </TouchableRipple>
 
         {/* Stat cards */}
         <View style={{flexDirection: 'row', gap: 12}}>
@@ -853,10 +857,10 @@ export default function ProgressScreen() {
                 How do you want to log?
               </Text>
 
-              <TouchableOpacity onPress={handleCamera} activeOpacity={0.8}>
+              <TouchableRipple onPress={handleCamera} borderless style={{borderRadius: 16, marginBottom: 10}}>
                 <View style={[{
                   backgroundColor: c.surface, borderRadius: 16, padding: 18,
-                  flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10,
+                  flexDirection: 'row', alignItems: 'center', gap: 14,
                 }, theme.dark ? {backgroundColor: c.surfaceVariant} : cardShadow]}>
                   <Text style={{fontSize: 26}}>📷</Text>
                   <View style={{flex: 1}}>
@@ -865,12 +869,12 @@ export default function ProgressScreen() {
                   </View>
                   <Text style={{color: c.onSurfaceVariant, fontSize: 18}}>›</Text>
                 </View>
-              </TouchableOpacity>
+              </TouchableRipple>
 
-              <TouchableOpacity onPress={() => setSheet('manual')} activeOpacity={0.8}>
+              <TouchableRipple onPress={() => setSheet('manual')} borderless style={{borderRadius: 16, marginBottom: 16}}>
                 <View style={[{
                   backgroundColor: c.surface, borderRadius: 16, padding: 18,
-                  flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16,
+                  flexDirection: 'row', alignItems: 'center', gap: 14,
                 }, theme.dark ? {backgroundColor: c.surfaceVariant} : cardShadow]}>
                   <Text style={{fontSize: 26}}>✏️</Text>
                   <View style={{flex: 1}}>
@@ -879,7 +883,7 @@ export default function ProgressScreen() {
                   </View>
                   <Text style={{color: c.onSurfaceVariant, fontSize: 18}}>›</Text>
                 </View>
-              </TouchableOpacity>
+              </TouchableRipple>
 
               <Button mode="text" onPress={closeSheet} style={{marginTop: 4}}>
                 Cancel
