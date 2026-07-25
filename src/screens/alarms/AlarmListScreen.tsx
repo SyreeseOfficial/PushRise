@@ -20,16 +20,6 @@ type DragCallbacks = {
   onEnd: () => void;
 };
 
-function AnimatedCounter({value, style}: {value: number; style?: object}) {
-  const anim = useRef(new Animated.Value(value)).current;
-  const [display, setDisplay] = useState(value);
-  useEffect(() => {
-    const id = anim.addListener(({value: v}) => setDisplay(Math.round(v)));
-    Animated.timing(anim, {toValue: value, duration: 550, useNativeDriver: false}).start();
-    return () => anim.removeListener(id);
-  }, [value]);
-  return <Text style={style}>{display.toLocaleString()}</Text>;
-}
 
 function ActivityTicker() {
   const theme = useTheme();
@@ -423,10 +413,7 @@ export default function AlarmListScreen() {
             borderRadius: 100, gap: 4,
           }}>
             <Text style={{fontSize: 16}}>💪🏽</Text>
-            <AnimatedCounter
-              value={totalReps}
-              style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}
-            />
+            <Text style={{fontSize: 14, fontWeight: '700', color: theme.colors.onBackground}}>{totalReps.toLocaleString()}</Text>
           </View>
           <IconButton
             icon="cog-outline"
@@ -453,7 +440,7 @@ export default function AlarmListScreen() {
           ref={scrollRef}
           scrollEnabled={!draggingId}
           onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }}
-          scrollEventThrottle={16}
+          scrollEventThrottle={50}
           contentContainerStyle={[
             {paddingTop: 4, paddingBottom: 120},
             alarms.length === 0 && {flex: 1},

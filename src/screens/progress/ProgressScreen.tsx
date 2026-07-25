@@ -538,8 +538,9 @@ export default function ProgressScreen() {
 
   // #11 — spring-animate the daily goal progress bar width
   const barAnim = useRef(new Animated.Value(0)).current;
+  const barHalfWidth = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.spring(barAnim, {toValue: goalProgress * 100, useNativeDriver: false, tension: 45, friction: 9}).start();
+    Animated.spring(barAnim, {toValue: goalProgress, useNativeDriver: true, tension: 45, friction: 9}).start();
   }, [goalProgress]);
 
   // #16 — spring overshoot for bank sheet entrance
@@ -552,6 +553,11 @@ export default function ProgressScreen() {
     }
     prevSheet.current = sheet;
   }, [sheet]);
+  const unlockedTitleSet = React.useMemo(
+    () => new Set(getUnlockedTitles(totalReps, currentStreak).map(t => t.label)),
+    [totalReps, currentStreak],
+  );
+
   const closeSheet = () => {
     Animated.spring(sheetY, {toValue: 600, useNativeDriver: true, tension: 80, friction: 12}).start(
       () => setSheet('closed'),
@@ -685,11 +691,16 @@ export default function ProgressScreen() {
                 <Text style={{fontSize: 14, color: c.onSurfaceVariant, fontWeight: '500'}}>/ {dailyGoal}</Text>
               </View>
             </View>
-            <View style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
+            <View
+              style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}
+              onLayout={e => barHalfWidth.setValue(e.nativeEvent.layout.width / 2)}
+            >
               <Animated.View style={{
-                height: 8, borderRadius: 100,
-                width: barAnim.interpolate({inputRange: [0, 100], outputRange: ['0%', '100%']}),
-                overflow: 'hidden',
+                height: 8, width: '100%',
+                transform: [
+                  {translateX: Animated.subtract(Animated.multiply(barAnim, barHalfWidth), barHalfWidth)},
+                  {scaleX: barAnim},
+                ],
               }}>
                 <LinearGradient
                   colors={BRAND_GRADIENT.colors}
@@ -988,8 +999,7 @@ export default function ProgressScreen() {
             </TouchableOpacity>
             <Divider />
             {TITLES.map((title, i) => {
-              const unlocked = getUnlockedTitles(totalReps, currentStreak);
-              const isUnlocked = unlocked.some(t => t.label === title.label);
+              const isUnlocked = unlockedTitleSet.has(title.label);
               const isEquipped = equippedTitle === title.label;
               return (
                 <React.Fragment key={title.label}>

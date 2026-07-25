@@ -123,7 +123,7 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
         lockedReels.current[1] ? prev[1] : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
         lockedReels.current[2] ? prev[2] : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
       ]);
-    }, 50);
+    }, 100);
     Vibration.vibrate(20);
 
     result.stopSequence.forEach((delay, i) => {

@@ -45,7 +45,7 @@ export default function RootNavigator() {
     }
   }, [hasCompletedOnboarding]); // reschedule on app open so daily trigger never expires
 
-  const navTheme = {
+  const navTheme = React.useMemo(() => ({
     ...NavDefaultTheme,
     dark: theme.dark,
     colors: {
@@ -57,7 +57,7 @@ export default function RootNavigator() {
       border: theme.colors.outlineVariant,
       notification: theme.colors.error,
     },
-  };
+  }), [theme]);
 
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>

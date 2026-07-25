@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {Animated, Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity} from 'react-native';
 import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
@@ -220,11 +220,11 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   );
 }
 
-function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
+const RewardCard = React.memo(function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
   reward: Reward;
   totalReps: number;
-  onTryRedeem: () => void;
-  onLongPress: () => void;
+  onTryRedeem: (r: Reward) => void;
+  onLongPress: (r: Reward) => void;
 }) {
   const theme = useTheme();
   const c = theme.colors;
@@ -261,7 +261,7 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
 
   return (
     <Animated.View style={{transform: [{scale: unlockScale}]}}>
-    <TouchableRipple onLongPress={onLongPress} borderless style={[{
+    <TouchableRipple onLongPress={() => onLongPress(reward)} borderless style={[{
       borderRadius: 20,
       marginBottom: 12,
       backgroundColor: c.surface,
@@ -295,7 +295,7 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
         </View>
         <Button
           mode={canAfford ? 'contained' : 'outlined'}
-          onPress={onTryRedeem}
+          onPress={() => onTryRedeem(reward)}
           compact
           style={{borderRadius: 24}}>
           {canAfford ? 'Redeem' : `+${needed.toLocaleString()}`}
@@ -317,7 +317,7 @@ function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
     </TouchableRipple>
     </Animated.View>
   );
-}
+});
 
 export default function RewardsScreen() {
   const theme = useTheme();
@@ -342,15 +342,24 @@ export default function RewardsScreen() {
     setModalOpen(false);
   };
 
-  const handleLongPress = (r: Reward) => setActionTarget(r);
+  const handleLongPress = useCallback((r: Reward) => setActionTarget(r), []);
 
-  const handleTryRedeem = (r: Reward) => {
+  const handleTryRedeem = useCallback((r: Reward) => {
     if (totalReps < r.cost) {
       setSnackbar(`You need ${(r.cost - totalReps).toLocaleString()} more push-ups to unlock this.`);
       return;
     }
     setRedeemTarget(r);
-  };
+  }, [totalReps]);
+
+  const renderItem = useCallback(({item}: {item: Reward}) => (
+    <RewardCard
+      reward={item}
+      totalReps={totalReps}
+      onTryRedeem={handleTryRedeem}
+      onLongPress={handleLongPress}
+    />
+  ), [totalReps, handleTryRedeem, handleLongPress]);
 
   return (
     <View style={{flex: 1, backgroundColor: c.background}}>
@@ -385,14 +394,7 @@ export default function RewardsScreen() {
       <FlatList
         data={rewards}
         keyExtractor={r => r.id}
-        renderItem={({item}) => (
-          <RewardCard
-            reward={item}
-            totalReps={totalReps}
-            onTryRedeem={() => handleTryRedeem(item)}
-            onLongPress={() => handleLongPress(item)}
-          />
-        )}
+        renderItem={renderItem}
         contentContainerStyle={[
           {paddingHorizontal: 16, paddingTop: 4, paddingBottom: 120},
           rewards.length === 0 && {flex: 1},

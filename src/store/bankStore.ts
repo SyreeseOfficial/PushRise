@@ -187,9 +187,15 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,
       pendingCelebration: celebration,
       pendingLevelUp: levelUp ?? s.pendingLevelUp,
-      dailyHistory: isNewDay
-        ? {...s.dailyHistory, ...(s.todayDate ? {[s.todayDate]: s.todayReps} : {}), [today]: newTodayReps}
-        : {...s.dailyHistory, [today]: newTodayReps},
+      dailyHistory: (() => {
+        const h = isNewDay
+          ? {...s.dailyHistory, ...(s.todayDate ? {[s.todayDate]: s.todayReps} : {}), [today]: newTodayReps}
+          : {...s.dailyHistory, [today]: newTodayReps};
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+        const cutKey = cutoff.toISOString().slice(0, 10);
+        Object.keys(h).forEach(k => { if (k < cutKey) delete h[k]; });
+        return h;
+      })(),
       ...streakUpdate,
       freezeCount: newFreezeCount,
       pendingFreezeEarned: awardFreeze || s.pendingFreezeEarned,

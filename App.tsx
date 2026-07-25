@@ -22,6 +22,7 @@ import {useThemeStore} from './src/store/themeStore';
 import {DarkTheme, LightTheme} from './src/theme';
 import {useBankStore} from './src/store/bankStore';
 import {useSettingsStore} from './src/store/settingsStore';
+import {shallow} from 'zustand/shallow';
 import LevelUpModal from './src/components/LevelUpModal';
 
 function alarmParamsFromData(id: string, data?: Record<string, string>) {
@@ -50,9 +51,10 @@ export default function App() {
   const theme = isDark ? DarkTheme : LightTheme;
 
   const todayReps = useBankStore(s => s.todayReps);
-  const nudgeEnabled = useSettingsStore(s => s.nudgeEnabled);
-  const nudgeHour = useSettingsStore(s => s.nudgeHour);
-  const nudgeMinute = useSettingsStore(s => s.nudgeMinute);
+  const {nudgeEnabled, nudgeHour, nudgeMinute} = useSettingsStore(
+    s => ({nudgeEnabled: s.nudgeEnabled, nudgeHour: s.nudgeHour, nudgeMinute: s.nudgeMinute}),
+    shallow,
+  );
   const {trialStartedAt, isSubscribed, setSubscribed} = useSubscriptionStore();
 
   useEffect(() => {
