@@ -6,11 +6,13 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 import type {TimestampTrigger} from '@notifee/react-native';
+import {getDailyChallenge} from './engagement';
 
 export const ALARM_CHANNEL_ID = 'pushrise-alarm';
 const NUDGE_CHANNEL_ID = 'pushrise-nudge';
 export const NUDGE_NOTIF_ID = 'daily-nudge';
 export const RIVAL_NOTIF_ID = 'rival-notif';
+export const DAILY_CHALLENGE_NOTIF_ID = 'daily-challenge';
 
 export async function setupNotifee() {
   await notifee.createChannel({
@@ -214,6 +216,35 @@ const RIVAL_NAMES = [
   'Marcus T.', 'Jordan B.', 'Wei L.', 'Arjun K.', 'Sofia M.',
   'Camila R.', 'Diego F.', 'Priya S.', 'Luca R.', 'Kofi A.',
 ];
+
+// ─── Daily Challenge ─────────────────────────────────────────────────────────
+
+export async function scheduleDailyChallengeNotif() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const {target, deadlineHour, accepted} = getDailyChallenge(tomorrowStr);
+
+  const h = deadlineHour;
+  const deadlineStr = h === 12 ? '12pm' : h > 12 ? `${h - 12}pm` : `${h}am`;
+
+  const fireAt = new Date(`${tomorrowStr}T08:00:00`);
+
+  await notifee.cancelTriggerNotification(DAILY_CHALLENGE_NOTIF_ID);
+  await notifee.createTriggerNotification(
+    {
+      id: DAILY_CHALLENGE_NOTIF_ID,
+      title: "Today's Challenge 🎯",
+      body: `${target} push-ups before ${deadlineStr}. ${accepted.toLocaleString()} people accepted.`,
+      android: {channelId: NUDGE_CHANNEL_ID},
+    },
+    {
+      type: TriggerType.TIMESTAMP,
+      timestamp: fireAt.getTime(),
+      alarmManager: {type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE},
+    } as TimestampTrigger,
+  );
+}
 
 export async function scheduleRivalNotif(userReps: number) {
   const rivalReps = userReps + Math.floor(Math.random() * 8 + 1);

@@ -12,10 +12,10 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - Rewards locked behind rep thresholds that feel achievable but take real grinding (e.g., "500 reps to unlock custom sounds")
 - Premium rewards slot that refreshes weekly — you have to check back
 - Rep multiplier that grows with your streak (1x day 1 → 1.5x day 3 → 2x day 7). Miss a day? It resets to 1x. Watching a 2x multiplier die is devastating.
-- Daily challenge: "Today: 75 push-ups before 2pm. 1,247 people accepted." (fake number, new challenge every day)
+- ~~Daily challenge: "Today: 75 push-ups before 2pm. 1,247 people accepted." (fake number, new challenge every day)~~ → **SHIPPED**: seeded daily card in Progress tab + 8am push notification
 - "Viral moment": when you hit a milestone the app says "This won't be shown again — screenshot now." Makes the moment feel scarce.
 - Morning unlock ritual: until you bank 10 reps, a subtle "not warmed up yet" indicator shows on your avatar. Compulsion to clear it before the day starts.
-- After banking reps: "Add 5 more to hit a round 50?" People hate odd numbers. Biggest ROI of the whole list.
+- ~~After banking reps: "Add 5 more to hit a round 50?" People hate odd numbers. Biggest ROI of the whole list.~~ → **SHIPPED**: snackbar with [Add] action fires whenever todayReps lands 1–4 below a multiple of 5
 - Late-night notification: "23 PushRisers are grinding right now. The gym is quiet — perfect time to train"
 
 --- 

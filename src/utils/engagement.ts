@@ -159,6 +159,17 @@ export function getBoss(userWeekReps: number, weekStart: string, bossDefeatedWee
   return {name, weekReps, isDefeated: bossDefeatedWeek === weekStart};
 }
 
+// ─── Daily Challenge ────────────────────────────────────────────────────────
+
+export function getDailyChallenge(dateStr?: string): {target: number; deadlineHour: number; accepted: number} {
+  const date = dateStr ?? new Date().toISOString().slice(0, 10);
+  const rand = seededRng('challenge:' + date);
+  const target = (Math.floor(rand() * 17) + 8) * 5; // 40–120 in steps of 5
+  const deadlineHour = Math.floor(rand() * 9) + 12;  // 12pm–8pm
+  const accepted = Math.floor(rand() * 1700) + 800;  // 800–2499
+  return {target, deadlineHour, accepted};
+}
+
 // ─── Community Goal ─────────────────────────────────────────────────────────
 
 export function getCommunityGoal(): {repsToGo: number; total: number; goal: number} {

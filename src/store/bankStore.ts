@@ -46,6 +46,7 @@ interface BankStore {
   seenMilestones: number[];
   pendingCelebration: Celebration | null;
   pendingLevelUp: LevelUp | null;
+  pendingRoundNudge: {target: number; gap: number} | null;
   bossDefeatedWeek: string | null;
   dailyHistory: Record<string, number>;
   rewards: Reward[];
@@ -53,6 +54,7 @@ interface BankStore {
   spendReps: (n: number) => void;
   clearCelebration: () => void;
   clearLevelUp: () => void;
+  clearRoundNudge: () => void;
   clearFreezeEarned: () => void;
   clearFreezeUsed: () => void;
   setEquippedTitle: (t: string | null) => void;
@@ -127,6 +129,7 @@ const BANK_DEFAULTS = {
   seenMilestones: [] as number[],
   pendingCelebration: null as Celebration | null,
   pendingLevelUp: null as LevelUp | null,
+  pendingRoundNudge: null as {target: number; gap: number} | null,
   bossDefeatedWeek: null as string | null,
   dailyHistory: {} as Record<string, number>,
   rewards: DEFAULT_REWARDS,
@@ -162,6 +165,10 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       bonus > 0 || milestone !== null ? {bonus, milestone} : null;
 
     const newTodayReps = (isNewDay ? 0 : s.todayReps) + totalAdded;
+    const rem = newTodayReps % 5;
+    const pendingRoundNudge = rem >= 1 && rem <= 4
+      ? {target: newTodayReps + (5 - rem), gap: 5 - rem}
+      : null;
     const newHourlyReps = isNewDay ? new Array(24).fill(0) : [...s.todayHourlyReps];
     newHourlyReps[hour] = newTodayReps;
 
@@ -187,6 +194,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       seenMilestones: milestone ? [...s.seenMilestones, milestone] : s.seenMilestones,
       pendingCelebration: celebration,
       pendingLevelUp: levelUp ?? s.pendingLevelUp,
+      pendingRoundNudge,
       dailyHistory: (() => {
         const h = isNewDay
           ? {...s.dailyHistory, ...(s.todayDate ? {[s.todayDate]: s.todayReps} : {}), [today]: newTodayReps}
@@ -207,6 +215,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
 
   clearCelebration: () => set({pendingCelebration: null}),
   clearLevelUp: () => set({pendingLevelUp: null}),
+  clearRoundNudge: () => set({pendingRoundNudge: null}),
   clearFreezeEarned: () => set({pendingFreezeEarned: false}),
   clearFreezeUsed: () => set({pendingFreezeUsed: false}),
   setEquippedTitle: (t) => set({equippedTitle: t}),

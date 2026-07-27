@@ -16,6 +16,7 @@ import {BRAND_GRADIENT, cardShadow} from '../../theme';
 import {
   getTitle, getAvatarLevel, getLeaderboard, MILESTONE_MESSAGES,
   getBoss, getCommunityGoal, getWeekStart, TITLES, getUnlockedTitles,
+  getDailyChallenge,
 } from '../../utils/engagement';
 import MonthlyCalendar from '../../components/MonthlyCalendar';
 import type {RootStackParamList} from '../../navigation/navigationRef';
@@ -454,6 +455,11 @@ function FreezeEarnedModal({visible, freezeCount, onClose}: {
   );
 }
 
+function fmtHour(h: number): string {
+  if (h === 12) return '12pm';
+  return h > 12 ? `${h - 12}pm` : `${h}am`;
+}
+
 // ─── Main Screen ───────────────────────────────────────────────────────────
 
 export default function ProgressScreen() {
@@ -467,6 +473,7 @@ export default function ProgressScreen() {
     pendingCelebration, clearCelebration,
     pendingFreezeEarned, clearFreezeEarned,
     pendingFreezeUsed, clearFreezeUsed,
+    pendingRoundNudge, clearRoundNudge,
     freezeCount, equippedTitle, setEquippedTitle,
     bossDefeatedWeek, defeatBoss,
     yesterdayHourlyReps, dailyHistory,
@@ -480,6 +487,7 @@ export default function ProgressScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showFreezeEarned, setShowFreezeEarned] = useState(false);
   const [showFreezeUsedSnack, setShowFreezeUsedSnack] = useState(false);
+  const [roundNudgeSnack, setRoundNudgeSnack] = useState<{target: number; gap: number} | null>(null);
   const [communityGoal, setCommunityGoal] = useState(getCommunityGoal);
   const [showBossWin, setShowBossWin] = useState(false);
 
@@ -509,7 +517,8 @@ export default function ProgressScreen() {
       if (pendingCelebration) setShowCelebration(true);
       if (pendingFreezeEarned) setShowFreezeEarned(true);
       if (pendingFreezeUsed) setShowFreezeUsedSnack(true);
-    }, [pendingCelebration, pendingFreezeEarned, pendingFreezeUsed]),
+      if (pendingRoundNudge) { setRoundNudgeSnack(pendingRoundNudge); clearRoundNudge(); }
+    }, [pendingCelebration, pendingFreezeEarned, pendingFreezeUsed, pendingRoundNudge, clearRoundNudge]),
   );
 
   const dismissCelebration = () => {
@@ -758,6 +767,55 @@ export default function ProgressScreen() {
             {communityGoal.total.toLocaleString()} / {communityGoal.goal.toLocaleString()}
           </Text>
         </View>
+
+        {/* Daily Challenge */}
+        {(() => {
+          const ch = getDailyChallenge();
+          const deadlineDate = new Date(new Date().toISOString().slice(0, 10) + 'T' + String(ch.deadlineHour).padStart(2, '0') + ':00:00');
+          const done = todayReps >= ch.target;
+          const failed = !done && new Date() >= deadlineDate;
+          const pct = Math.min(todayReps / ch.target * 100, 100);
+          return (
+            <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 20, opacity: failed ? 0.55 : 1}, theme.dark ? {} : cardShadow]}>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14}}>
+                <View style={{width: 7, height: 7, borderRadius: 4, backgroundColor: c.primary}} />
+                <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}}>Daily Challenge</Text>
+                {done && <Text style={{fontSize: 12, color: '#22c55e', fontWeight: '700', marginLeft: 'auto'}}>DONE ✓</Text>}
+                {failed && <Text style={{fontSize: 12, color: c.onSurfaceVariant, fontWeight: '500', marginLeft: 'auto'}}>Missed</Text>}
+                {!done && !failed && <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginLeft: 'auto', fontWeight: '500'}}>Today</Text>}
+              </View>
+              {failed ? (
+                <Text style={{fontSize: 13, color: c.onSurfaceVariant, lineHeight: 20}}>
+                  Missed today. A new challenge drops tomorrow at 8am.
+                </Text>
+              ) : done ? (
+                <Text style={{fontSize: 13, color: c.onSurfaceVariant, lineHeight: 20}}>
+                  You hit <Text style={{fontWeight: '700', color: c.onSurface}}>{ch.target} push-ups</Text> before {fmtHour(ch.deadlineHour)}. Challenge complete.
+                </Text>
+              ) : (
+                <>
+                  <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 12, lineHeight: 20}}>
+                    Today:{' '}
+                    <Text style={{fontWeight: '800', color: c.primary}}>{ch.target} push-ups</Text>
+                    {' '}before{' '}
+                    <Text style={{fontWeight: '700', color: c.onSurface}}>{fmtHour(ch.deadlineHour)}</Text>
+                    .{' '}{ch.accepted.toLocaleString()} people accepted.
+                  </Text>
+                  <View style={{height: 8, backgroundColor: c.surfaceVariant, borderRadius: 100, overflow: 'hidden'}}>
+                    <LinearGradient
+                      colors={BRAND_GRADIENT.colors}
+                      start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+                      style={{height: 8, borderRadius: 100, width: `${pct}%`}}
+                    />
+                  </View>
+                  <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginTop: 8, fontWeight: '500', textAlign: 'right'}}>
+                    {todayReps} / {ch.target}
+                  </Text>
+                </>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Boss battle */}
         <View style={[{backgroundColor: c.surface, borderRadius: 20, overflow: 'hidden'}, theme.dark ? {} : cardShadow]}>
@@ -1018,6 +1076,16 @@ export default function ProgressScreen() {
         action={{label: 'OK', onPress: () => { setShowFreezeUsedSnack(false); clearFreezeUsed(); }}}
         style={{marginBottom: 80}}>
         ❄️  Freeze used — streak saved!
+      </Snackbar>
+
+      {/* Round number nudge */}
+      <Snackbar
+        visible={!!roundNudgeSnack}
+        onDismiss={() => setRoundNudgeSnack(null)}
+        duration={5000}
+        action={{label: 'Add', onPress: () => { if (roundNudgeSnack) addReps(roundNudgeSnack.gap); setRoundNudgeSnack(null); }}}
+        style={{marginBottom: 80}}>
+        Add {roundNudgeSnack?.gap} more to hit {roundNudgeSnack?.target}?
       </Snackbar>
 
       {/* Boss defeated celebration */}

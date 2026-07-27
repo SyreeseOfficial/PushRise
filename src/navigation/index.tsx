@@ -17,7 +17,7 @@ import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import PaywallScreen from '../screens/paywall/PaywallScreen';
 import {useOnboardingStore} from '../store/onboardingStore';
 import {useSettingsStore} from '../store/settingsStore';
-import {scheduleNudge} from '../utils/notifee';
+import {scheduleNudge, scheduleDailyChallengeNotif} from '../utils/notifee';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -40,9 +40,9 @@ export default function RootNavigator() {
   const theme = useTheme();
 
   React.useEffect(() => {
-    if (hasCompletedOnboarding && nudgeEnabled) {
-      scheduleNudge(nudgeHour, nudgeMinute).catch(() => {});
-    }
+    if (!hasCompletedOnboarding) return;
+    if (nudgeEnabled) scheduleNudge(nudgeHour, nudgeMinute).catch(() => {});
+    scheduleDailyChallengeNotif().catch(() => {});
   }, [hasCompletedOnboarding]); // reschedule on app open so daily trigger never expires
 
   const navTheme = React.useMemo(() => ({
