@@ -6,6 +6,65 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-27 — Full UI/UX Audit Complete (C1–C5, H1–H11, L1–L19)
+
+### Overview
+Completed a full UI/UX audit (`ui-ux-improvements.md`, 2026-07-26). 35 issues identified and fixed across Critical, High, and Low tiers. H4 intentionally skipped (collapsed Progress engagement cards rejected — kept separate). File deleted on completion.
+
+### Critical (C1–C5)
+- **C1 — Onboarding data discarded after purchase:** `handlePurchase()` duplicated only 3 of `handleComplete()`'s 5 side effects — alarm, reward, and `userName` were never saved on the purchase path. Fixed by replacing the inline block with `await handleComplete()`.
+- **C2 — Skip/bypass too prominent:** Both "Skip" and "Emergency bypass" removed from the centered idle block in `AlarmFiringScreen`. Re-rendered as ghost text (`fontSize: 12`, `opacity: 0.4–0.5`) absolutely anchored to `bottom: 40` — visually separated from the primary action.
+- **C3 — No pose detection indicator:** Pulsing "Detecting…" label added below the rep count in `CameraCounter` (AlarmFiringScreen) and `BankCameraScreen`. Rep counter switches from brand orange to white while a pose frame is actively landing; reverts after 600ms of no frame.
+- **C4 — Settings only reachable from Alarms tab:** Gear icon (`IconButton cog-outline`) added to Progress and Rewards screen headers. `RewardsScreen` got new `useNavigation` + `IconButton` imports.
+- **C5 — Onboarding alarm one-time instead of recurring:** `days: []` → `days: [0,1,2,3,4,5,6]` in `handleComplete()`.
+
+### High (H1–H11, H4 skipped)
+- **H1:** Paywall "7-day free trial" copy removed (no trial per PRD); CTA changed to "Get Started →"
+- **H2:** Settings shows "Manage Subscription" instead of "Upgrade to Pro" for subscribed users
+- **H3:** Rewards delete UX unified — double-tap to match alarm cards (was long-press)
+- **H5:** "Double-tap to edit or delete" hint in empty rewards state
+- **H6:** Pencil edit icon removed from alarm cards (card body tap already navigates to edit)
+- **H7:** Boss battle loss color changed from `c.error` (red) to `c.primary` (brand orange) on `c.surfaceVariant`
+- **H8:** "← Cancel" text button added to `BankCameraScreen` top-left
+- **H9:** One-time reward redemption dialog warns the reward will be removed on use
+- **H10:** Camera permission flow wired in `BankCameraScreen` — requests on mount, "Grant Camera Access" button on denial
+- **H11:** "No snoozes left" label shown when `snoozeCount >= 3` (snooze buttons previously vanished silently)
+
+### Low (L1–L19)
+- L1: Share card copy "iOS & Android" → "Android"
+- L2: Today's calendar day gets a subtle background indicator
+- L3: "pushups" → "push-ups" in calendar tooltip
+- L4: Calendar day headers "T/T" → "Tu/Th" (Tuesday vs Thursday)
+- L5: "Next: 6:30 AM, in 7h 22m" shown in Alarms header when an alarm is enabled
+- L6: Manual counter tap button uses `btnScale` spring animation (matches camera counter)
+- L7: Slots card moved off Progress screen (was directly below Bank CTA, churn risk)
+- L8: Q1 snooze step auto-advance timer extended to 10s (was 5s — misclassified users who paused to read)
+- L9: `setDebugAngle` in `BankCameraScreen` now guarded with `__DEV__`
+- L10: Onboarding alarm rep input switched to ± stepper (was plain TextInput; AddAlarm uses stepper)
+- L11: Commitment step placeholder updated to "e.g. Wake up with energy, prove I can commit"
+- L12: Bank balance shown above manual rep entry input on Progress sheet
+- L13: Non-numeric manual rep input now shows inline validation error
+- L14: Alarm save triggers `Vibration.vibrate(50)` before `navigation.goBack()`
+- L15: Reward action dialog subtitle shows cost in reps
+- L16: Active calendar days get a faint border; padding cells stay blank
+- L17: Emergency bypass cost row always rendered, dimmed (`opacity: 0.4`) when toggle is off
+- L18: Ghost mode placeholder shown for day-1 users ("Ghost mode activates tomorrow — race your past self")
+- L19: Reward card title capped to 1 line with `ellipsizeMode="tail"`
+
+### Files changed
+- `src/screens/onboarding/OnboardingScreen.tsx` — C1, C5, H1, L8, L10, L11
+- `src/screens/alarms/AlarmFiringScreen.tsx` — C2, C3, H11, L6
+- `src/screens/progress/BankCameraScreen.tsx` — C3, H8, H10, L9
+- `src/screens/alarms/AlarmListScreen.tsx` — H6, L5
+- `src/screens/progress/ProgressScreen.tsx` — C4, H7, L1, L7, L12, L13, L18
+- `src/screens/rewards/RewardsScreen.tsx` — C4, H3, H5, H9, L15, L19
+- `src/screens/settings/SettingsScreen.tsx` — H2, L17
+- `src/components/MonthlyCalendar.tsx` — L2, L3, L4, L16
+- `src/screens/alarms/AddAlarmScreen.tsx` — L14
+- `ui-ux-improvements.md` — deleted (all items resolved)
+
+---
+
 ## 2026-07-21 — Level-Up Celebration Modal
 
 ### Feature

@@ -592,15 +592,24 @@ export default function ProgressScreen() {
         <Text style={{fontSize: 34, fontWeight: '800', color: c.onBackground, letterSpacing: -0.5}}>
           Progress
         </Text>
-        <TouchableOpacity
-          onPress={() => setShowShare(true)}
-          style={{
-            flexDirection: 'row', alignItems: 'center', gap: 5,
-            backgroundColor: c.surfaceVariant, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 100,
-          }}>
-          <Text style={{fontSize: 13}}>🔗</Text>
-          <Text style={{fontSize: 13, fontWeight: '700', color: c.onBackground}}>Share</Text>
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+          <TouchableOpacity
+            onPress={() => setShowShare(true)}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 5,
+              backgroundColor: c.surfaceVariant, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 100,
+            }}>
+            <Text style={{fontSize: 13}}>🔗</Text>
+            <Text style={{fontSize: 13, fontWeight: '700', color: c.onBackground}}>Share</Text>
+          </TouchableOpacity>
+          <IconButton
+            icon="cog-outline"
+            iconColor={c.onSurfaceVariant}
+            size={22}
+            onPress={() => navigation.navigate('Settings')}
+            style={{margin: 0}}
+          />
+        </View>
       </View>
 
       <ScrollView

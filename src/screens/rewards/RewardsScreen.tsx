@@ -1,9 +1,12 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {Animated, Dimensions, FlatList, View, Modal, KeyboardAvoidingView, Platform, TouchableOpacity, Pressable} from 'react-native';
-import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, useTheme, Portal, Dialog} from 'react-native-paper';
+import {Text, Button, TextInput, TouchableRipple, Switch, Snackbar, Icon, IconButton, useTheme, Portal, Dialog} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
+import type {StackNavigationProp} from '@react-navigation/stack';
+import type {RootStackParamList} from '../../navigation/navigationRef';
 
 import {useBankStore, Reward} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
@@ -329,6 +332,7 @@ export default function RewardsScreen() {
   const theme = useTheme();
   const c = theme.colors;
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   // ponytail: 82 = tab bar bottom offset (12) + bar height (62) + gap (8)
   const fabBottom = Math.max(insets.bottom, 8) + 82;
   const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward, gamblingResult} = useBankStore();
@@ -384,19 +388,28 @@ export default function RewardsScreen() {
         <Text style={{fontSize: 34, fontWeight: '800', color: c.onBackground, letterSpacing: -0.5}}>
           Rewards
         </Text>
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: c.surfaceVariant,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 100,
-          gap: 4,
-        }}>
-          <Text style={{fontSize: 16}}>💪🏽</Text>
-          <Text style={{fontSize: 14, fontWeight: '700', color: c.onBackground}}>
-            {totalReps.toLocaleString()}
-          </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: c.surfaceVariant,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 100,
+            gap: 4,
+          }}>
+            <Text style={{fontSize: 16}}>💪🏽</Text>
+            <Text style={{fontSize: 14, fontWeight: '700', color: c.onBackground}}>
+              {totalReps.toLocaleString()}
+            </Text>
+          </View>
+          <IconButton
+            icon="cog-outline"
+            iconColor={c.onSurfaceVariant}
+            size={22}
+            onPress={() => navigation.navigate('Settings')}
+            style={{margin: 0}}
+          />
         </View>
       </View>
 

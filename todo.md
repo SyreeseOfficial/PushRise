@@ -79,6 +79,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 
 ## Play Store Submission (Week 5)
 
+- [x] UI/UX audit (2026-07-26) — 35 issues resolved: C1–C5 critical data/flow, H1–H11 polish, L1–L19 minor friction (H4 skipped intentionally)
 - [x] App icon (512×512 PNG) — uploaded to Play Console
 - [x] Add `beep.wav` to `android/app/src/main/res/raw/` (required for audioCueOnRep feature)
 - [x] Feature graphic (1024×500) — uploaded to Play Console

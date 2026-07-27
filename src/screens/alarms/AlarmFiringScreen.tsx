@@ -91,6 +91,9 @@ function CameraCounter({
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
   const [debugAngle, setDebugAngle] = useState<number | null>(null);
+  const [poseActive, setPoseActive] = useState(false);
+  const poseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const beepRef = useRef<Sound | null>(null);
 
   useEffect(() => {
@@ -98,6 +101,15 @@ function CameraCounter({
     const beep = new Sound('beep.mp3', Sound.MAIN_BUNDLE, () => {});
     beepRef.current = beep;
     return () => beep.release();
+  }, []);
+
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, {toValue: 1, duration: 700, useNativeDriver: true}),
+      Animated.timing(pulseAnim, {toValue: 0.4, duration: 700, useNativeDriver: true}),
+    ]));
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   useEffect(() => {
@@ -109,6 +121,9 @@ function CameraCounter({
         const landmarks = await PoseDetection.detectFromFile(snapshot.path);
         const {phase: newPhase, angle} = detectRepPhase(landmarks, phaseRef.current);
         if (__DEV__) setDebugAngle(Math.round(angle));
+        setPoseActive(true);
+        if (poseTimerRef.current) clearTimeout(poseTimerRef.current);
+        poseTimerRef.current = setTimeout(() => setPoseActive(false), 600);
         if (newPhase === pendingPhaseRef.current) {
           pendingCountRef.current += 1;
         } else {
@@ -131,7 +146,10 @@ function CameraCounter({
         processingRef.current = false;
       }
     }, 200);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (poseTimerRef.current) clearTimeout(poseTimerRef.current);
+    };
   }, [reps, onDone, hapticOnRep, audioCueOnRep]);
 
   if (!device) return <ManualCounter reps={reps} onDone={onDone} onSkip={onSkip} hapticOnRep={hapticOnRep} audioCueOnRep={audioCueOnRep} dailyGoal={dailyGoal} todayReps={todayReps} />;
@@ -140,12 +158,15 @@ function CameraCounter({
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
       <Camera ref={cameraRef} style={{width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'}} device={device} isActive photo />
       <View style={{position: 'absolute', bottom: 80, alignItems: 'center'}}>
-        <Text style={{fontSize: 96, fontWeight: '700', color: colors.primary, lineHeight: 96}}>
+        <Text style={{fontSize: 96, fontWeight: '700', color: poseActive ? '#FFFFFF' : colors.primary, lineHeight: 96}}>
           {count}
         </Text>
         <Text variant="titleLarge" style={{color: colors.onSurface, marginTop: -8}}>
           / {reps} push-ups
         </Text>
+        <Animated.Text style={{color: colors.primary, opacity: pulseAnim, fontSize: 12, fontWeight: '600', marginTop: 6}}>
+          Detecting…
+        </Animated.Text>
         {__DEV__ && debugAngle !== null && (
           <Text variant="labelSmall" style={{color: colors.primary, marginTop: 4, opacity: 0.8}}>
             elbow angle: {debugAngle}°  phase: {phaseRef.current}
@@ -341,14 +362,6 @@ export default function AlarmFiringScreen() {
               No snoozes left
             </Text>
           )}
-          {emergencyBypassEnabled && totalReps >= emergencyBypassCost && (
-            <Button mode="text" textColor={c.error} onPress={handleEmergencyBypass}>
-              Emergency Skip (-{emergencyBypassCost} reps)
-            </Button>
-          )}
-          <Button mode="text" textColor={c.outline} onPress={dismiss}>
-            Skip (no push-ups)
-          </Button>
         </View>
       )}
 
@@ -410,6 +423,18 @@ export default function AlarmFiringScreen() {
               🎰 Try Your Luck — wager {reps} reps
             </Button>
           )}
+        </View>
+      )}
+      {mode === 'idle' && (
+        <View style={{position: 'absolute', bottom: 40, alignItems: 'center', gap: 10}}>
+          {emergencyBypassEnabled && totalReps >= emergencyBypassCost && (
+            <Text style={{fontSize: 12, color: c.outline, opacity: 0.5}} onPress={handleEmergencyBypass}>
+              Emergency Skip (−{emergencyBypassCost} reps)
+            </Text>
+          )}
+          <Text style={{fontSize: 12, color: c.outline, opacity: 0.4}} onPress={dismiss}>
+            Skip (no push-ups)
+          </Text>
         </View>
       )}
       <ConfettiCannon ref={confettiRef} count={80} origin={{x: 200, y: 0}} autoStart={false} fadeOut />

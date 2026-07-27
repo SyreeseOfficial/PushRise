@@ -313,7 +313,7 @@ export default function OnboardingScreen() {
       minute: alarmTime.getMinutes(),
       reps: parseInt(alarmReps, 10) || 10,
       label: '',
-      days: [],
+      days: [0,1,2,3,4,5,6],
       volume: 1.0,
       sound: 'alarm.mp3',
     });
@@ -363,9 +363,7 @@ export default function OnboardingScreen() {
     setPurchaseError(null);
     try {
       const {customerInfo} = await Purchases.purchasePackage(pkg);
-      settings.update({emergencyBypassEnabled: bypassEnabled, emergencyBypassCost: bypassCost});
-      startTrial();
-      completeOnboarding();
+      await handleComplete();
     } catch (e: any) {
       if (!e.userCancelled) setPurchaseError('Purchase failed. Please try again.');
     } finally {

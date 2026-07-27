@@ -32,6 +32,9 @@ export default function BankCameraScreen() {
   const processingRef = useRef(false);
   const [count, setCount] = useState(0);
   const [debugAngle, setDebugAngle] = useState<number | null>(null);
+  const [poseActive, setPoseActive] = useState(false);
+  const poseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const beepRef = useRef<Sound | null>(null);
 
   useEffect(() => {
@@ -39,6 +42,15 @@ export default function BankCameraScreen() {
     const beep = new Sound('beep.mp3', Sound.MAIN_BUNDLE, () => {});
     beepRef.current = beep;
     return () => beep.release();
+  }, []);
+
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, {toValue: 1, duration: 700, useNativeDriver: true}),
+      Animated.timing(pulseAnim, {toValue: 0.4, duration: 700, useNativeDriver: true}),
+    ]));
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   useEffect(() => {
@@ -57,6 +69,9 @@ export default function BankCameraScreen() {
         const landmarks = await PoseDetection.detectFromFile(snapshot.path);
         const {phase: newPhase, angle} = detectRepPhase(landmarks, phaseRef.current);
         if (__DEV__) setDebugAngle(Math.round(angle));
+        setPoseActive(true);
+        if (poseTimerRef.current) clearTimeout(poseTimerRef.current);
+        poseTimerRef.current = setTimeout(() => setPoseActive(false), 600);
         if (newPhase === pendingPhaseRef.current) {
           pendingCountRef.current += 1;
         } else {
@@ -80,7 +95,10 @@ export default function BankCameraScreen() {
         processingRef.current = false;
       }
     }, 200);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (poseTimerRef.current) clearTimeout(poseTimerRef.current);
+    };
   }, [hapticOnRep, audioCueOnRep]);
 
   const done = useCallback(() => {
@@ -139,12 +157,15 @@ export default function BankCameraScreen() {
         paddingBottom: 64,
       }}>
         <View style={{alignItems: 'center'}}>
-          <Text style={{fontSize: 128, fontWeight: '700', color: c.primary, lineHeight: 128}}>
+          <Text style={{fontSize: 128, fontWeight: '700', color: poseActive ? '#FFFFFF' : c.primary, lineHeight: 128}}>
             {count}
           </Text>
           <Text variant="titleLarge" style={{color: '#fff', letterSpacing: 1, marginTop: -4}}>
             push-ups
           </Text>
+          <Animated.Text style={{color: c.primary, opacity: pulseAnim, fontSize: 12, fontWeight: '600', marginTop: 6}}>
+            Detecting…
+          </Animated.Text>
           {__DEV__ && debugAngle !== null && (
             <Text variant="labelSmall" style={{color: c.primary, opacity: 0.7, marginTop: 8}}>
               elbow: {debugAngle}°  phase: {phaseRef.current}
