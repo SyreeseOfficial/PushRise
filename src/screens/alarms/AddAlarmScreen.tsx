@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {View, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
+import {View, ScrollView, KeyboardAvoidingView, Platform, Vibration} from 'react-native';
 import {
   Appbar, Text, TextInput, Switch, Chip,
   TouchableRipple, useTheme, Icon,
@@ -90,6 +90,7 @@ export default function AddAlarmScreen() {
     } else {
       await addAlarm(data);
     }
+    Vibration.vibrate(50);
     navigation.goBack();
   };
 

@@ -14,6 +14,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
   const c = theme.colors;
 
   const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const [viewMonth, setViewMonth] = useState({
     year: now.getFullYear(),
     month: now.getMonth(),
@@ -84,6 +85,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
     const reps = dailyHistory[key] ?? 0;
     const completed = reps > 0;
     const isSelected = key === selectedDate;
+    const isToday = key === todayKey;
 
     return (
       <TouchableOpacity
@@ -116,7 +118,9 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
           width: 34,
           height: 34,
           borderRadius: 17,
-          backgroundColor: completed ? c.primary : 'transparent',
+          backgroundColor: completed ? c.primary : isToday ? c.primaryContainer : 'transparent',
+          borderWidth: !completed && !isToday ? 1 : 0,
+          borderColor: c.outlineVariant,
           alignItems: 'center',
           justifyContent: 'center',
         }}>
@@ -130,7 +134,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
         </View>
       </TouchableOpacity>
     );
-  }, [viewMonth, selectedDate, dailyHistory, c, toKey, popupScale]);
+  }, [viewMonth, selectedDate, dailyHistory, c, toKey, popupScale, todayKey]);
 
   return (
     <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 16}, theme.dark ? {} : cardShadow]}>
@@ -146,7 +150,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
       >
         {/* Day of week header */}
         <View style={{flexDirection: 'row', marginBottom: 4}}>
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          {['S', 'M', 'Tu', 'W', 'Th', 'F', 'S'].map((d, i) => (
             <Text
               key={i}
               style={{
@@ -206,7 +210,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
                 color: c.onSurfaceVariant,
                 marginTop: 4,
               }}>
-                {selectedDate ? dailyHistory[selectedDate] : 0} pushups completed
+                {selectedDate ? dailyHistory[selectedDate] : 0} push-ups completed
               </Text>
             </Animated.View>
           </View>

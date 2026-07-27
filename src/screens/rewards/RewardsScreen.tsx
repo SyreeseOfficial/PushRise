@@ -7,6 +7,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {useBankStore, Reward} from '../../store/bankStore';
 import {BRAND_GRADIENT, cardShadow} from '../../theme';
+import RepSlotsModal from '../../components/RepSlotsModal';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -276,7 +277,7 @@ const RewardCard = React.memo(function RewardCard({reward, totalReps, onTryRedee
         </View>
         <View style={{flex: 1}}>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap'}}>
-            <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}}>{reward.title}</Text>
+            <Text style={{fontSize: 16, fontWeight: '700', color: c.onSurface}} numberOfLines={1} ellipsizeMode="tail">{reward.title}</Text>
             {reward.oneTime && (
               <Text style={{
                 fontSize: 10, fontWeight: '700',
@@ -325,12 +326,15 @@ export default function RewardsScreen() {
   const insets = useSafeAreaInsets();
   // ponytail: 82 = tab bar bottom offset (12) + bar height (62) + gap (8)
   const fabBottom = Math.max(insets.bottom, 8) + 82;
-  const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward} = useBankStore();
+  const {totalReps, rewards, addReward, editReward, deleteReward, redeemReward, gamblingResult} = useBankStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Reward | undefined>(undefined);
   const [snackbar, setSnackbar] = useState('');
   const [redeemTarget, setRedeemTarget] = useState<Reward | null>(null);
   const [actionTarget, setActionTarget] = useState<Reward | null>(null);
+  const [showSlotWager, setShowSlotWager] = useState(false);
+  const [slotWager, setSlotWager] = useState(0);
+  const [showSlots, setShowSlots] = useState(false);
   const confettiRef = useRef<ConfettiCannon>(null);
 
   const openAdd = () => { setEditing(undefined); setModalOpen(true); };
@@ -390,6 +394,23 @@ export default function RewardsScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Slots card */}
+      <TouchableRipple
+        onPress={() => totalReps >= 10 ? setShowSlotWager(true) : undefined}
+        borderless
+        style={{marginHorizontal: 16, marginBottom: 12, borderRadius: 24, opacity: totalReps >= 10 ? 1 : 0.5}}>
+        <View style={[{backgroundColor: c.surface, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14}, theme.dark ? {} : cardShadow]}>
+          <Text style={{fontSize: 32}}>🎰</Text>
+          <View style={{flex: 1}}>
+            <Text style={{fontSize: 16, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>Feeling lucky?</Text>
+            <Text style={{fontSize: 12, color: c.onSurfaceVariant, marginTop: 2}}>
+              {totalReps >= 10 ? 'Gamble banked reps — win up to 7x or lose it all.' : 'Need 10+ reps to spin'}
+            </Text>
+          </View>
+          <Text style={{fontSize: 18, color: c.onSurfaceVariant, fontWeight: '300'}}>›</Text>
+        </View>
+      </TouchableRipple>
 
       <FlatList
         data={rewards}
@@ -477,6 +498,9 @@ export default function RewardsScreen() {
         <Dialog visible={!!actionTarget} onDismiss={() => setActionTarget(null)} style={{borderRadius: 24}}>
           <Dialog.Title>{actionTarget?.title}</Dialog.Title>
           <Dialog.Content>
+            <Text variant="labelMedium" style={{color: c.onSurfaceVariant, marginBottom: 4}}>
+              {actionTarget?.cost.toLocaleString()} push-ups
+            </Text>
             <Text variant="bodyMedium" style={{color: c.onSurfaceVariant}}>What do you want to do?</Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -495,6 +519,52 @@ export default function RewardsScreen() {
         explosionSpeed={400}
         fallSpeed={2800}
         colors={['#FF5500', '#FF7040', '#FFD700', '#FF2D00', '#FFFFFF', '#FF9A6C']}
+      />
+
+      {/* Slot wager picker */}
+      <Modal visible={showSlotWager} transparent animationType="fade" onRequestClose={() => setShowSlotWager(false)}>
+        <KeyboardAvoidingView behavior="padding" style={{flex: 1, justifyContent: 'flex-end', backgroundColor: c.backdrop}}>
+          <View style={{backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, paddingBottom: 48}}>
+            <View style={{width: 40, height: 4, backgroundColor: c.outlineVariant, borderRadius: 2, alignSelf: 'center', marginBottom: 24}} />
+            <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 6, letterSpacing: -0.3}}>How many reps to wager?</Text>
+            <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
+              Balance: <Text style={{fontWeight: '800', color: c.primary}}>{totalReps} reps</Text>
+            </Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24}}>
+              {[10, 25, 50, totalReps].map((amount, i) => {
+                const label = i === 3 ? 'ALL IN' : String(amount);
+                const disabled = totalReps < amount;
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    disabled={disabled}
+                    onPress={() => {
+                      setSlotWager(amount);
+                      setShowSlotWager(false);
+                      setTimeout(() => setShowSlots(true), 350);
+                    }}
+                    style={{
+                      flex: 1, minWidth: '40%',
+                      backgroundColor: i === 3 ? c.errorContainer : c.surfaceVariant,
+                      borderRadius: 14, padding: 16, alignItems: 'center',
+                      opacity: disabled ? 0.35 : 1,
+                    }}>
+                    <Text style={{fontSize: 18, fontWeight: '900', color: i === 3 ? c.error : c.onSurface}}>{label}</Text>
+                    {i !== 3 && <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginTop: 2}}>reps</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Button mode="text" onPress={() => setShowSlotWager(false)}>Cancel</Button>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <RepSlotsModal
+        visible={showSlots}
+        wager={slotWager}
+        onResult={payout => gamblingResult(slotWager, payout)}
+        onClose={() => setShowSlots(false)}
       />
     </View>
   );

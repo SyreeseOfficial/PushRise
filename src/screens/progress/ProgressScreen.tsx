@@ -4,7 +4,7 @@ import {
   View, Modal, KeyboardAvoidingView, Platform,
   TouchableOpacity, ScrollView, Animated,
 } from 'react-native';
-import {Text, Button, TextInput, Snackbar, Icon, IconButton, Divider, useTheme} from 'react-native-paper';
+import {Text, Button, TextInput, Snackbar, Icon, IconButton, Divider, useTheme, TouchableRipple} from 'react-native-paper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
@@ -18,11 +18,10 @@ import {
   getBoss, getCommunityGoal, getWeekStart, TITLES, getUnlockedTitles,
 } from '../../utils/engagement';
 import MonthlyCalendar from '../../components/MonthlyCalendar';
-import RepSlotsModal from '../../components/RepSlotsModal';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
-type Sheet = 'closed' | 'intro' | 'mode' | 'manual' | 'titles' | 'slots-wager';
+type Sheet = 'closed' | 'intro' | 'mode' | 'manual' | 'titles';
 
 const REP_TITLES = [...TITLES]
   .reverse()
@@ -35,7 +34,18 @@ function GhostCard({yesterdayHourlyReps, todayReps}: {yesterdayHourlyReps: numbe
   const hour = new Date().getHours();
   const ghostReps = Math.max(0, ...yesterdayHourlyReps.slice(0, hour + 1));
 
-  if (ghostReps === 0) return null;
+  if (ghostReps === 0) {
+    return (
+      <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 20}, theme.dark ? {} : cardShadow]}>
+        <Text style={{fontSize: 13, fontWeight: '700', color: c.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8}}>
+          👻 Ghost Mode
+        </Text>
+        <Text style={{fontSize: 14, color: c.onSurfaceVariant, lineHeight: 20}}>
+          Ghost mode activates tomorrow — race your past self
+        </Text>
+      </View>
+    );
+  }
 
   const delta = todayReps - ghostReps;
   const ahead = delta >= 0;
@@ -326,7 +336,7 @@ function ShareCardModal({visible, onClose, totalReps, streak, weekReps}: {
             Think you can keep up? 👊
           </Text>
           <Text style={{textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.5, fontWeight: '500'}}>
-            PUSHRISE - IOS & ANDROID
+            PUSHRISE - ANDROID
           </Text>
         </LinearGradient>
 
@@ -453,7 +463,7 @@ export default function ProgressScreen() {
 
   const {
     totalReps, todayReps, weekReps, currentStreak, longestStreak,
-    hasSeenBankIntro, markIntroSeen, addReps, gamblingResult,
+    hasSeenBankIntro, markIntroSeen, addReps,
     pendingCelebration, clearCelebration,
     pendingFreezeEarned, clearFreezeEarned,
     pendingFreezeUsed, clearFreezeUsed,
@@ -467,8 +477,6 @@ export default function ProgressScreen() {
   const [sheet, setSheet] = useState<Sheet>('closed');
   const [manualInput, setManualInput] = useState('');
   const [showShare, setShowShare] = useState(false);
-  const [showSlots, setShowSlots] = useState(false);
-  const [slotWager, setSlotWager] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showFreezeEarned, setShowFreezeEarned] = useState(false);
   const [showFreezeUsedSnack, setShowFreezeUsedSnack] = useState(false);
@@ -643,31 +651,6 @@ export default function ProgressScreen() {
             </View>
             <Text style={{fontSize: 22, color: 'rgba(255,255,255,0.8)', fontWeight: '300'}}>›</Text>
           </LinearGradient>
-        </TouchableRipple>
-
-        {/* Rep Slots */}
-        <TouchableRipple
-          onPress={() => totalReps >= 10 ? setSheet('slots-wager') : undefined}
-          borderless
-          style={[{
-            borderRadius: 24,
-            opacity: totalReps >= 10 ? 1 : 0.5,
-          }]}>
-          <View style={[{
-            backgroundColor: c.surface, borderRadius: 24, padding: 22,
-            flexDirection: 'row', alignItems: 'center', gap: 16,
-          }, theme.dark ? {} : cardShadow]}>
-            <Text style={{fontSize: 36}}>🎰</Text>
-            <View style={{flex: 1}}>
-              <Text style={{fontSize: 18, fontWeight: '800', color: c.onSurface, letterSpacing: -0.3}}>
-                Feeling lucky?
-              </Text>
-              <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginTop: 3}}>
-                {totalReps >= 10 ? 'Gamble banked reps — win up to 7x or lose it all.' : 'Need 10+ reps to spin'}
-              </Text>
-            </View>
-            <Text style={{fontSize: 22, color: c.onSurfaceVariant, fontWeight: '300'}}>›</Text>
-          </View>
         </TouchableRipple>
 
         {/* Stat cards */}
@@ -892,56 +875,14 @@ export default function ProgressScreen() {
           )}
 
 
-          {sheet === 'slots-wager' && (
-            <View style={sheetBg}>
-              {handle}
-              <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 6, letterSpacing: -0.3}}>
-                How many reps to wager?
-              </Text>
-              <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 20}}>
-                Balance: <Text style={{fontWeight: '800', color: c.primary}}>{totalReps} reps</Text>
-              </Text>
-              <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24}}>
-                {[10, 25, 50, totalReps].map((amount, i) => {
-                  const label = i === 3 ? 'ALL IN' : String(amount);
-                  const disabled = totalReps < amount;
-                  return (
-                    <TouchableOpacity
-                      key={label}
-                      disabled={disabled}
-                      onPress={() => {
-                        setSlotWager(amount);
-                        closeSheet();
-                        setTimeout(() => setShowSlots(true), 350);
-                      }}
-                      style={{
-                        flex: 1, minWidth: '40%',
-                        backgroundColor: i === 3 ? c.errorContainer : c.surfaceVariant,
-                        borderRadius: 14, padding: 16, alignItems: 'center',
-                        opacity: disabled ? 0.35 : 1,
-                      }}>
-                      <Text style={{
-                        fontSize: 18, fontWeight: '900',
-                        color: i === 3 ? c.error : c.onSurface,
-                      }}>
-                        {label}
-                      </Text>
-                      {i !== 3 && (
-                        <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginTop: 2}}>reps</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <Button mode="text" onPress={closeSheet}>Cancel</Button>
-            </View>
-          )}
-
           {sheet === 'manual' && (
               <View style={sheetBg}>
                 {handle}
-                <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 20, letterSpacing: -0.3}}>
+                <Text style={{fontSize: 20, fontWeight: '700', color: c.onSurface, marginBottom: 4, letterSpacing: -0.3}}>
                   How many did you do?
+                </Text>
+                <Text style={{fontSize: 13, color: c.onSurfaceVariant, marginBottom: 16}}>
+                  Bank: {totalReps.toLocaleString()} reps
                 </Text>
                 <TextInput
                   mode="outlined"
@@ -952,8 +893,11 @@ export default function ProgressScreen() {
                   autoFocus
                   maxLength={4}
                   contentStyle={{fontSize: 48, fontWeight: '800', textAlign: 'center', color: c.primary}}
-                  style={{marginBottom: 20}}
+                  style={{marginBottom: manualInput.length > 0 && !parseInt(manualInput, 10) ? 4 : 20}}
                 />
+                {manualInput.length > 0 && !parseInt(manualInput, 10) && (
+                  <Text style={{color: c.error, fontSize: 12, marginBottom: 16}}>Enter a number greater than 0</Text>
+                )}
                 <Button
                   mode="contained"
                   onPress={submitManual}
@@ -1066,14 +1010,6 @@ export default function ProgressScreen() {
         style={{marginBottom: 80}}>
         ❄️  Freeze used — streak saved!
       </Snackbar>
-
-      {/* Rep Slots */}
-      <RepSlotsModal
-        visible={showSlots}
-        wager={slotWager}
-        onResult={payout => gamblingResult(slotWager, payout)}
-        onClose={() => setShowSlots(false)}
-      />
 
       {/* Boss defeated celebration */}
       <Modal visible={showBossWin} transparent animationType="fade" onRequestClose={() => setShowBossWin(false)}>

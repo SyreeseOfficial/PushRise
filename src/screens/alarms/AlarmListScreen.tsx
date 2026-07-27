@@ -77,6 +77,23 @@ function ActivityTicker() {
   );
 }
 
+function getNextAlarmTime(alarm: Alarm): Date {
+  const now = new Date();
+  const candidate = new Date();
+  candidate.setHours(alarm.hour, alarm.minute, 0, 0);
+  if (alarm.days.length === 0) {
+    if (candidate > now) return candidate;
+    candidate.setDate(candidate.getDate() + 1);
+    return candidate;
+  }
+  for (let d = 0; d < 8; d++) {
+    const check = new Date(candidate);
+    check.setDate(candidate.getDate() + d);
+    if (alarm.days.includes(check.getDay()) && check > now) return check;
+  }
+  return candidate;
+}
+
 function formatTime(hour: number, minute: number) {
   const h = hour % 12 || 12;
   const m = minute.toString().padStart(2, '0');
@@ -276,6 +293,17 @@ export default function AlarmListScreen() {
   const navigation = useNavigation<Nav>();
   const {alarms, reorderAlarmToIndex} = useAlarmStore();
   const {totalReps} = useBankStore();
+
+  const nextAlarmLabel = React.useMemo(() => {
+    const enabled = alarms.filter(a => a.enabled);
+    if (!enabled.length) return null;
+    const next = enabled.map(getNextAlarmTime).reduce((a, b) => a < b ? a : b);
+    const diffMs = next.getTime() - Date.now();
+    const diffH = Math.floor(diffMs / 3600000);
+    const diffM = Math.floor((diffMs % 3600000) / 60000);
+    const timeStr = next.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    return `Next: ${timeStr}, in ${diffH > 0 ? `${diffH}h ` : ''}${diffM}m`;
+  }, [alarms]);
   const {isFirstLaunch, markFirstLaunchSeen} = useOnboardingStore();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -402,9 +430,16 @@ export default function AlarmListScreen() {
         alignItems: 'flex-end',
         justifyContent: 'space-between',
       }}>
-        <Text style={{fontSize: 34, fontWeight: '800', color: theme.colors.onBackground, letterSpacing: -0.5}}>
-          Alarms
-        </Text>
+        <View>
+          <Text style={{fontSize: 34, fontWeight: '800', color: theme.colors.onBackground, letterSpacing: -0.5}}>
+            Alarms
+          </Text>
+          {nextAlarmLabel && (
+            <Text style={{fontSize: 12, color: theme.colors.onSurfaceVariant, fontWeight: '500', marginTop: 2}}>
+              {nextAlarmLabel}
+            </Text>
+          )}
+        </View>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
           <View style={{
             flexDirection: 'row', alignItems: 'center',

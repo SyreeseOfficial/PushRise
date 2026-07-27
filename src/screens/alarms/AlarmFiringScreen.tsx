@@ -28,6 +28,9 @@ function ManualCounter({
   const {colors} = useTheme();
   const [count, setCount] = useState(0);
   const beepRef = useRef<Sound | null>(null);
+  const btnScale = useRef(new Animated.Value(1)).current;
+  const pressBtnIn = () => Animated.spring(btnScale, {toValue: 0.93, useNativeDriver: true}).start();
+  const pressBtnOut = () => Animated.spring(btnScale, {toValue: 1, useNativeDriver: true}).start();
 
   useEffect(() => {
     // ponytail: needs beep.mp3 in android/app/src/main/res/raw/
@@ -49,14 +52,18 @@ function ManualCounter({
   return (
     <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 24}}>
       <Text variant="bodyMedium" style={{color: colors.onSurfaceVariant}}>Tap once per push-up</Text>
-      <Button
-        mode="contained"
-        onPress={tap}
-        contentStyle={{width: 180, height: 180, borderRadius: 90}}
-        style={{borderRadius: 90}}
-        labelStyle={{fontSize: 24, fontWeight: '900'}}>
-        {count} / {reps}
-      </Button>
+      <Animated.View style={{transform: [{scale: btnScale}]}}>
+        <Button
+          mode="contained"
+          onPress={tap}
+          onPressIn={pressBtnIn}
+          onPressOut={pressBtnOut}
+          contentStyle={{width: 180, height: 180, borderRadius: 90}}
+          style={{borderRadius: 90}}
+          labelStyle={{fontSize: 24, fontWeight: '900'}}>
+          {count} / {reps}
+        </Button>
+      </Animated.View>
       <Button mode="text" textColor={colors.onSurfaceVariant} onPress={onSkip}>
         Skip (no push-ups)
       </Button>

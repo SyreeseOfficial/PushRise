@@ -220,17 +220,16 @@ export default function SettingsScreen() {
             description="Spend banked reps to silence an alarm without push-ups"
             value={settings.emergencyBypassEnabled}
             onChange={v => settings.update({emergencyBypassEnabled: v})}
-            last={!settings.emergencyBypassEnabled}
           />
-          {settings.emergencyBypassEnabled && (
+          <View style={{opacity: settings.emergencyBypassEnabled ? 1 : 0.4}}>
             <TapRow
               icon="counter"
               title="Skip Cost"
               value={`${settings.emergencyBypassCost} reps`}
-              onPress={() => open('emergencyBypassCost')}
+              onPress={() => settings.emergencyBypassEnabled && open('emergencyBypassCost')}
               last
             />
-          )}
+          </View>
         </Card>
 
         <SectionLabel label="Alarm Behavior" />

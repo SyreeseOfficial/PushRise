@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {Dimensions, View, ScrollView, Animated, Vibration, KeyboardAvoidingView, Platform, Alert, Linking} from 'react-native';
 import {
   Text, Button, Surface, Chip, TextInput, Switch,
-  TouchableRipple, useTheme, ProgressBar,
+  TouchableRipple, useTheme, ProgressBar, Icon,
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -216,7 +216,7 @@ export default function OnboardingScreen() {
     setQ1Progress(1);
     const start = Date.now();
     q1ProgressIntervalRef.current = setInterval(() => {
-      const p = Math.max(0, 1 - (Date.now() - start) / 5000);
+      const p = Math.max(0, 1 - (Date.now() - start) / 10000);
       setQ1Progress(p);
       if (p <= 0) { clearInterval(q1ProgressIntervalRef.current!); q1ProgressIntervalRef.current = null; }
     }, 50);
@@ -225,7 +225,7 @@ export default function OnboardingScreen() {
       const c = snoozeCountRef.current;
       setQ1(c === 0 ? 0 : c <= 2 ? 1 : c <= 4 ? 2 : 3);
       setStepIdx(s => Math.min(s + 1, STEPS.length - 1));
-    }, 5000);
+    }, 10000);
   };
 
   useEffect(() => {
@@ -918,17 +918,31 @@ export default function OnboardingScreen() {
               />
             )}
 
-            <TextInput
-              mode="outlined"
-              label="Push-ups to dismiss"
-              value={alarmReps}
-              onChangeText={setAlarmReps}
-              keyboardType="number-pad"
-              maxLength={3}
-              selectTextOnFocus
-              contentStyle={{fontSize: 36, fontWeight: '300', color: theme.colors.primary}}
-              style={{width: 180, marginBottom: 32}}
-            />
+            <Text variant="labelLarge" style={{color: theme.colors.onSurfaceVariant, marginBottom: 16}}>Push-ups to dismiss</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 32}}>
+              <TouchableRipple onPress={() => setAlarmReps(String(Math.max(1, (parseInt(alarmReps, 10) || 0) - 5)))} borderless style={{borderRadius: 22}}>
+                <View style={{width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.primaryContainer, alignItems: 'center', justifyContent: 'center'}}>
+                  <Icon source="minus" size={20} color={theme.colors.onPrimaryContainer} />
+                </View>
+              </TouchableRipple>
+              <TextInput
+                mode="flat"
+                value={alarmReps}
+                onChangeText={v => setAlarmReps(v.replace(/[^0-9]/g, '') || '1')}
+                keyboardType="number-pad"
+                maxLength={3}
+                selectTextOnFocus
+                underlineColor="transparent"
+                activeUnderlineColor="transparent"
+                contentStyle={{fontSize: 48, fontWeight: '300', color: theme.colors.primary, textAlign: 'center'}}
+                style={{backgroundColor: 'transparent', width: 100}}
+              />
+              <TouchableRipple onPress={() => setAlarmReps(String(Math.min(999, (parseInt(alarmReps, 10) || 0) + 5)))} borderless style={{borderRadius: 22}}>
+                <View style={{width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.primaryContainer, alignItems: 'center', justifyContent: 'center'}}>
+                  <Icon source="plus" size={20} color={theme.colors.onPrimaryContainer} />
+                </View>
+              </TouchableRipple>
+            </View>
 
             <Button mode="contained" onPress={next} contentStyle={{paddingVertical: 8}}>
               Set My Alarm →
@@ -1233,7 +1247,7 @@ export default function OnboardingScreen() {
                   mode="flat"
                   value={grindingFor}
                   onChangeText={setGrindingFor}
-                  placeholder="Write your reason here…"
+                  placeholder="e.g. Wake up with energy, prove I can commit"
                   multiline
                   numberOfLines={2}
                   maxLength={120}

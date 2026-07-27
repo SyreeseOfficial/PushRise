@@ -53,7 +53,7 @@ export default function BankCameraScreen() {
         const snapshot = await cameraRef.current.takeSnapshot({quality: 60, skipMetadata: true});
         const landmarks = await PoseDetection.detectFromFile(snapshot.path);
         const {phase: newPhase, angle} = detectRepPhase(landmarks, phaseRef.current);
-        setDebugAngle(Math.round(angle));
+        if (__DEV__) setDebugAngle(Math.round(angle));
         if (newPhase === pendingPhaseRef.current) {
           pendingCountRef.current += 1;
         } else {
