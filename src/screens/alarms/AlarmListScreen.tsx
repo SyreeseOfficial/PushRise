@@ -266,13 +266,6 @@ function AlarmCard({
                     </Text>
                   </View>
                   <IconButton
-                    icon="pencil-outline"
-                    iconColor={theme.colors.onSurfaceVariant}
-                    size={20}
-                    onPress={() => navigation.navigate('AddAlarm', {alarmId: alarm.id})}
-                    style={{margin: 0}}
-                  />
-                  <IconButton
                     icon="trash-can-outline"
                     iconColor={pendingDelete ? theme.colors.error : theme.colors.onSurfaceVariant}
                     size={20}

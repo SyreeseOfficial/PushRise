@@ -221,14 +221,15 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
   );
 }
 
-const RewardCard = React.memo(function RewardCard({reward, totalReps, onTryRedeem, onLongPress}: {
+const RewardCard = React.memo(function RewardCard({reward, totalReps, onTryRedeem, onDoubleTap}: {
   reward: Reward;
   totalReps: number;
   onTryRedeem: (r: Reward) => void;
-  onLongPress: (r: Reward) => void;
+  onDoubleTap: (r: Reward) => void;
 }) {
   const theme = useTheme();
   const c = theme.colors;
+  const lastTapRef = useRef<number>(0);
   const canAfford = totalReps >= reward.cost;
   const needed = reward.cost - totalReps;
 
@@ -262,7 +263,11 @@ const RewardCard = React.memo(function RewardCard({reward, totalReps, onTryRedee
 
   return (
     <Animated.View style={{transform: [{scale: unlockScale}]}}>
-    <TouchableRipple onLongPress={() => onLongPress(reward)} borderless style={[{
+    <TouchableRipple onPress={() => {
+        const now = Date.now();
+        if (now - lastTapRef.current < 400) { onDoubleTap(reward); lastTapRef.current = 0; }
+        else { lastTapRef.current = now; }
+      }} borderless style={[{
       borderRadius: 20,
       marginBottom: 12,
       backgroundColor: c.surface,
@@ -346,7 +351,7 @@ export default function RewardsScreen() {
     setModalOpen(false);
   };
 
-  const handleLongPress = useCallback((r: Reward) => setActionTarget(r), []);
+  const handleDoubleTap = useCallback((r: Reward) => setActionTarget(r), []);
 
   const handleTryRedeem = useCallback((r: Reward) => {
     if (totalReps < r.cost) {
@@ -361,9 +366,9 @@ export default function RewardsScreen() {
       reward={item}
       totalReps={totalReps}
       onTryRedeem={handleTryRedeem}
-      onLongPress={handleLongPress}
+      onDoubleTap={handleDoubleTap}
     />
-  ), [totalReps, handleTryRedeem, handleLongPress]);
+  ), [totalReps, handleTryRedeem, handleDoubleTap]);
 
   return (
     <View style={{flex: 1, backgroundColor: c.background}}>
@@ -425,6 +430,7 @@ export default function RewardsScreen() {
             <Text style={{fontSize: 48}}>🏆</Text>
             <Text style={{fontSize: 17, fontWeight: '600', color: c.onSurfaceVariant}}>No rewards yet</Text>
             <Text style={{fontSize: 14, color: c.outline}}>Tap + to create your first one</Text>
+            <Text style={{fontSize: 12, color: c.outline, marginTop: 4}}>Double-tap a reward to edit or delete</Text>
           </View>
         }
         showsVerticalScrollIndicator={false}
@@ -477,6 +483,11 @@ export default function RewardsScreen() {
                 <Text style={{fontSize: 14, color: c.onSurfaceVariant, textAlign: 'center', marginTop: 4}}>
                   This will use {redeemTarget.cost.toLocaleString()} push-ups from your bank.
                 </Text>
+                {redeemTarget.oneTime && (
+                  <Text style={{fontSize: 13, color: c.error, textAlign: 'center', marginTop: 4}}>
+                    This reward will be removed after redemption.
+                  </Text>
+                )}
               </>
             )}
           </Dialog.Content>

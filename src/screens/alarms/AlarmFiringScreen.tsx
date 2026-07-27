@@ -336,6 +336,11 @@ export default function AlarmFiringScreen() {
               </View>
             </View>
           )}
+          {alarm?.snoozeEnabled && snoozeCount >= 3 && (
+            <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>
+              No snoozes left
+            </Text>
+          )}
           {emergencyBypassEnabled && totalReps >= emergencyBypassCost && (
             <Button mode="text" textColor={c.error} onPress={handleEmergencyBypass}>
               Emergency Skip (-{emergencyBypassCost} reps)

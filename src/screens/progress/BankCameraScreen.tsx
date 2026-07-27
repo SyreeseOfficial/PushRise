@@ -1,8 +1,8 @@
 import React, {useEffect, useRef, useState, useCallback} from 'react';
-import {View, StyleSheet, StatusBar, NativeModules, Vibration, Animated} from 'react-native';
+import {View, StyleSheet, StatusBar, NativeModules, Vibration, Animated, Linking} from 'react-native';
 import {Button, Text} from 'react-native-paper';
 import Sound from 'react-native-sound';
-import {Camera, useCameraDevice} from 'react-native-vision-camera';
+import {Camera, useCameraDevice, useCameraPermission} from 'react-native-vision-camera';
 import {useNavigation} from '@react-navigation/native';
 import {detectRepPhase, type RepPhase} from '../../utils/pushUpCounter';
 import {useBankStore} from '../../store/bankStore';
@@ -17,7 +17,10 @@ const c = DarkTheme.colors;
 export default function BankCameraScreen() {
   const navigation = useNavigation();
   const {hapticOnRep, keepScreenOn, preferFrontCamera, audioCueOnRep, dailyGoal} = useSettingsStore();
+  const {hasPermission, requestPermission} = useCameraPermission();
   const device = useCameraDevice(preferFrontCamera ? 'front' : 'back');
+
+  useEffect(() => { if (!hasPermission) requestPermission(); }, []);
   const {addReps, todayReps} = useBankStore();
   const cameraRef = useRef<Camera>(null);
   // #12 — white flash on each counted rep
@@ -85,6 +88,24 @@ export default function BankCameraScreen() {
     navigation.goBack();
   }, [addReps, navigation]);
 
+  if (!hasPermission) {
+    return (
+      <View style={{flex: 1, backgroundColor: c.background, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24}}>
+        <StatusBar hidden />
+        <Text variant="bodyLarge" style={{color: c.onSurfaceVariant, textAlign: 'center', marginBottom: 16}}>
+          Camera access is required to count push-ups.
+        </Text>
+        <Button mode="contained" onPress={async () => {
+          const granted = await requestPermission();
+          if (!granted) Linking.openSettings();
+        }} style={{marginBottom: 12}}>
+          Grant Camera Access
+        </Button>
+        <Button mode="text" onPress={() => navigation.goBack()}>Go Back</Button>
+      </View>
+    );
+  }
+
   if (!device) {
     return (
       <View style={{flex: 1, backgroundColor: c.background, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24}}>
@@ -103,6 +124,13 @@ export default function BankCameraScreen() {
     <View style={{flex: 1, backgroundColor: c.background}}>
       <StatusBar hidden />
       <Camera ref={cameraRef} style={StyleSheet.absoluteFill} device={device} isActive photo />
+      <Button
+        mode="text"
+        textColor="rgba(255,255,255,0.7)"
+        onPress={() => navigation.goBack()}
+        style={{position: 'absolute', top: 40, left: 8, zIndex: 10}}>
+        ← Cancel
+      </Button>
       <View style={{
         ...StyleSheet.absoluteFill,
         justifyContent: 'space-between',

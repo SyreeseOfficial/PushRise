@@ -1332,7 +1332,7 @@ export default function OnboardingScreen() {
             </Text>
             {[
               {icon: '🔋', title: 'Battery access', sub: 'Keeps your alarm going even in battery saver'},
-              {icon: '🔔', title: 'Notifications', sub: 'Alarm alerts and trial reminders only'},
+              {icon: '🔔', title: 'Notifications', sub: 'Alarm alerts only'},
             ].map(p => (
               <Surface key={p.title} elevation={1} style={{borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 12}}>
                 <Text style={{fontSize: 28}}>{p.icon}</Text>
@@ -1357,7 +1357,7 @@ export default function OnboardingScreen() {
               Allow notifications
             </Text>
             <Text variant="bodyLarge" style={{color: theme.colors.onSurfaceVariant, lineHeight: 26, marginBottom: 40}}>
-              Just alarm alerts and trial reminders. That's it.
+              Just alarm alerts. That's it.
             </Text>
             <Button
               mode="contained"
@@ -1592,11 +1592,11 @@ export default function OnboardingScreen() {
               contentStyle={{paddingVertical: 10}}
               style={{marginBottom: 12}}
             >
-              {purchaseLoading ? '...' : 'Start My Free Trial →'}
+              {purchaseLoading ? '...' : 'Get Started →'}
             </Button>
 
             <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, textAlign: 'center', lineHeight: 20, marginBottom: 16}}>
-              7-day free trial. No charge today.{'\n'}Cancel anytime.
+              Cancel anytime.
             </Text>
 
             <Button

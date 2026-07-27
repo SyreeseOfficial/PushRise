@@ -768,7 +768,7 @@ export default function ProgressScreen() {
             </LinearGradient>
           ) : (
             <View style={{padding: 20}}>
-              <Text style={{fontSize: 13, fontWeight: '700', color: c.error, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8}}>
+              <Text style={{fontSize: 13, fontWeight: '700', color: c.primary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8}}>
                 ⚔️ Rival This Week
               </Text>
               <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12}}>
@@ -789,8 +789,8 @@ export default function ProgressScreen() {
                   </Text>
                 </View>
               </View>
-              <View style={{backgroundColor: c.errorContainer, borderRadius: 10, padding: 10}}>
-                <Text style={{fontSize: 13, fontWeight: '700', color: c.error, textAlign: 'center'}}>
+              <View style={{backgroundColor: c.surfaceVariant, borderRadius: 10, padding: 10}}>
+                <Text style={{fontSize: 13, fontWeight: '700', color: c.primary, textAlign: 'center'}}>
                   {boss.weekReps > weekReps
                     ? `You're ${(boss.weekReps - weekReps).toLocaleString()} reps behind — catch up.`
                     : `You're ahead by ${(weekReps - boss.weekReps).toLocaleString()} reps — don't stop.`}

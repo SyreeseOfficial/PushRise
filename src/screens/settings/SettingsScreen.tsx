@@ -12,6 +12,7 @@ import {useThemeStore, ThemeMode} from '../../store/themeStore';
 import {useSettingsStore} from '../../store/settingsStore';
 import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
+import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {cardShadow} from '../../theme';
 import {scheduleNudge, cancelNudge} from '../../utils/notifee';
 import type {RootStackParamList} from '../../navigation/navigationRef';
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
 
   const {mode, setMode} = useThemeStore();
+  const {isSubscribed} = useSubscriptionStore();
   const settings = useSettingsStore();
   const {reset: resetBank} = useBankStore();
   const {reset: resetAlarms} = useAlarmStore();
@@ -334,17 +336,21 @@ export default function SettingsScreen() {
 
         <SectionLabel label="Subscription" />
         <Card>
-          <TapRow
-            icon="crown-outline"
-            title="Upgrade to Pro"
-            onPress={() => navigation.navigate('Paywall')}
-          />
-          <TapRow
-            icon="account-cog-outline"
-            title="Manage Subscription"
-            onPress={() => RevenueCatUI.presentCustomerCenter()}
-            last
-          />
+          {isSubscribed ? (
+            <TapRow
+              icon="account-cog-outline"
+              title="Manage Subscription"
+              onPress={() => RevenueCatUI.presentCustomerCenter()}
+              last
+            />
+          ) : (
+            <TapRow
+              icon="crown-outline"
+              title="Upgrade to Pro"
+              onPress={() => navigation.navigate('Paywall')}
+              last
+            />
+          )}
         </Card>
 
         <SectionLabel label="App" />
