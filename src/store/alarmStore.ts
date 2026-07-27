@@ -3,7 +3,7 @@ import {persist} from 'zustand/middleware';
 import {scheduleAlarm, cancelAlarm} from '../utils/notifee';
 import {makeMMKVStorage} from './mmkvStorage';
 
-const mmkvStorage = makeMMKVStorage();
+const mmkvStorage = makeMMKVStorage('pushrise-alarms');
 
 export interface Alarm {
   id: string;

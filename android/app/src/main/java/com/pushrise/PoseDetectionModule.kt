@@ -46,8 +46,10 @@ class PoseDetectionModule(reactContext: ReactApplicationContext) :
             // Rotate 270° to compensate for front camera mirroring/orientation
             val image = InputImage.fromBitmap(bitmap, 0)
 
+            val file = File(filePath)
             detector.process(image)
                 .addOnSuccessListener { pose ->
+                    file.delete()
                     val result = Arguments.createMap()
                     fun addLandmark(name: String, landmark: PoseLandmark?) {
                         landmark ?: return
@@ -66,6 +68,7 @@ class PoseDetectionModule(reactContext: ReactApplicationContext) :
                     promise.resolve(result)
                 }
                 .addOnFailureListener { e ->
+                    file.delete()
                     promise.reject("DETECT_ERROR", e.message)
                 }
         } catch (e: Exception) {

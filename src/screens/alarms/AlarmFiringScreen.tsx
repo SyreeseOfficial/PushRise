@@ -202,6 +202,16 @@ export default function AlarmFiringScreen() {
   } = useSettingsStore();
   const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
+  const [clockTime, setClockTime] = useState(() =>
+    new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+  );
+  useEffect(() => {
+    const t = setInterval(() =>
+      setClockTime(new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}))
+    , 30000);
+    return () => clearInterval(t);
+  }, []);
+
   const [mode, setMode] = useState<'idle' | 'camera' | 'manual' | 'done'>('idle');
   const [showSlots, setShowSlots] = useState(false);
   const slotPayoutRef = useRef<number | null>(null);
@@ -248,12 +258,14 @@ export default function AlarmFiringScreen() {
   const cleanup = useCallback(async (completed: boolean) => {
     Vibration.cancel();
     soundRef.current?.stop();
-    if (alarm && alarm.days.length > 0 && alarm.enabled) {
-      await scheduleAlarm({...alarm, volume: alarm.volume ?? 1.0, sound: alarm.sound ?? 'alarm.mp3'});
-      await dismissFiredAlarm(alarmId);
-    } else {
-      await cancelAlarm(alarmId);
-    }
+    try {
+      if (alarm && alarm.days.length > 0 && alarm.enabled) {
+        await scheduleAlarm({...alarm, volume: alarm.volume ?? 1.0, sound: alarm.sound ?? 'alarm.mp3'});
+        await dismissFiredAlarm(alarmId);
+      } else {
+        await cancelAlarm(alarmId);
+      }
+    } catch { /* reschedule failed — still dismiss */ }
     if (completed) {
       const earned = slotPayoutRef.current !== null ? slotPayoutRef.current : reps;
       if (earned > 0) addReps(earned);
@@ -319,7 +331,7 @@ export default function AlarmFiringScreen() {
     <View style={{flex: 1, backgroundColor: c.background, alignItems: 'center', paddingTop: 80, paddingHorizontal: 24}}>
       <StatusBar hidden />
       <Text style={{fontSize: 64, fontWeight: '200', color: c.onBackground, letterSpacing: -2}}>
-        {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+        {clockTime}
       </Text>
       <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginTop: -4, marginBottom: 32}}>
         Time to wake up.
@@ -327,22 +339,20 @@ export default function AlarmFiringScreen() {
 
       {mode === 'idle' && (
         <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 16}}>
-          <>
-              <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
-                {reps}
-              </Text>
-              <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
-                push-ups to silence this alarm
-              </Text>
-              <Animated.View style={{transform: [{scale: btnScale}]}}>
-                <Button mode="contained" onPress={startCamera} onPressIn={pressBtnIn} onPressOut={pressBtnOut} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
-                  I'm Ready
-                </Button>
-              </Animated.View>
-              <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
-                Use manual count instead
-              </Button>
-            </>
+          <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
+            {reps}
+          </Text>
+          <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+            push-ups to silence this alarm
+          </Text>
+          <Animated.View style={{transform: [{scale: btnScale}]}}>
+            <Button mode="contained" onPress={startCamera} onPressIn={pressBtnIn} onPressOut={pressBtnOut} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+              I'm Ready
+            </Button>
+          </Animated.View>
+          <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
+            Use manual count instead
+          </Button>
           {alarm?.snoozeEnabled && snoozeCount < 3 && (
             <View style={{alignItems: 'center', gap: 6}}>
               <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>

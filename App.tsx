@@ -13,6 +13,7 @@ import {
   scheduleTrialWarnings,
   cancelTrialWarnings,
   ALARM_CHANNEL_ID,
+  alarmParamsFromData,
 } from './src/utils/notifee';
 import {initializePurchases, isPro} from './src/utils/revenuecat';
 import {useSubscriptionStore} from './src/store/subscriptionStore';
@@ -25,15 +26,6 @@ import {useSettingsStore} from './src/store/settingsStore';
 import {shallow} from 'zustand/shallow';
 import LevelUpModal from './src/components/LevelUpModal';
 
-function alarmParamsFromData(id: string, data?: Record<string, string>) {
-  return {
-    alarmId: id,
-    reps: parseInt(String(data?.reps ?? '10'), 10),
-    sound: String(data?.sound ?? 'alarm.mp3'),
-    volume: parseFloat(String(data?.volume ?? '1.0')),
-    snoozeCount: parseInt(String(data?.snoozeCount ?? '0'), 10),
-  };
-}
 
 async function checkForActiveAlarm() {
   const displayed = await notifee.getDisplayedNotifications();

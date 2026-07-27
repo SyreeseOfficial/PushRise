@@ -3,7 +3,7 @@ import {persist} from 'zustand/middleware';
 import {getBonus, checkMilestone, getWeekStart, getAvatarLevel} from '../utils/engagement';
 import {makeMMKVStorage} from './mmkvStorage';
 
-const mmkvStorage = makeMMKVStorage();
+const mmkvStorage = makeMMKVStorage('pushrise-bank');
 
 export interface Reward {
   id: string;
@@ -201,8 +201,7 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
           : {...s.dailyHistory, [today]: newTodayReps};
         const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
         const cutKey = cutoff.toISOString().slice(0, 10);
-        Object.keys(h).forEach(k => { if (k < cutKey) delete h[k]; });
-        return h;
+        return Object.fromEntries(Object.entries(h).filter(([k]) => k >= cutKey));
       })(),
       ...streakUpdate,
       freezeCount: newFreezeCount,

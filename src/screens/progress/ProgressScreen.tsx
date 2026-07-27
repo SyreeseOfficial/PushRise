@@ -497,11 +497,11 @@ export default function ProgressScreen() {
     [weekReps, weekStart, bossDefeatedWeek],
   );
 
-  // Refresh community goal number every 30s for live feel
-  React.useEffect(() => {
+  // Refresh community goal number every 30s only while screen is focused
+  useFocusEffect(React.useCallback(() => {
     const t = setInterval(() => setCommunityGoal(getCommunityGoal()), 30000);
     return () => clearInterval(t);
-  }, []);
+  }, []));
 
   // Check if user beat the boss
   React.useEffect(() => {
@@ -511,11 +511,11 @@ export default function ProgressScreen() {
     }
   }, [weekReps, boss.weekReps, boss.isDefeated, weekStart, defeatBoss]);
 
-  // Pick up any pending celebration (from camera screen or alarm firing)
+  // Pick up any pending celebration — cascade so modals don't stack invisibly
   useFocusEffect(
     React.useCallback(() => {
       if (pendingCelebration) setShowCelebration(true);
-      if (pendingFreezeEarned) setShowFreezeEarned(true);
+      else if (pendingFreezeEarned) setShowFreezeEarned(true);
       if (pendingFreezeUsed) setShowFreezeUsedSnack(true);
       if (pendingRoundNudge) { setRoundNudgeSnack(pendingRoundNudge); clearRoundNudge(); }
     }, [pendingCelebration, pendingFreezeEarned, pendingFreezeUsed, pendingRoundNudge, clearRoundNudge]),
@@ -524,6 +524,7 @@ export default function ProgressScreen() {
   const dismissCelebration = () => {
     setShowCelebration(false);
     clearCelebration();
+    if (pendingFreezeEarned) setShowFreezeEarned(true);
   };
 
   const openBank = () => setSheet(hasSeenBankIntro ? 'mode' : 'intro');

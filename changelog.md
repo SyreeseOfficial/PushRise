@@ -6,6 +6,63 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-27 — Code Audit Fixes (P0–P3)
+
+Completed all items from `CODE_AUDIT.md`. File deleted.
+
+### P0 — Snapshot files never deleted (memory leak on disk)
+- **Fix:** Added `file.delete()` calls in `PoseDetectionModule.kt` on both success and failure paths of `detectFromFile()`. One line of Kotlin, no new JS dependency. JPEG snapshots are now deleted immediately after ML Kit processes them.
+
+### P1 — Alarm clock display frozen
+- **Fix:** Added `clockTime` state + 30s `setInterval` in `AlarmFiringScreen`. The displayed time now updates live.
+
+### P1 — Modal queue collision in ProgressScreen
+- **Fix:** Cascaded modal fire order — `showFreezeEarned` only fires if `pendingCelebration` is absent. `dismissCelebration()` now chains into `setShowFreezeEarned(true)` if a freeze was earned. Modals no longer stack invisibly.
+
+### P1 — `nextAlarmLabel` goes stale across minute boundaries
+- **Fix:** Added `tick` state + 60s `setInterval` in `AlarmListScreen`. `useMemo` now depends on `[alarms, tick]`, recomputing every minute.
+
+### P1 — Paywall bypass possible
+- **Verified safe.** `handleComplete()` is only called after a successful `purchasePackage()` or `restorePurchases()`. No skip path reaches it.
+
+### P2 — `cleanup()` in AlarmFiringScreen doesn't guarantee navigation
+- **Fix:** Wrapped alarm reschedule/cancel in `try/catch`. `navigation.goBack()` is now always reached even if `scheduleAlarm()` throws.
+
+### P2 — Shared MMKV storage ID
+- **Fix:** `alarmStore` uses `makeMMKVStorage('pushrise-alarms')`, `bankStore` uses `makeMMKVStorage('pushrise-bank')`. Each store now has its own MMKV instance.
+
+### P2 — `dailyHistory` prune mutates inside IIFE
+- **Fix:** Replaced `Object.keys(h).forEach(delete)` with `Object.fromEntries(Object.entries(h).filter(...))`.
+
+### P2 — Community goal interval runs off-screen
+- **Fix:** Moved 30s `setInterval` from `useEffect` to `useFocusEffect` in `ProgressScreen`. Interval only runs when the Progress tab is focused.
+
+### P2 — Unnecessary `<>` fragment in idle mode
+- **Fix:** Removed dead `<>` / `</>` wrappers from the idle mode block in `AlarmFiringScreen`.
+
+### P3 — `alarmParamsFromData` duplicated in App.tsx and notifee.ts
+- **Fix:** Moved `alarmParamsFromData` into `notifee.ts` as a named export. `App.tsx` now imports it. `setupForegroundHandler` uses it too.
+
+### Files changed
+- `android/app/src/main/java/com/pushrise/PoseDetectionModule.kt` — P0 snapshot cleanup
+- `src/screens/alarms/AlarmFiringScreen.tsx` — P1 live clock, P2 cleanup guard, P2 dead fragment
+- `src/screens/alarms/AlarmListScreen.tsx` — P1 stale nextAlarmLabel
+- `src/screens/progress/ProgressScreen.tsx` — P1 modal cascade, P2 off-screen interval
+- `src/store/alarmStore.ts` — P2 named MMKV ID
+- `src/store/bankStore.ts` — P2 named MMKV ID, P2 mutation fix
+- `src/utils/notifee.ts` — P3 shared alarmParamsFromData
+- `App.tsx` — P3 use shared alarmParamsFromData
+- `CODE_AUDIT.md` — deleted (all items resolved)
+
+---
+
+
+This file tracks every major decision, change, or milestone made on PushRise — product, technical, and strategic. If an AI assistant loses context mid-session or a new session starts cold, **read this file first**. It is the source of truth for what has been done, what was decided, and why.
+
+Format: newest entries at the top.
+
+---
+
 ## 2026-07-27 — Full UI/UX Audit Complete (C1–C5, H1–H11, L1–L19)
 
 ### Overview

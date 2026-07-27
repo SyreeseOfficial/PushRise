@@ -9,6 +9,16 @@ import type {TimestampTrigger} from '@notifee/react-native';
 import {getDailyChallenge} from './engagement';
 
 export const ALARM_CHANNEL_ID = 'pushrise-alarm';
+
+export function alarmParamsFromData(id: string, data?: Record<string, string>) {
+  return {
+    alarmId: id,
+    reps: parseInt(String(data?.reps ?? '10'), 10),
+    sound: String(data?.sound ?? 'alarm.mp3'),
+    volume: parseFloat(String(data?.volume ?? '1.0')),
+    snoozeCount: parseInt(String(data?.snoozeCount ?? '0'), 10),
+  };
+}
 const NUDGE_CHANNEL_ID = 'pushrise-nudge';
 export const NUDGE_NOTIF_ID = 'daily-nudge';
 export const RIVAL_NOTIF_ID = 'rival-notif';
@@ -110,12 +120,9 @@ export function setupForegroundHandler(
       const n = detail.notification;
       if (n?.android?.channelId !== ALARM_CHANNEL_ID) return;
       const id = n?.id;
-      const data = n?.data ?? {};
-      const reps = parseInt(String(data.reps ?? '10'), 10);
-      const sound = String(data.sound ?? 'alarm.mp3');
-      const volume = parseFloat(String(data.volume ?? '1.0'));
-      const snoozeCount = parseInt(String(data.snoozeCount ?? '0'), 10);
-      if (id) onAlarmFired(id, reps, sound, volume, snoozeCount);
+      if (!id) return;
+      const p = alarmParamsFromData(id, n.data as Record<string, string>);
+      onAlarmFired(p.alarmId, p.reps, p.sound, p.volume, p.snoozeCount);
     }
   });
 }

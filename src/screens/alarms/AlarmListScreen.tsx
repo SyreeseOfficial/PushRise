@@ -287,6 +287,12 @@ export default function AlarmListScreen() {
   const {alarms, reorderAlarmToIndex} = useAlarmStore();
   const {totalReps} = useBankStore();
 
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+
   const nextAlarmLabel = React.useMemo(() => {
     const enabled = alarms.filter(a => a.enabled);
     if (!enabled.length) return null;
@@ -296,7 +302,8 @@ export default function AlarmListScreen() {
     const diffM = Math.floor((diffMs % 3600000) / 60000);
     const timeStr = next.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
     return `Next: ${timeStr}, in ${diffH > 0 ? `${diffH}h ` : ''}${diffM}m`;
-  }, [alarms]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarms, tick]);
   const {isFirstLaunch, markFirstLaunchSeen} = useOnboardingStore();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
