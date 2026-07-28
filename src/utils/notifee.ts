@@ -23,6 +23,7 @@ const NUDGE_CHANNEL_ID = 'pushrise-nudge';
 export const NUDGE_NOTIF_ID = 'daily-nudge';
 export const RIVAL_NOTIF_ID = 'rival-notif';
 export const DAILY_CHALLENGE_NOTIF_ID = 'daily-challenge';
+export const LATE_NIGHT_NOTIF_ID = 'late-night';
 
 export async function setupNotifee() {
   await notifee.createChannel({
@@ -191,6 +192,35 @@ export async function cancelNudge() {
   await notifee.cancelNotification(NUDGE_NOTIF_ID);
 }
 
+// ─── Late-Night Grind Nudge ───────────────────────────────────────────────────
+
+export async function scheduleLateNightNotif(hour: number, minute: number) {
+  const now = new Date();
+  const target = new Date();
+  target.setHours(hour, minute, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+
+  await notifee.cancelTriggerNotification(LATE_NIGHT_NOTIF_ID);
+  await notifee.createTriggerNotification(
+    {
+      id: LATE_NIGHT_NOTIF_ID,
+      title: 'PushRise',
+      body: '23 PushRisers are grinding right now. The gym is quiet — perfect time to train.',
+      android: {channelId: NUDGE_CHANNEL_ID},
+    },
+    {
+      type: TriggerType.TIMESTAMP,
+      timestamp: target.getTime(),
+      alarmManager: {type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE},
+    } as TimestampTrigger,
+  );
+}
+
+export async function cancelLateNightNotif() {
+  await notifee.cancelTriggerNotification(LATE_NIGHT_NOTIF_ID);
+  await notifee.cancelNotification(LATE_NIGHT_NOTIF_ID);
+}
+
 // ─── Trial Warning Notifications ─────────────────────────────────────────────
 
 export async function scheduleTrialWarnings(trialStartedAt: number) {
@@ -226,7 +256,7 @@ const RIVAL_NAMES = [
 
 // ─── Daily Challenge ─────────────────────────────────────────────────────────
 
-export async function scheduleDailyChallengeNotif() {
+export async function scheduleDailyChallengeNotif(hour = 8, minute = 0) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().slice(0, 10);
@@ -235,7 +265,8 @@ export async function scheduleDailyChallengeNotif() {
   const h = deadlineHour;
   const deadlineStr = h === 12 ? '12pm' : h > 12 ? `${h - 12}pm` : `${h}am`;
 
-  const fireAt = new Date(`${tomorrowStr}T08:00:00`);
+  const fireAt = new Date(tomorrowStr);
+  fireAt.setHours(hour, minute, 0, 0);
 
   await notifee.cancelTriggerNotification(DAILY_CHALLENGE_NOTIF_ID);
   await notifee.createTriggerNotification(

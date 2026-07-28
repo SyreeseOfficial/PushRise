@@ -14,7 +14,7 @@ import {useBankStore} from '../../store/bankStore';
 import {useAlarmStore} from '../../store/alarmStore';
 import {useSubscriptionStore} from '../../store/subscriptionStore';
 import {cardShadow} from '../../theme';
-import {scheduleNudge, cancelNudge} from '../../utils/notifee';
+import {scheduleNudge, cancelNudge, scheduleLateNightNotif, cancelLateNightNotif, scheduleDailyChallengeNotif} from '../../utils/notifee';
 import type {RootStackParamList} from '../../navigation/navigationRef';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -47,6 +47,8 @@ export default function SettingsScreen() {
   const [tempTheme, setTempTheme] = useState<ThemeMode>('system');
   const [tempBypassCost, setTempBypassCost] = useState('');
   const [showNudgePicker, setShowNudgePicker] = useState(false);
+  const [showLateNightPicker, setShowLateNightPicker] = useState(false);
+  const [showDailyChallengePicker, setShowDailyChallengePicker] = useState(false);
 
   const open = (key: DialogKey) => {
     if (key === 'defaultReps') setTempReps(String(settings.defaultReps));
@@ -298,7 +300,7 @@ export default function SettingsScreen() {
           <SwitchRow
             icon="snowflake"
             title="Streak Reminder"
-            description="Evening nudge if you haven't logged any push-ups"
+            description="Nudge if you haven't logged any push-ups by evening"
             value={settings.nudgeEnabled}
             onChange={async v => {
               settings.update({nudgeEnabled: v});
@@ -309,12 +311,53 @@ export default function SettingsScreen() {
           {settings.nudgeEnabled && (
             <TapRow
               icon="clock-outline"
-              title="Reminder Time"
+              title="Streak Reminder Time"
               value={`${String(settings.nudgeHour).padStart(2, '0')}:${String(settings.nudgeMinute).padStart(2, '0')}`}
               onPress={() => setShowNudgePicker(true)}
-              last
             />
           )}
+          <SwitchRow
+            icon="moon-waning-crescent"
+            title="Late-Night Grind"
+            description={'\'23 PushRisers are grinding right now\' — only fires if you haven\'t logged reps'}
+            value={settings.lateNightEnabled}
+            onChange={async v => {
+              settings.update({lateNightEnabled: v});
+              if (v) { await scheduleLateNightNotif(settings.lateNightHour, settings.lateNightMinute); }
+              else { await cancelLateNightNotif(); }
+            }}
+          />
+          {settings.lateNightEnabled && (
+            <TapRow
+              icon="clock-outline"
+              title="Late-Night Time"
+              value={`${String(settings.lateNightHour).padStart(2, '0')}:${String(settings.lateNightMinute).padStart(2, '0')}`}
+              onPress={() => setShowLateNightPicker(true)}
+            />
+          )}
+          <SwitchRow
+            icon="flag-checkered"
+            title="Daily Challenge"
+            description="Morning notification with today's push-up challenge"
+            value={settings.dailyChallengeEnabled}
+            onChange={v => settings.update({dailyChallengeEnabled: v})}
+          />
+          {settings.dailyChallengeEnabled && (
+            <TapRow
+              icon="clock-outline"
+              title="Challenge Time"
+              value={`${String(settings.dailyChallengeHour).padStart(2, '0')}:${String(settings.dailyChallengeMinute).padStart(2, '0')}`}
+              onPress={() => setShowDailyChallengePicker(true)}
+            />
+          )}
+          <SwitchRow
+            icon="account-arrow-up-outline"
+            title="Anonymous Rival"
+            description={'\'Marcus T. just passed you\' — fires after you dismiss an alarm'}
+            value={settings.rivalEnabled}
+            onChange={v => settings.update({rivalEnabled: v})}
+            last
+          />
         </Card>
 
         <SectionLabel label="Goals" />
@@ -419,6 +462,36 @@ export default function SettingsScreen() {
               const h = date.getHours(), m = date.getMinutes();
               settings.update({nudgeHour: h, nudgeMinute: m});
               if (settings.nudgeEnabled) scheduleNudge(h, m).catch(() => {});
+            }
+          }}
+        />
+      )}
+      {showLateNightPicker && (
+        <DateTimePicker
+          value={(() => { const d = new Date(); d.setHours(settings.lateNightHour, settings.lateNightMinute, 0, 0); return d; })()}
+          mode="time"
+          is24Hour={false}
+          onChange={(_, date) => {
+            setShowLateNightPicker(false);
+            if (date) {
+              const h = date.getHours(), m = date.getMinutes();
+              settings.update({lateNightHour: h, lateNightMinute: m});
+              if (settings.lateNightEnabled) scheduleLateNightNotif(h, m).catch(() => {});
+            }
+          }}
+        />
+      )}
+      {showDailyChallengePicker && (
+        <DateTimePicker
+          value={(() => { const d = new Date(); d.setHours(settings.dailyChallengeHour, settings.dailyChallengeMinute, 0, 0); return d; })()}
+          mode="time"
+          is24Hour={false}
+          onChange={(_, date) => {
+            setShowDailyChallengePicker(false);
+            if (date) {
+              const h = date.getHours(), m = date.getMinutes();
+              settings.update({dailyChallengeHour: h, dailyChallengeMinute: m});
+              if (settings.dailyChallengeEnabled) scheduleDailyChallengeNotif(h, m).catch(() => {});
             }
           }}
         />

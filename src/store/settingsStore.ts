@@ -19,6 +19,13 @@ export const SETTINGS_DEFAULTS = {
   nudgeEnabled: true,
   nudgeHour: 21,
   nudgeMinute: 0,
+  lateNightEnabled: true,
+  lateNightHour: 22,
+  lateNightMinute: 0,
+  rivalEnabled: true,
+  dailyChallengeEnabled: true,
+  dailyChallengeHour: 8,
+  dailyChallengeMinute: 0,
   emergencyBypassEnabled: false,
   emergencyBypassCost: 50,
 };

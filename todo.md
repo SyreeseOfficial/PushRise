@@ -16,7 +16,7 @@ Tracks everything that needs to happen. Grouped by phase. Check off as done.
 - "Viral moment": when you hit a milestone the app says "This won't be shown again — screenshot now." Makes the moment feel scarce.
 - Morning unlock ritual: until you bank 10 reps, a subtle "not warmed up yet" indicator shows on your avatar. Compulsion to clear it before the day starts.
 - ~~After banking reps: "Add 5 more to hit a round 50?" People hate odd numbers. Biggest ROI of the whole list.~~ → **SHIPPED**: snackbar with [Add] action fires whenever todayReps lands 1–4 below a multiple of 5
-- Late-night notification: "23 PushRisers are grinding right now. The gym is quiet — perfect time to train"
+- ~~Late-night notification: "23 PushRisers are grinding right now. The gym is quiet — perfect time to train"~~ → **SHIPPED**: configurable time (default 10pm), auto-cancels when reps logged that day, toggle in Notifications settings
 
 --- 
 

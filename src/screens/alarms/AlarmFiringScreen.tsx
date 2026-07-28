@@ -198,7 +198,7 @@ export default function AlarmFiringScreen() {
     vibrateOnAlarm, muteAudioDuringPushups,
     hapticOnRep, keepScreenOn, preferFrontCamera,
     autoCompleteAlarm, audioCueOnRep, dailyGoal,
-    emergencyBypassEnabled, emergencyBypassCost,
+    emergencyBypassEnabled, emergencyBypassCost, rivalEnabled,
   } = useSettingsStore();
   const {hasPromptedReview, markReviewPrompted} = useOnboardingStore();
 
@@ -269,7 +269,7 @@ export default function AlarmFiringScreen() {
     if (completed) {
       const earned = slotPayoutRef.current !== null ? slotPayoutRef.current : reps;
       if (earned > 0) addReps(earned);
-      scheduleRivalNotif(totalReps + (earned > 0 ? earned : 0));
+      if (rivalEnabled) scheduleRivalNotif(totalReps + (earned > 0 ? earned : 0));
       if (!hasPromptedReview && InAppReview.isAvailable()) {
         markReviewPrompted();
         InAppReview.RequestInAppReview();

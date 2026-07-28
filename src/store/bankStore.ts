@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
 import {getBonus, checkMilestone, getWeekStart, getAvatarLevel} from '../utils/engagement';
 import {makeMMKVStorage} from './mmkvStorage';
+import {cancelNudge, cancelLateNightNotif} from '../utils/notifee';
 
 const mmkvStorage = makeMMKVStorage('pushrise-bank');
 
@@ -208,6 +209,10 @@ export const useBankStore = create<BankStore>()(persist((set, get) => ({
       pendingFreezeEarned: awardFreeze || s.pendingFreezeEarned,
       pendingFreezeUsed: freezeUsed || s.pendingFreezeUsed,
     });
+
+    // Cancel today's engagement nudges now that reps are banked
+    cancelNudge().catch(() => {});
+    cancelLateNightNotif().catch(() => {});
   },
 
   spendReps: (n) => set(s => ({totalReps: Math.max(0, s.totalReps - n)})),
