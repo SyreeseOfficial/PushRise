@@ -276,6 +276,9 @@ const RewardCard = React.memo(function RewardCard({reward, totalReps, onTryRedee
       backgroundColor: c.surface,
     }, theme.dark ? {} : cardShadow]}>
       <View style={{borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden'}}>
+        <View pointerEvents="none" style={{position: 'absolute', top: 8, right: 8}}>
+          <Icon source="dots-vertical" size={16} color={c.onSurfaceVariant} />
+        </View>
         <View style={{
           width: 52, height: 52, borderRadius: 14,
           backgroundColor: c.surfaceVariant,
@@ -565,7 +568,7 @@ export default function RewardsScreen() {
                     onPress={() => {
                       setSlotWager(amount);
                       setShowSlotWager(false);
-                      setTimeout(() => setShowSlots(true), 350);
+                      setTimeout(() => setShowSlots(true), 200);
                     }}
                     style={{
                       flex: 1, minWidth: '40%',

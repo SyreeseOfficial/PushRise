@@ -125,32 +125,32 @@ Findings from a full codebase audit. Grouped by effort. Fix the XS/S items befor
 
 ### Visual Bugs
 
-- [ ] **[XS] Clamp community challenge progress bar to 100%** — `ProgressScreen.tsx:747`: `width: \`${(communityGoal.total / communityGoal.goal) * 100}%\`` overflows if total > goal. Fix: `Math.min((communityGoal.total / communityGoal.goal) * 100, 100)`.
+- [x] **[XS] Clamp community challenge progress bar to 100%** — `ProgressScreen.tsx:747`: `width: \`${(communityGoal.total / communityGoal.goal) * 100}%\`` overflows if total > goal. Fix: `Math.min((communityGoal.total / communityGoal.goal) * 100, 100)`.
 
 ---
 
 ### Micro-interactions & Polish
 
-- [ ] **[S] Cross-fade between AlarmFiringScreen mode states** — `AlarmFiringScreen.tsx:300,343,355,367`: `idle → camera/manual → done` swaps are instant. Add a fade via `Animated.timing` on opacity wrapping each mode's view. This is the most emotionally loaded moment in the app — it should feel smooth. Pattern: fade out (120ms) → swap mode → fade in (200ms).
-- [ ] **[S] Animate disabled alarm card opacity** — `AlarmListScreen.tsx:221`: `opacity: enabled ? 1 : 0.45` is a raw style, so toggling an alarm snaps the card opacity instantly. Convert to an `Animated.Value`, drive it with `Animated.timing 200ms` inside `handleToggle`.
-- [ ] **[XS] Spring entrance for the "done" state emoji on AlarmFiringScreen** — `AlarmFiringScreen.tsx:367`: The 💪 + success text appear instantly. Add a `scale` spring from 0→1 on the completion view to give the moment physical weight.
-- [ ] **[XS] Add 300ms delay on focus-triggered celebration modals** — `ProgressScreen.tsx:499–505`: `useFocusEffect` fires before the first paint, so returning from camera immediately pops a modal before the user sees the screen. Wrap in `setTimeout(..., 300)`.
-- [ ] **[M] Prevent alarm card slide-in animation re-firing on reorder** — `AlarmListScreen.tsx:150–157`: `useEffect([], [])` fires on every `AlarmCard` mount. After a drag-reorder, re-mounted cards slide in from the right again — jarring. Fix: wrap `AlarmCard` in `React.memo` or track a `hasMounted` ref inside the card.
-- [ ] **[XS] Extract `AnimatedCounter` and use it on the camera counter in AlarmFiringScreen** — `AlarmFiringScreen.tsx:58,136`: The rep count displayed during camera/manual counting jumps instantly. The `AnimatedCounter` component already exists in `AlarmListScreen.tsx:23–32` — move it to a shared file and use it on both counters.
-- [ ] **[XS] Reduce slots-to-modal delay from 350ms to 200ms** — `ProgressScreen.tsx:898`: `setTimeout(() => setShowSlots(true), 350)` after closing the wager sheet feels like a dead pause. The slots modal entrance is animated anyway; 200ms is enough.
+- [x] **[S] Cross-fade between AlarmFiringScreen mode states** — `AlarmFiringScreen.tsx:300,343,355,367`: `idle → camera/manual → done` swaps are instant. Add a fade via `Animated.timing` on opacity wrapping each mode's view. This is the most emotionally loaded moment in the app — it should feel smooth. Pattern: fade out (120ms) → swap mode → fade in (200ms).
+- [x] **[S] Animate disabled alarm card opacity** — `AlarmListScreen.tsx:221`: `opacity: enabled ? 1 : 0.45` is a raw style, so toggling an alarm snaps the card opacity instantly. Convert to an `Animated.Value`, drive it with `Animated.timing 200ms` inside `handleToggle`.
+- [x] **[XS] Spring entrance for the "done" state emoji on AlarmFiringScreen** — `AlarmFiringScreen.tsx:367`: The 💪 + success text appear instantly. Add a `scale` spring from 0→1 on the completion view to give the moment physical weight.
+- [x] **[XS] Add 300ms delay on focus-triggered celebration modals** — `ProgressScreen.tsx:499–505`: `useFocusEffect` fires before the first paint, so returning from camera immediately pops a modal before the user sees the screen. Wrap in `setTimeout(..., 300)`.
+- [x] **[M] Prevent alarm card slide-in animation re-firing on reorder** — `AlarmListScreen.tsx:150–157`: `useEffect([], [])` fires on every `AlarmCard` mount. After a drag-reorder, re-mounted cards slide in from the right again — jarring. Fix: wrap `AlarmCard` in `React.memo` or track a `hasMounted` ref inside the card.
+- [x] **[XS] Extract `AnimatedCounter` and use it on the camera counter in AlarmFiringScreen** — `AlarmFiringScreen.tsx:58,136`: The rep count displayed during camera/manual counting jumps instantly. The `AnimatedCounter` component already exists in `AlarmListScreen.tsx:23–32` — move it to a shared file and use it on both counters.
+- [x] **[XS] Reduce slots-to-modal delay from 350ms to 200ms** — `RewardsScreen.tsx`: `setTimeout(() => setShowSlots(true), 350)` after closing the wager sheet feels like a dead pause. The slots modal entrance is animated anyway; 200ms is enough.
 
 ---
 
 ### Information Architecture & Clarity
 
-- [ ] **[S] Add section headers to the Progress scroll** — 11 content blocks run into each other with only `gap: 12`. Add at minimum two label separators: one before Community Challenge (label: "This Week") and one before Monthly Calendar (label: "History"). Use the same style as Settings' `SectionLabel`.
-- [ ] **[S] Move "Feeling Lucky?" slots below the stat cards** — `ProgressScreen.tsx:643`: Currently it sits between the primary Bank Push-ups CTA and the stats row, breaking the mental model. Move it after the daily goal block, or surface it as a third option inside the Bank Push-ups sheet.
-- [ ] **[XS] Add a `⋮` hint icon to RewardCards** — `RewardsScreen.tsx:264`: Long-press to edit is completely undiscoverable. Add a 16px `Icon source="dots-vertical"` at the top-right of each card with `pointerEvents="none"` as a passive affordance that doesn't need its own touch handler.
-- [ ] **[XS] Replace Contact Support Alert with `mailto:` link** — `SettingsScreen.tsx:378`: `Alert.alert('Contact Support', 'syreeseofficial@gmail.com')` is uncopyable on Android. Replace with `Linking.openURL('mailto:syreeseofficial@gmail.com')`.
-- [ ] **[XS] Hide or fix the "Rate PushRise" Play Store link** — `SettingsScreen.tsx:363–368`: The URL fails before the app is listed and shows an error Alert. Hide the row until the app is live, then replace the catch with nothing.
-- [ ] **[XS] Show a "Tap again to confirm" label on pending-delete alarm** — `AlarmListScreen.tsx:174–189`: After the first tap, the trash icon turns red but there's no text feedback. Add a small `Text` ("Tap again") below the icon during `pendingDelete === true` so users understand why the icon changed.
-- [ ] **[S] Add an inline CTA to the empty alarm state** — `AlarmListScreen.tsx:464–471`: "Tap + to create your first alarm" is instructional but the FAB is in the bottom-right with no visual connection. Add a `Button mode="contained" onPress={() => navigation.navigate('AddAlarm')}` inline in the empty state as a direct path — only render it when `alarms.length === 0`.
-- [ ] **[S] Increase snooze button touch targets** — `AlarmFiringScreen.tsx:319–330`: Three `compact` outlined buttons in a row are ~36px tall on budget Android (minimum is 48px). Remove `compact` or add `contentStyle={{paddingVertical: 8}}` to each snooze button.
+- [x] **[S] Add section headers to the Progress scroll** — added "This Week" before Community Challenge and "History" before Monthly Calendar.
+- [x] **[S] Move "Feeling Lucky?" slots below the stat cards** — feature was already relocated to RewardsScreen and AlarmFiringScreen in a prior session; no longer in ProgressScreen.
+- [x] **[XS] Add a `⋮` hint icon to RewardCards** — added `Icon source="dots-vertical"` at top-right of each RewardCard with `pointerEvents="none"`.
+- [x] **[XS] Replace Contact Support Alert with `mailto:` link** — now uses `Linking.openURL('mailto:syreeseofficial@gmail.com')`.
+- [ ] **[XS] Hide or fix the "Rate PushRise" Play Store link** — left as-is (shows "Not yet" alert); revisit when app goes live.
+- [x] **[XS] Show a "Tap again to confirm" label on pending-delete alarm** — "Tap again" text appears below trash icon when `pendingDelete === true`.
+- [x] **[S] Add an inline CTA to the empty alarm state** — "Create Alarm" button added below instructional text.
+- [x] **[S] Increase snooze button touch targets** — removed `compact`, added `contentStyle={{paddingVertical: 8}}` to all three snooze buttons.
 
 ---
 

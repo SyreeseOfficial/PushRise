@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Animated, PanResponder, Pressable, ScrollView, View, Vibration} from 'react-native';
-import {Switch, IconButton, Text, Icon, useTheme, TouchableRipple} from 'react-native-paper';
+import {Switch, IconButton, Text, Icon, Button, useTheme, TouchableRipple} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -133,7 +133,7 @@ function GhostCard({alarm}: {alarm: Alarm}) {
   );
 }
 
-function AlarmCard({
+const AlarmCard = React.memo(function AlarmCard({
   alarm, index, onShowToast, isDragging, dragCallbacksRef,
 }: {
   alarm: Alarm;
@@ -147,6 +147,7 @@ function AlarmCard({
   const {toggleAlarm, deleteAlarm} = useAlarmStore();
   const {time, ampm} = formatTime(alarm.hour, alarm.minute);
   const enabled = alarm.enabled;
+  const cardOpacity = useRef(new Animated.Value(enabled ? 1 : 0.45)).current;
 
   const daysLabel = alarm.days.length === 0
     ? 'One-time'
@@ -167,9 +168,12 @@ function AlarmCard({
   const cardScale = useRef(new Animated.Value(1)).current;
   const handleToggle = () => {
     Vibration.vibrate(30);
-    Animated.sequence([
-      Animated.spring(cardScale, {toValue: 1.025, useNativeDriver: true, speed: 40}),
-      Animated.spring(cardScale, {toValue: 1, useNativeDriver: true, speed: 25}),
+    Animated.parallel([
+      Animated.timing(cardOpacity, {toValue: enabled ? 0.45 : 1, duration: 200, useNativeDriver: true}),
+      Animated.sequence([
+        Animated.spring(cardScale, {toValue: 1.025, useNativeDriver: true, speed: 40}),
+        Animated.spring(cardScale, {toValue: 1, useNativeDriver: true, speed: 25}),
+      ]),
     ]).start();
     onShowToast(enabled ? 'Alarm disabled' : 'Alarm enabled');
     toggleAlarm(alarm.id);
@@ -224,7 +228,7 @@ function AlarmCard({
               backgroundColor: theme.colors.surface,
               borderRadius: 20,
               padding: 20,
-              opacity: enabled ? 1 : 0.45,
+              opacity: cardOpacity,
               transform: [{scale: cardScale}, {translateX: shakeX}],
             }, theme.dark ? {} : cardShadow]}>
 
@@ -265,13 +269,20 @@ function AlarmCard({
                       {alarm.reps} push-ups{alarm.label ? `  ·  ${alarm.label}` : ''}
                     </Text>
                   </View>
-                  <IconButton
-                    icon="trash-can-outline"
-                    iconColor={pendingDelete ? theme.colors.error : theme.colors.onSurfaceVariant}
-                    size={20}
-                    onPress={handleDelete}
-                    style={{margin: 0}}
-                  />
+                  <View style={{alignItems: 'center'}}>
+                    <IconButton
+                      icon="trash-can-outline"
+                      iconColor={pendingDelete ? theme.colors.error : theme.colors.onSurfaceVariant}
+                      size={20}
+                      onPress={handleDelete}
+                      style={{margin: 0}}
+                    />
+                    {pendingDelete && (
+                      <Text style={{fontSize: 10, color: theme.colors.error, marginTop: -6}}>
+                        Tap again
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </Pressable>
             </View>
@@ -280,7 +291,7 @@ function AlarmCard({
       </View>
     </Animated.View>
   );
-}
+});
 
 export default function AlarmListScreen() {
   const navigation = useNavigation<Nav>();
@@ -491,6 +502,9 @@ export default function AlarmListScreen() {
               <Text variant="bodyMedium" style={{color: theme.colors.outline}}>
                 Tap + to create your first alarm
               </Text>
+              <Button mode="contained" onPress={() => navigation.navigate('AddAlarm')} style={{marginTop: 8}}>
+                Create Alarm
+              </Button>
             </View>
           ) : (
             alarms.map((alarm, index) => (

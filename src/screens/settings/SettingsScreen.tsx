@@ -422,7 +422,7 @@ export default function SettingsScreen() {
           <TapRow
             icon="email-outline"
             title="Contact Support"
-            onPress={() => Alert.alert('Contact Support', 'syreeseofficial@gmail.com')}
+            onPress={() => Linking.openURL('mailto:syreeseofficial@gmail.com')}
           />
           <TapRow
             icon="information-outline"

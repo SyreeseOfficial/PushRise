@@ -512,12 +512,17 @@ export default function ProgressScreen() {
   }, [weekReps, boss.weekReps, boss.isDefeated, weekStart, defeatBoss]);
 
   // Pick up any pending celebration — cascade so modals don't stack invisibly
+  // 300ms delay: useFocusEffect fires before first paint, so without delay the modal
+  // appears before the user sees the screen when returning from camera.
   useFocusEffect(
     React.useCallback(() => {
-      if (pendingCelebration) setShowCelebration(true);
-      else if (pendingFreezeEarned) setShowFreezeEarned(true);
-      if (pendingFreezeUsed) setShowFreezeUsedSnack(true);
-      if (pendingRoundNudge) { setRoundNudgeSnack(pendingRoundNudge); clearRoundNudge(); }
+      const t = setTimeout(() => {
+        if (pendingCelebration) setShowCelebration(true);
+        else if (pendingFreezeEarned) setShowFreezeEarned(true);
+        if (pendingFreezeUsed) setShowFreezeUsedSnack(true);
+        if (pendingRoundNudge) { setRoundNudgeSnack(pendingRoundNudge); clearRoundNudge(); }
+      }, 300);
+      return () => clearTimeout(t);
     }, [pendingCelebration, pendingFreezeEarned, pendingFreezeUsed, pendingRoundNudge, clearRoundNudge]),
   );
 
@@ -741,6 +746,10 @@ export default function ProgressScreen() {
           </View>
         ) : null}
 
+        <Text style={{fontSize: 12, fontWeight: '600', letterSpacing: 0.5, color: c.onSurfaceVariant, textTransform: 'uppercase', marginTop: 4}}>
+          This Week
+        </Text>
+
         {/* Community challenge */}
         <View style={[{backgroundColor: c.surface, borderRadius: 20, padding: 20}, theme.dark ? {} : cardShadow]}>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14}}>
@@ -761,7 +770,7 @@ export default function ProgressScreen() {
             <LinearGradient
               colors={BRAND_GRADIENT.colors}
               start={{x: 0, y: 0}} end={{x: 1, y: 0}}
-              style={{height: 8, borderRadius: 100, width: `${(communityGoal.total / communityGoal.goal) * 100}%`}}
+              style={{height: 8, borderRadius: 100, width: `${Math.min((communityGoal.total / communityGoal.goal) * 100, 100)}%`}}
             />
           </View>
           <Text style={{fontSize: 11, color: c.onSurfaceVariant, marginTop: 8, fontWeight: '500', textAlign: 'right'}}>
@@ -873,6 +882,10 @@ export default function ProgressScreen() {
 
         {/* Leaderboard */}
         <LeaderboardCard weekReps={weekReps} />
+
+        <Text style={{fontSize: 12, fontWeight: '600', letterSpacing: 0.5, color: c.onSurfaceVariant, textTransform: 'uppercase', marginTop: 4}}>
+          History
+        </Text>
 
         <MonthlyCalendar dailyHistory={dailyHistory ?? {}} />
 

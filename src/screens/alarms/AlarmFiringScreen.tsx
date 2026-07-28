@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {View, Vibration, StatusBar, Alert, NativeModules, Animated} from 'react-native';
+import AnimatedCounter from '../../components/AnimatedCounter';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import {Button, Text, useTheme} from 'react-native-paper';
 import Sound from 'react-native-sound';
@@ -158,9 +159,7 @@ function CameraCounter({
     <View style={{flex: 1, width: '100%', alignItems: 'center'}}>
       <Camera ref={cameraRef} style={{width: '100%', flex: 1, borderRadius: 16, overflow: 'hidden'}} device={device} isActive photo />
       <View style={{position: 'absolute', bottom: 80, alignItems: 'center'}}>
-        <Text style={{fontSize: 96, fontWeight: '700', color: poseActive ? '#FFFFFF' : colors.primary, lineHeight: 96}}>
-          {count}
-        </Text>
+        <AnimatedCounter value={count} style={{fontSize: 96, fontWeight: '700', color: poseActive ? '#FFFFFF' : colors.primary, lineHeight: 96}} />
         <Text variant="titleLarge" style={{color: colors.onSurface, marginTop: -8}}>
           / {reps} push-ups
         </Text>
@@ -222,6 +221,18 @@ export default function AlarmFiringScreen() {
   const pressBtnIn = () => Animated.spring(btnScale, {toValue: 0.95, useNativeDriver: true}).start();
   const pressBtnOut = () => Animated.spring(btnScale, {toValue: 1, useNativeDriver: true}).start();
 
+  // Cross-fade between mode states
+  const modeAnim = useRef(new Animated.Value(1)).current;
+  const doneScale = useRef(new Animated.Value(0)).current;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const transitionMode = useCallback((next: 'idle' | 'camera' | 'manual' | 'done') => {
+    Animated.timing(modeAnim, {toValue: 0, duration: 120, useNativeDriver: true}).start(() => {
+      if (next === 'done') doneScale.setValue(0);
+      setMode(next);
+      Animated.timing(modeAnim, {toValue: 1, duration: 200, useNativeDriver: true}).start();
+    });
+  }, []);
+
   useEffect(() => {
     if (vibrateOnAlarm) Vibration.vibrate([0, 500, 300, 500], true);
     const s = new Sound(sound ?? 'alarm.mp3', Sound.MAIN_BUNDLE, err => {
@@ -281,8 +292,8 @@ export default function AlarmFiringScreen() {
   const complete = useCallback(() => {
     Vibration.cancel();
     soundRef.current?.stop();
-    setMode('done');
-  }, []);
+    transitionMode('done');
+  }, [transitionMode]);
 
   useEffect(() => {
     if (mode !== 'done' || !autoCompleteAlarm) return;
@@ -291,8 +302,11 @@ export default function AlarmFiringScreen() {
   }, [mode, autoCompleteAlarm, cleanup]);
 
   useEffect(() => {
-    if (mode === 'done') confettiRef.current?.start();
-  }, [mode]);
+    if (mode === 'done') {
+      confettiRef.current?.start();
+      Animated.spring(doneScale, {toValue: 1, useNativeDriver: true, tension: 80, friction: 8}).start();
+    }
+  }, [mode, doneScale]);
 
   const dismiss = useCallback(() => cleanup(false), [cleanup]);
 
@@ -317,12 +331,12 @@ export default function AlarmFiringScreen() {
   const startCamera = async () => {
     const permission = await Camera.requestCameraPermission();
     if (permission === 'granted') {
-      setMode('camera');
+      transitionMode('camera');
     } else {
       Alert.alert(
         'Camera needed',
         'Grant camera access to use push-up detection, or use manual mode.',
-        [{text: 'Manual mode', onPress: () => setMode('manual')}],
+        [{text: 'Manual mode', onPress: () => transitionMode('manual')}],
       );
     }
   };
@@ -337,116 +351,118 @@ export default function AlarmFiringScreen() {
         Time to wake up.
       </Text>
 
-      {mode === 'idle' && (
-        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 16}}>
-          <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
-            {reps}
-          </Text>
-          <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
-            push-ups to silence this alarm
-          </Text>
-          <Animated.View style={{transform: [{scale: btnScale}]}}>
-            <Button mode="contained" onPress={startCamera} onPressIn={pressBtnIn} onPressOut={pressBtnOut} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
-              I'm Ready
+      <Animated.View style={{flex: 1, width: '100%', alignItems: 'center', opacity: modeAnim}}>
+        {mode === 'idle' && (
+          <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 16}}>
+            <Text style={{fontSize: 96, fontWeight: '700', color: c.primary, lineHeight: 96}}>
+              {reps}
+            </Text>
+            <Text variant="titleMedium" style={{color: c.onSurfaceVariant, marginBottom: 16}}>
+              push-ups to silence this alarm
+            </Text>
+            <Animated.View style={{transform: [{scale: btnScale}]}}>
+              <Button mode="contained" onPress={startCamera} onPressIn={pressBtnIn} onPressOut={pressBtnOut} contentStyle={{paddingHorizontal: 32, paddingVertical: 8}}>
+                I'm Ready
+              </Button>
+            </Animated.View>
+            <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => transitionMode('manual')}>
+              Use manual count instead
             </Button>
-          </Animated.View>
-          <Button mode="text" textColor={c.onSurfaceVariant} onPress={() => setMode('manual')}>
-            Use manual count instead
-          </Button>
-          {alarm?.snoozeEnabled && snoozeCount < 3 && (
-            <View style={{alignItems: 'center', gap: 6}}>
-              <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>
-                Snooze ({3 - snoozeCount} left) — adds reps
-              </Text>
-              <View style={{flexDirection: 'row', gap: 10}}>
-                {[5, 10, 15].map(min => (
-                  <Button key={min} mode="outlined" compact onPress={() => handleSnooze(min)}>
-                    {min}m +{min}
-                  </Button>
-                ))}
+            {alarm?.snoozeEnabled && snoozeCount < 3 && (
+              <View style={{alignItems: 'center', gap: 6}}>
+                <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>
+                  Snooze ({3 - snoozeCount} left) — adds reps
+                </Text>
+                <View style={{flexDirection: 'row', gap: 10}}>
+                  {[5, 10, 15].map(min => (
+                    <Button key={min} mode="outlined" onPress={() => handleSnooze(min)} contentStyle={{paddingVertical: 8}}>
+                      {min}m +{min}
+                    </Button>
+                  ))}
+                </View>
               </View>
-            </View>
-          )}
-          {alarm?.snoozeEnabled && snoozeCount >= 3 && (
-            <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>
-              No snoozes left
-            </Text>
-          )}
-        </View>
-      )}
+            )}
+            {alarm?.snoozeEnabled && snoozeCount >= 3 && (
+              <Text variant="labelSmall" style={{color: c.onSurfaceVariant, opacity: 0.7}}>
+                No snoozes left
+              </Text>
+            )}
+          </View>
+        )}
 
-      {mode === 'camera' && (
-        <CameraCounter
-          reps={reps}
-          onDone={complete}
-          onSkip={dismiss}
-          hapticOnRep={hapticOnRep}
-          preferFrontCamera={preferFrontCamera}
-          audioCueOnRep={audioCueOnRep}
-          dailyGoal={dailyGoal}
-          todayReps={todayReps}
-        />
-      )}
-      {mode === 'manual' && (
-        <ManualCounter
-          reps={reps}
-          onDone={complete}
-          onSkip={dismiss}
-          hapticOnRep={hapticOnRep}
-          audioCueOnRep={audioCueOnRep}
-          dailyGoal={dailyGoal}
-          todayReps={todayReps}
-        />
-      )}
+        {mode === 'camera' && (
+          <CameraCounter
+            reps={reps}
+            onDone={complete}
+            onSkip={dismiss}
+            hapticOnRep={hapticOnRep}
+            preferFrontCamera={preferFrontCamera}
+            audioCueOnRep={audioCueOnRep}
+            dailyGoal={dailyGoal}
+            todayReps={todayReps}
+          />
+        )}
+        {mode === 'manual' && (
+          <ManualCounter
+            reps={reps}
+            onDone={complete}
+            onSkip={dismiss}
+            hapticOnRep={hapticOnRep}
+            audioCueOnRep={audioCueOnRep}
+            dailyGoal={dailyGoal}
+            todayReps={todayReps}
+          />
+        )}
 
-      {mode === 'done' && (
-        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 12}}>
-          <Text style={{fontSize: 64}}>💪</Text>
-          <Text variant="displaySmall" style={{color: c.primary, fontWeight: '900', textAlign: 'center', letterSpacing: -1}}>
-            {reps} reps
-          </Text>
-          <Text variant="titleLarge" style={{color: c.onSurfaceVariant, textAlign: 'center'}}>
-            banked. You won this morning.
-          </Text>
-          {currentStreak > 1 && (
-            <Text variant="titleMedium" style={{color: c.primary, textAlign: 'center'}}>
-              Day {currentStreak} in a row 🔥
+        {mode === 'done' && (
+          <Animated.View style={{alignItems: 'center', flex: 1, justifyContent: 'center', gap: 12, transform: [{scale: doneScale}]}}>
+            <Text style={{fontSize: 64}}>💪</Text>
+            <Text variant="displaySmall" style={{color: c.primary, fontWeight: '900', textAlign: 'center', letterSpacing: -1}}>
+              {reps} reps
             </Text>
-          )}
-          {currentStreak === 1 && (
-            <Text variant="titleMedium" style={{color: c.primary, textAlign: 'center'}}>
-              Streak started! 🔥
+            <Text variant="titleLarge" style={{color: c.onSurfaceVariant, textAlign: 'center'}}>
+              banked. You won this morning.
             </Text>
-          )}
-          <Animated.View style={{marginTop: 16, transform: [{scale: btnScale}]}}>
-            <Button
-              mode="contained"
-              onPress={() => cleanup(true)}
-              onPressIn={pressBtnIn}
-              onPressOut={pressBtnOut}
-              contentStyle={{paddingHorizontal: 40, paddingVertical: 10}}>
-              Dismiss Alarm
-            </Button>
+            {currentStreak > 1 && (
+              <Text variant="titleMedium" style={{color: c.primary, textAlign: 'center'}}>
+                Day {currentStreak} in a row 🔥
+              </Text>
+            )}
+            {currentStreak === 1 && (
+              <Text variant="titleMedium" style={{color: c.primary, textAlign: 'center'}}>
+                Streak started! 🔥
+              </Text>
+            )}
+            <Animated.View style={{marginTop: 16, transform: [{scale: btnScale}]}}>
+              <Button
+                mode="contained"
+                onPress={() => cleanup(true)}
+                onPressIn={pressBtnIn}
+                onPressOut={pressBtnOut}
+                contentStyle={{paddingHorizontal: 40, paddingVertical: 10}}>
+                Dismiss Alarm
+              </Button>
+            </Animated.View>
+            {!autoCompleteAlarm && slotPayoutRef.current === null && (
+              <Button mode="outlined" onPress={() => setShowSlots(true)} style={{marginTop: 8}}>
+                🎰 Try Your Luck — wager {reps} reps
+              </Button>
+            )}
           </Animated.View>
-          {!autoCompleteAlarm && slotPayoutRef.current === null && (
-            <Button mode="outlined" onPress={() => setShowSlots(true)} style={{marginTop: 8}}>
-              🎰 Try Your Luck — wager {reps} reps
-            </Button>
-          )}
-        </View>
-      )}
-      {mode === 'idle' && (
-        <View style={{position: 'absolute', bottom: 40, alignItems: 'center', gap: 10}}>
-          {emergencyBypassEnabled && totalReps >= emergencyBypassCost && (
-            <Text style={{fontSize: 12, color: c.outline, opacity: 0.5}} onPress={handleEmergencyBypass}>
-              Emergency Skip (−{emergencyBypassCost} reps)
+        )}
+        {mode === 'idle' && (
+          <View style={{position: 'absolute', bottom: 40, alignItems: 'center', gap: 10}}>
+            {emergencyBypassEnabled && totalReps >= emergencyBypassCost && (
+              <Text style={{fontSize: 12, color: c.outline, opacity: 0.5}} onPress={handleEmergencyBypass}>
+                Emergency Skip (−{emergencyBypassCost} reps)
+              </Text>
+            )}
+            <Text style={{fontSize: 12, color: c.outline, opacity: 0.4}} onPress={dismiss}>
+              Skip (no push-ups)
             </Text>
-          )}
-          <Text style={{fontSize: 12, color: c.outline, opacity: 0.4}} onPress={dismiss}>
-            Skip (no push-ups)
-          </Text>
-        </View>
-      )}
+          </View>
+        )}
+      </Animated.View>
       <ConfettiCannon ref={confettiRef} count={80} origin={{x: 200, y: 0}} autoStart={false} fadeOut />
 
       <RepSlotsModal
