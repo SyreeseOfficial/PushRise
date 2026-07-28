@@ -147,7 +147,7 @@ Findings from a full codebase audit. Grouped by effort. Fix the XS/S items befor
 - [x] **[S] Move "Feeling Lucky?" slots below the stat cards** — feature was already relocated to RewardsScreen and AlarmFiringScreen in a prior session; no longer in ProgressScreen.
 - [x] **[XS] Add a `⋮` hint icon to RewardCards** — added `Icon source="dots-vertical"` at top-right of each RewardCard with `pointerEvents="none"`.
 - [x] **[XS] Replace Contact Support Alert with `mailto:` link** — now uses `Linking.openURL('mailto:syreeseofficial@gmail.com')`.
-- [ ] **[XS] Hide or fix the "Rate PushRise" Play Store link** — left as-is (shows "Not yet" alert); revisit when app goes live.
+- [x] **[XS] Hide or fix the "Rate PushRise" Play Store link** — row removed from Settings until app is live on Play Store.
 - [x] **[XS] Show a "Tap again to confirm" label on pending-delete alarm** — "Tap again" text appears below trash icon when `pendingDelete === true`.
 - [x] **[S] Add an inline CTA to the empty alarm state** — "Create Alarm" button added below instructional text.
 - [x] **[S] Increase snooze button touch targets** — removed `compact`, added `contentStyle={{paddingVertical: 8}}` to all three snooze buttons.

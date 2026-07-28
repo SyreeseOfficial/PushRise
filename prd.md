@@ -1,6 +1,6 @@
 # PushRise — Updated PRD
 
-> Last revised: 2026-07-22
+> Last revised: 2026-07-28
 
 ---
 
@@ -481,6 +481,8 @@ Launched screens:
 - **Settings:** Theme (light/dark/system), permissions, streak reminder time, volume, sound selection, haptic/audio cue toggles, keep-screen-on toggle, camera preference (front/back)
 - **Onboarding:** Full 18-step flow with quiz, persona, alarm setup, rewards, commitment, permissions, paywall
 - **Celebration:** Cinematic modals on alarm completion, streak milestones, freeze earn, title unlock
+
+**UI/UX Polish Status (as of 2026-07-28):** All audit findings resolved. Three UI/UX audit passes completed (C1–C5 critical, H1–H11 high, L1–L19 low, plus visual bugs / micro-interactions / IA pass). App is in pre-submission state pending: signed AAB upload to internal testing track, Play Console product creation, purchase flow testing, and camera permission justification statement for Play Store review.
 
 ---
 

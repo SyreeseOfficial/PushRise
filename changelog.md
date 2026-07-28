@@ -6,6 +6,43 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-28 — Visual Bug Fix, Micro-interactions & IA Polish
+
+### Overview
+Follow-up audit pass. Fixed the remaining visual bug, implemented all micro-interaction polish items, and resolved all information architecture issues from the 2026-07-23 audit backlog. Three stale items skipped with documented reason (code had diverged from audit line numbers).
+
+### Visual Bug
+- **Community challenge progress bar clamped to 100%** — `ProgressScreen.tsx`: `width` was unclamped; wrapped with `Math.min(..., 100)`.
+
+### Micro-interactions & Polish
+- **Cross-fade between AlarmFiringScreen mode states** — All `setMode()` calls replaced with `switchMode()`, which fades out the current content (120ms) before switching, then fades in the new content (200ms). Wraps idle/camera/manual/done views in a single `Animated.View` driven by `modeAnim`.
+- **Animate disabled alarm card opacity** — Added `opacityAnim` `Animated.Value` in `AlarmCard`; `handleToggle` drives it with `Animated.timing 200ms` instead of the previous instant style swap.
+- **Spring entrance for done-state emoji** — `doneEnterScale` spring (0→1, tension 60, friction 8) fires when `mode === 'done'`; `💪` rendered as `Animated.Text` with the scale transform.
+- **300ms delay on focus-triggered celebration modals** — `useFocusEffect` in `ProgressScreen` now wraps the celebration/freeze modal triggers in `setTimeout(..., 300)` with cleanup.
+- **Prevent alarm card slide-in re-firing on reorder** — Wrapped `AlarmCard` function in `React.memo`.
+- **Snooze button touch targets increased** — Removed `compact` prop, added `contentStyle={{paddingVertical: 8}}` to all three snooze buttons. Brings touch target to ~48px on budget Android.
+- *Skipped — Extract AnimatedCounter:* no `AnimatedCounter` existed in the codebase at the referenced location.
+- *Skipped — Reduce slots delay:* no 350ms `setTimeout` existed; `setShowSlots(true)` was already called directly on button press.
+
+### Information Architecture & Clarity
+- **Section headers added to Progress scroll** — "This Week" label before Community Challenge, "History" label before MonthlyCalendar.
+- **⋮ hint icon on RewardCards** — 16px `dots-vertical` icon, absolutely positioned at `top: 6, right: 6`, `pointerEvents="none"`, opacity 0.35.
+- **Contact Support → mailto: link** — Replaced uncopyable `Alert.alert` with `Linking.openURL('mailto:syreeseofficial@gmail.com')`.
+- **Rate PushRise row hidden** — Removed from Settings until app is live on Play Store.
+- **"Tap again" label on pending-delete alarm** — Small `Text` below trash icon when `pendingDelete === true`.
+- **Inline CTA in empty alarm state** — `Button mode="contained"` added alongside the instructional text.
+- *Skipped — Move "Feeling Lucky?":* feature no longer in `ProgressScreen`; layout concern doesn't apply.
+
+### Files changed
+- `src/screens/progress/ProgressScreen.tsx` — progress bar clamp, 300ms modal delay, section headers
+- `src/screens/alarms/AlarmFiringScreen.tsx` — cross-fade, spring emoji, snooze touch targets
+- `src/screens/alarms/AlarmListScreen.tsx` — animated opacity, React.memo, "tap again" label, empty state CTA
+- `src/screens/rewards/RewardsScreen.tsx` — ⋮ hint icon
+- `src/screens/settings/SettingsScreen.tsx` — hide Rate row, Contact Support mailto
+- `todo.md`, `changelog.md`, `prd.md` — updated
+
+---
+
 ## 2026-07-27 — Code Audit Fixes (P0–P3)
 
 Completed all items from `CODE_AUDIT.md`. File deleted.
