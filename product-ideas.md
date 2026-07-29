@@ -53,6 +53,18 @@ The changelog says this row is hidden, but the code in `SettingsScreen.tsx` show
 
 **Fix:** Comment out or hide the row until the app is live and has reviews to show. Do not show it with a broken fallback.
 
+### 6. No Confirmation After Saving an Alarm
+
+`AddAlarmScreen.tsx` saves an alarm and navigates back with only a 50ms haptic vibration. There is no toast, no banner, no "Alarm set for 7:00 AM, Mon–Fri." The user has to trust it worked. If the phone is on silent or the vibration is subtle, there is zero feedback.
+
+**Fix:** Show a toast after save: "Alarm set for [time]." Reuse the `TopToast` component already in the codebase. One call, eight words.
+
+### 7. Duplicate Alarms Can Be Created Without Warning
+
+`AddAlarmScreen.tsx` has no check for existing alarms at the same hour and minute. A user can create two alarms at 7:00 AM on the same days — both will fire simultaneously: two alarm screens stacked, sound playing twice, behavior undefined.
+
+**Fix:** Before saving, check if any enabled alarm shares the same hour, minute, and at least one overlapping day. Show a warning: "You already have an alarm at 7:00 AM on these days." One guard.
+
 ---
 
 ## Real Retention Mechanics
@@ -140,22 +152,39 @@ Better feedback: when `poseActive`, show "Pose found — do your reps." When not
 
 **Fix:** Conditionally render the label based on `poseActive`. Two string constants, one conditional.
 
+### 16. Camera Gives No Guidance When Detection Is Stuck
+
+Items 11 and 15 address what happens once detection starts working. But when it never starts — wrong angle, too dark, phone flat on a table — the user just sees "Detecting…" forever. There is no timeout, no hint, no indication that the camera doesn't see them at all. A new user at 6am in the dark has no idea what to do.
+
+**Fix:** After 6 seconds with no pose detected, show a dismissible hint: "Not detecting you. Try better lighting or move closer." Track with a `useRef` timeout, dismiss when `poseActive` becomes true. One timeout, one conditional string.
+
+### 17. Streak Freeze Count Has No Context on When the Next Is Earned
+
+`AvatarCard` shows "❄️ 2/3 freezes" but gives no information on when the next freeze is earned. Freezes are milestone-based (earned at streak day 14, 21, 28) but nothing in the UI tells the user this. A user at a 13-day streak has no idea they're one day away from earning one.
+
+**Fix:** Add below the freeze count: "Earn next at day [next_threshold]." One line of computed text. High retention value at the exact moment users are most at risk of missing a day and watching their streak die.
+
 ---
 
 ## The Fake Social Data Problem
 
-### 16. The Leaderboard and Boss Battle Are a Time Bomb
+### 18. The Fake Social Data Problem Is Bigger Than Just the Leaderboard
 
-The seeded fake leaderboard and boss battle work on day 1. By day 14, a returning user notices:
-- The same relative leaderboard position (always #3)
-- The boss always loses on the same day of the week
-- Community progress ticks up in a suspiciously regular pattern
+The fake data problem has four distinct surfaces, not two. Each one has a different detection risk and a different type of deception:
 
-When this illusion breaks, it doesn't just feel gimmicky — it feels dishonest. Users who feel deceived churn and leave 1-star reviews.
+**Leaderboard** — User is always rank #3. The two people above them are always higher regardless of how many reps the user actually did (`getLeaderboard` in `engagement.ts` always places the user third, with fake names seeded above them). A user who does 500 reps in a week should be beating fake rivals who only have 50 — but they're still shown as #3. Detected quickly by any user who improves fast.
+
+**Boss Battle** — Boss accumulates reps at a fixed daily rate seeded by the week. They always lose on a predictable schedule. A user who checks back multiple weeks in a row will notice the boss always falls on the same day pattern.
+
+**Activity Ticker** — The Alarm List screen (`AlarmListScreen.tsx`) shows a scrolling feed: *"Marcus T. just did 40 push-ups 💪"*, *"Yuki S. just hit a 9-day streak 🔥"*. This is generated from `getTickerMessages()` in `engagement.ts`, seeded by the current hour. It changes hourly but repeats within the hour. A user who opens the app twice in 20 minutes sees identical "live" activity. This is the fake data surface most likely to be noticed first — it's on the main screen.
+
+**Daily Challenge Accepted Count** — The Progress tab shows *"[X] people accepted"* for today's challenge. This is seeded with a random number between 800 and 2,499, recalculated deterministically per day. It doesn't change while the user watches, which makes it feel real — until a user compares it tomorrow and notices the logic.
 
 **The fix:**
 - Kill the leaderboard and boss battle until you have real backend data
-- Keep Ghost Mode and Community Challenge. Ghost Mode is self-competition — it can never be fake.
+- Kill or reframe the Activity Ticker: either remove it or label it as "Community Highlights" from a real feed, not fake names
+- Remove the "accepted" count from Daily Challenge. "Try today's challenge" needs no fake social proof to work
+- Keep Ghost Mode and Community Challenge (community goal only — the aggregate is plausible without names)
 - **Ghost Mode is your strongest card.** Self-competition is authentic and requires no backend. Make it richer: show weekly trend, best-ever day comparison, not just yesterday.
 - If you want a leaderboard before real data: reframe it as a benchmark. "Based on PushRise users in your region, you're in the top 40%." A regional average can be seeded without implying named people are competing with you.
 
@@ -236,7 +265,9 @@ The four daily nudge messages (`NUDGE_MESSAGES` in `notifee.ts`) are generic. Th
 |------|--------|
 | `scheduleTrialWarnings` in `App.tsx` | Dead code. No trial exists. Will confuse paying users. |
 | Boss battle | Fake named competitors who lose on schedule will be noticed. Ship with real backend or not at all. |
-| Leaderboard | Same as above. |
+| Leaderboard | Same as above. User is always rank #3 regardless of actual reps. |
+| Activity Ticker on Alarm List | Fake "live" community feed seeded hourly. Opens twice in 20 minutes? Same names, same events. First fake-data surface most users will notice. |
+| Daily challenge "accepted" count | Seeded fake number (800–2,499). Remove the count — the challenge works without fake social proof. |
 | `RepSlotsModal` | Slot machine gambling for an audience that includes 15-year-olds. App store rejection risk. Real churn risk when users gamble away hard-earned reps. The bonus rep system (15% chance of 1–5 reps) already covers the "lucky spin" need without the liability. |
 | "✦ SCREENSHOT TO SHARE ✦" hint on `LevelUpModal` | The share feature was deferred. Dangling CTAs that do nothing erode trust. Either ship it or remove the hint. |
 | "Rate PushRise" row in Settings | Pre-launch, it dead-ends in an error. Hide it until you have Play Store reviews to show. |
@@ -264,24 +295,28 @@ Remove it before launch.
 | 1 | Fix trial warning bug | Trivial | Prevents confused/churned subscribers |
 | 2 | Hide "Rate PushRise" pre-launch | Trivial | Removes broken dead-end |
 | 3 | Remove slots modal | Trivial | Reduces app store rejection risk |
-| 4 | Fix leaderboard / boss battle | Trivial | Reduces deception churn |
+| 4 | Kill leaderboard, boss battle, activity ticker, fake accepted count | Trivial | Removes all fake social data surfaces at once |
 | 5 | Show alarm label on firing screen | Trivial | Personalization at the moment that matters |
 | 6 | Fix snooze copy ("5m +5") | Trivial | Removes sleep-groggy confusion |
-| 7 | Add "Switch to manual" in camera mode | Low | Prevents session abandonment on detection failure |
-| 8 | Add analytics (PostHog/Mixpanel) | Low | Critical — all other decisions depend on this |
-| 9 | Show `grindingFor` on alarm screen | Trivial | High — days 1–14 alarm completion |
-| 10 | Personalize alarm notification body | Trivial | High — same window |
-| 11 | Fix nudge reschedule bug | Trivial | Lapsed-user re-engagement |
-| 12 | Add next-fire preview in AddAlarm | Trivial | Reduces alarm setup confusion |
-| 13 | Fix "Detecting…" label feedback | Trivial | Helps users understand camera state |
-| 14 | Personal best streak celebration | Low | High — most meaningful milestone |
-| 15 | Fix onboarding progress on exit | Low | Recovers mid-funnel drop |
-| 16 | Fitness progression card | Low | High — long-term loyalty |
-| 17 | Rep target upgrade prompt | Low | High — prevents stagnation churn |
-| 18 | Camera adaptive frame rate | Low | Medium — battery/quality on budget hardware |
-| 19 | Consider 3-day free trial | Medium | High — top-of-funnel word-of-mouth |
-| 20 | Health Connect integration | Medium | Medium — ecosystem stickiness |
-| 21 | Alarm fire monitoring | Low | Medium — silent failure detection |
-| 22 | Android home screen widget | High | High — long-term passive retention |
+| 7 | Add save confirmation toast in AddAlarm | Trivial | Users know the alarm was actually set |
+| 8 | Add duplicate alarm warning | Trivial | Prevents double-firing alarms |
+| 9 | Add "Switch to manual" in camera mode | Low | Prevents session abandonment on detection failure |
+| 10 | Add analytics (PostHog/Mixpanel) | Low | Critical — all other decisions depend on this |
+| 11 | Show `grindingFor` on alarm screen | Trivial | High — days 1–14 alarm completion |
+| 12 | Personalize alarm notification body | Trivial | High — same window |
+| 13 | Fix nudge reschedule bug | Trivial | Lapsed-user re-engagement |
+| 14 | Add next-fire preview in AddAlarm | Trivial | Reduces alarm setup confusion |
+| 15 | Fix "Detecting…" label feedback | Trivial | Helps users understand camera state |
+| 16 | Add camera timeout hint (6s with no pose) | Trivial | Helps new users in bad lighting conditions |
+| 17 | Add streak freeze "earn next at day X" label | Trivial | High — retention value at the exact moment users might quit |
+| 18 | Personal best streak celebration | Low | High — most meaningful milestone |
+| 19 | Fix onboarding progress on exit | Low | Recovers mid-funnel drop |
+| 20 | Fitness progression card | Low | High — long-term loyalty |
+| 21 | Rep target upgrade prompt | Low | High — prevents stagnation churn |
+| 22 | Camera adaptive frame rate | Low | Medium — battery/quality on budget hardware |
+| 23 | Consider 3-day free trial | Medium | High — top-of-funnel word-of-mouth |
+| 24 | Health Connect integration | Medium | Medium — ecosystem stickiness |
+| 25 | Alarm fire monitoring | Low | Medium — silent failure detection |
+| 26 | Android home screen widget | High | High — long-term passive retention |
 
-Items 1–6 and 9–13 are all under an hour each. Do them before submission.
+Items 1–8 and 11–17 are all under an hour each. Do them before submission.
