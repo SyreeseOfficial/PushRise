@@ -4,9 +4,9 @@
 
 ---
 
-## P0 — Ship Before Anything Else
+## Do This First: Add Analytics
 
-### 1. Add Analytics (You Are Flying Blind)
+### 1. You Are Flying Blind
 
 The PRD lists success metrics but there is no analytics SDK in the codebase. You cannot improve retention without knowing where users drop. Before any feature work, wire **PostHog** (free, self-hostable, open source) or **Mixpanel free tier**.
 
@@ -69,7 +69,7 @@ The changelog says this row is hidden, but the code in `SettingsScreen.tsx` show
 
 ## Real Retention Mechanics
 
-### 6. Show Fitness Progression, Not Just Rep Counts
+### 8. Show Fitness Progression, Not Just Rep Counts
 
 The most emotionally resonant thing for a beginner isn't their total rep count — it's seeing that they've gotten stronger. You already store daily history in `bankStore`. You can compute this now, no backend needed.
 
@@ -78,7 +78,7 @@ The most emotionally resonant thing for a beginner isn't their total rep count �
 
 This is the moment the app earns long-term loyalty. Implementation: `dailyHistory` in bankStore keyed by date. Compare `weekAvg(weeks[0])` vs `weekAvg(weeks[-3])`. One function, one card on the Progress tab.
 
-### 7. Fix the Rep Target Stagnation Problem
+### 9. Fix the Rep Target Stagnation Problem
 
 Onboarding sets a rep target. The app never suggests increasing it. Users who plateau at 10 reps/alarm feel no growth after week 2.
 
@@ -86,7 +86,7 @@ Onboarding sets a rep target. The app never suggests increasing it. Users who pl
 
 This directly addresses a likely churn cause: early adopters who feel the app has nothing left to offer.
 
-### 8. Show the User's Goal on the Alarm Firing Screen
+### 10. Show the User's Goal on the Alarm Firing Screen
 
 Onboarding captures `grindingFor` (stored in `settingsStore`). This is never shown again.
 
@@ -94,13 +94,13 @@ During the alarm, when the user is still half-asleep and tempted to dismiss manu
 
 One line of text, zero new features. High impact on alarm completion rate for days 1–14.
 
-### 9. Google Fit / Health Connect Integration
+### 11. Google Fit / Health Connect Integration
 
 Write each rep session to Android Health Connect. Zero incremental effort for the user. Makes PushRise part of their health ecosystem alongside Samsung Health and Fitbit.
 
 Apps embedded in the health ecosystem have significantly lower churn. Users who see their PushRise reps in their overall activity history have a second reason to open the app. Health Connect is the Android standard as of Android 14+.
 
-### 10. Android Home Screen Widget
+### 12. Android Home Screen Widget
 
 "Today: 16/20 reps | 🔥 14 days" on the home screen is passive retention. No notification needed, no app open required. The user sees the streak every time they unlock their phone.
 
@@ -112,7 +112,7 @@ Widget users churn at dramatically lower rates across all habit apps (Duolingo, 
 
 These are specific interface problems found by reading the screens.
 
-### 11. No "Switch to Manual" Escape During Camera Session
+### 13. No "Switch to Manual" Escape During Camera Session
 
 In `CameraCounter`, the only exit is "Skip (no push-ups)". If camera detection is failing — which is a real risk on budget hardware — the user's only option is to forfeit the session entirely. There is no way to switch to manual counting mid-session.
 
@@ -120,7 +120,7 @@ A user who can't get detection to work and hits "Skip" doesn't just fail today's
 
 **Fix:** Add a "Switch to manual" option in `CameraCounter`. Tap it → transition to `ManualCounter` preserving the current rep count. One navigation change, significant fallback improvement.
 
-### 12. Alarm Label Not Shown on the Firing Screen
+### 14. Alarm Label Not Shown on the Firing Screen
 
 The alarm has a `label` field (e.g., "Morning Workout", "Pre-gym rise"). The `alarm` object is fetched from the store in `AlarmFiringScreen` and the label is available, but the firing screen subtitle always reads the generic "Time to wake up."
 
@@ -128,7 +128,7 @@ At 6am, seeing the alarm's own label is more grounding than a generic message �
 
 **Fix:** Replace or augment "Time to wake up." with `alarm?.label` when non-empty. One line.
 
-### 13. Snooze Button Copy Is Cryptic at 6am
+### 15. Snooze Button Copy Is Cryptic at 6am
 
 The snooze row shows three buttons: `5m +5`, `10m +10`, `15m +15`. The "+5" means "+5 reps added as a penalty" — but a half-awake user at 6am will not parse this. They may think "+5 min" is being shown twice, or that tapping adds minutes, not reps.
 
@@ -136,7 +136,7 @@ The small caption "Snooze ({count} left) — adds reps" is 70% opacity and easy 
 
 **Fix:** Change button labels to `5m` / `10m` / `15m` and change the caption to "Each snooze adds reps to your count." Clearer stakes, no ambiguity.
 
-### 14. AddAlarm: No "Next Fire" Preview
+### 16. AddAlarm: No "Next Fire" Preview
 
 When configuring an alarm (time + days), the user has no indication of when it will actually fire next. If I set 7:00 AM Mon–Fri on a Tuesday afternoon, will it fire tomorrow or next Monday? The app doesn't say.
 
@@ -144,7 +144,7 @@ The `getNextAlarmTime` function already exists in `AlarmListScreen.tsx` and hand
 
 **Fix:** Add a label below the time picker in `AddAlarmScreen`: "First alarm: Tomorrow (Wed), 7:00 AM." Reuse `getNextAlarmTime`. One line of text.
 
-### 15. "Detecting…" Label Doesn't Respond to Pose State
+### 17. "Detecting…" Label Doesn't Respond to Pose State
 
 In `CameraCounter`, a pulsing "Detecting…" label is shown below the rep count at all times, regardless of whether a pose has been found. When `poseActive` is true, the count number changes color, but the label stays the same.
 
@@ -152,13 +152,13 @@ Better feedback: when `poseActive`, show "Pose found — do your reps." When not
 
 **Fix:** Conditionally render the label based on `poseActive`. Two string constants, one conditional.
 
-### 16. Camera Gives No Guidance When Detection Is Stuck
+### 18. Camera Gives No Guidance When Detection Is Stuck
 
-Items 11 and 15 address what happens once detection starts working. But when it never starts — wrong angle, too dark, phone flat on a table — the user just sees "Detecting…" forever. There is no timeout, no hint, no indication that the camera doesn't see them at all. A new user at 6am in the dark has no idea what to do.
+Items 13 and 17 address what happens once detection starts working. But when it never starts — wrong angle, too dark, phone flat on a table — the user just sees "Detecting…" forever. There is no timeout, no hint, no indication that the camera doesn't see them at all. A new user at 6am in the dark has no idea what to do.
 
 **Fix:** After 6 seconds with no pose detected, show a dismissible hint: "Not detecting you. Try better lighting or move closer." Track with a `useRef` timeout, dismiss when `poseActive` becomes true. One timeout, one conditional string.
 
-### 17. Streak Freeze Count Has No Context on When the Next Is Earned
+### 19. Streak Freeze Count Has No Context on When the Next Is Earned
 
 `AvatarCard` shows "❄️ 2/3 freezes" but gives no information on when the next freeze is earned. Freezes are milestone-based (earned at streak day 14, 21, 28) but nothing in the UI tells the user this. A user at a 13-day streak has no idea they're one day away from earning one.
 
@@ -168,9 +168,9 @@ Items 11 and 15 address what happens once detection starts working. But when it 
 
 ## The Fake Social Data Problem
 
-### 18. The Fake Social Data Problem Is Bigger Than Just the Leaderboard
+### 20. The Fake Data Problem Has Four Surfaces, Not Two
 
-The fake data problem has four distinct surfaces, not two. Each one has a different detection risk and a different type of deception:
+Each one has a different detection risk and a different type of deception:
 
 **Leaderboard** — User is always rank #3. The two people above them are always higher regardless of how many reps the user actually did (`getLeaderboard` in `engagement.ts` always places the user third, with fake names seeded above them). A user who does 500 reps in a week should be beating fake rivals who only have 50 — but they're still shown as #3. Detected quickly by any user who improves fast.
 
@@ -192,7 +192,7 @@ The fake data problem has four distinct surfaces, not two. Each one has a differ
 
 ## Monetization & Paywall
 
-### 17. The Hard Paywall Will Suppress Word-of-Mouth
+### 21. The Hard Paywall Will Suppress Word-of-Mouth
 
 The PRD explicitly flagged the hard paywall conversion rate as an open question. The problem isn't just conversion — it's discovery. An app with a hard paywall gets no organic word-of-mouth from non-paying users who experienced the core loop.
 
@@ -200,7 +200,7 @@ The PRD explicitly flagged the hard paywall conversion rate as an open question.
 
 **Suggested flow:** Full app for 3 days → paywall on day 4. Trigger review on first successful completion (day 1 or 2). By day 4, the user has already told their friends, left a review, and experienced the habit forming. The weekly tier at $3.99 is designed for exactly this window.
 
-### 18. Lifetime Tier Framing
+### 22. Lifetime Tier Framing
 
 $39.99 lifetime is correct pricing. But the framing matters. "Pay once, keep forever" misses the real job-to-be-done for a lifetime buyer: **elimination of decision fatigue and subscription guilt**.
 
@@ -212,7 +212,7 @@ Also: the 90% savings claim on annual ($19.99 vs $3.99/wk) is mathematically acc
 
 ## Technical Reliability
 
-### 19. Camera Detection Is Still the #1 Churn Risk
+### 23. Camera Detection Is Still the #1 Churn Risk
 
 The PRD is clear: camera accuracy on ultra-budget phones is still an open question. If detection is bad, a user who wakes up, can't get the camera to count their push-ups, and must use manual fallback on day 1 has already lost faith. They'll churn within 2 weeks.
 
@@ -225,7 +225,7 @@ If `camera_fallback_rate > 20%`, detection quality is a real problem that needs 
 
 **One specific improvement:** The current 200ms snapshot loop is constant. Make it adaptive: 400ms when no pose detected (save CPU), 150ms when pose is active. Reduces battery drain on budget hardware and may improve detection quality by reducing frame overlap noise.
 
-### 20. Alarm Reliability: Add "Did It Fire?" Monitoring
+### 24. Alarm Reliability: Add "Did It Fire?" Monitoring
 
 You have no signal when alarms fail to fire. Users who miss an alarm due to OEM battery optimization will either blame themselves, blame the app, or churn silently.
 
@@ -235,7 +235,7 @@ You have no signal when alarms fail to fire. Users who miss an alarm due to OEM 
 
 ## Missed Personalization Opportunities
 
-### 21. Personalize the Alarm Notification Body
+### 25. Personalize the Alarm Notification Body
 
 Every alarm fires with: *"Time to wake up. Do 10 push-ups to dismiss."*
 
@@ -243,7 +243,7 @@ The alarm has a `label` field. The user has a `userName` and a `grindingFor` goa
 
 *"Time to rise, Syreese. 10 push-ups — you said you wanted to wake up with energy."* is a meaningfully different message at 6am. Implementation: pass `grindingFor` as notification data when scheduling in `notifee.ts:scheduleAlarm()`. Include it in the body template when non-empty.
 
-### 22. Nudge Messages Don't Reference the User's Goal
+### 26. Nudge Messages Don't Reference the User's Goal
 
 The four daily nudge messages (`NUDGE_MESSAGES` in `notifee.ts`) are generic. They're effective, but they miss the personalization hook the user already gave you.
 
@@ -251,7 +251,7 @@ The four daily nudge messages (`NUDGE_MESSAGES` in `notifee.ts`) are generic. Th
 
 `grindingFor` is in `settingsStore`. Pass it through `scheduleNudge()` and append it to the message template when non-empty.
 
-### 23. Personal Best Streaks Are Silent
+### 27. Personal Best Streaks Are Silent
 
 `bankStore.longestStreak` is tracked but never surfaced. When a user surpasses their personal best streak, nothing happens. This is the most meaningful milestone in a streak app — more so than a 7-day calendar badge — and it goes completely uncelebrated.
 
