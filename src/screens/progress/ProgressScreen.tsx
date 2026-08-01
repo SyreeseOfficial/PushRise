@@ -272,8 +272,7 @@ function ShareCardModal({visible, onClose, totalReps, streak, weekReps}: {
           <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
               <LinearGradient
-                colors={BRAND_GRADIENT.colors}
-                start={BRAND_GRADIENT.start} end={BRAND_GRADIENT.end}
+                {...BRAND_GRADIENT}
                 style={{width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center'}}>
                 <Text style={{fontSize: 18}}>⏰</Text>
               </LinearGradient>
@@ -393,8 +392,7 @@ function CelebrationModal({visible, bonus, milestone, onClose}: {
             <View style={{alignItems: 'center', marginBottom: msg ? 16 : 24}}>
               {!msg && <Text style={{fontSize: 48, marginBottom: 12}}>🎲</Text>}
               <LinearGradient
-                colors={BRAND_GRADIENT.colors}
-                start={BRAND_GRADIENT.start} end={BRAND_GRADIENT.end}
+                {...BRAND_GRADIENT}
                 style={{borderRadius: 100, paddingHorizontal: 20, paddingVertical: 10, marginBottom: 8}}>
                 <Text style={{fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.3}}>
                   +{bonus} Lucky Rep{bonus > 1 ? 's' : ''}! 🎉
@@ -488,7 +486,7 @@ export default function ProgressScreen() {
   const [showFreezeEarned, setShowFreezeEarned] = useState(false);
   const [showFreezeUsedSnack, setShowFreezeUsedSnack] = useState(false);
   const [roundNudgeSnack, setRoundNudgeSnack] = useState<{target: number; gap: number} | null>(null);
-  const [communityGoal, setCommunityGoal] = useState(getCommunityGoal);
+  const communityGoal = getCommunityGoal();
   const [showBossWin, setShowBossWin] = useState(false);
 
   const weekStart = useBankStore(s => s.weekStartDate) || getWeekStart();
@@ -496,12 +494,6 @@ export default function ProgressScreen() {
     () => getBoss(weekReps, weekStart, bossDefeatedWeek),
     [weekReps, weekStart, bossDefeatedWeek],
   );
-
-  // Refresh community goal number every 30s only while screen is focused
-  useFocusEffect(React.useCallback(() => {
-    const t = setInterval(() => setCommunityGoal(getCommunityGoal()), 30000);
-    return () => clearInterval(t);
-  }, []));
 
   // Check if user beat the boss
   React.useEffect(() => {

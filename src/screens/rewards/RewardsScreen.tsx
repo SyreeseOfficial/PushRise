@@ -200,9 +200,7 @@ function RewardModal({visible, initial, modalTitle, onSave, onClose}: {
             {/* Gradient save button */}
             <TouchableOpacity onPress={save} activeOpacity={0.85}>
               <LinearGradient
-                colors={BRAND_GRADIENT.colors}
-                start={BRAND_GRADIENT.start}
-                end={BRAND_GRADIENT.end}
+                {...BRAND_GRADIENT}
                 style={{
                   borderRadius: 14, paddingVertical: 16,
                   alignItems: 'center', justifyContent: 'center',
@@ -458,9 +456,7 @@ export default function RewardsScreen() {
         style={{position: 'absolute', bottom: fabBottom, right: 24}}
         android_ripple={{color: 'rgba(255,255,255,0.25)', borderless: true, radius: 60}}>
         <LinearGradient
-          colors={BRAND_GRADIENT.colors}
-          start={BRAND_GRADIENT.start}
-          end={BRAND_GRADIENT.end}
+          {...BRAND_GRADIENT}
           style={{
             width: 60, height: 60, borderRadius: 18,
             alignItems: 'center', justifyContent: 'center',

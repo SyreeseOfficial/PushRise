@@ -91,7 +91,7 @@ function seededRng(seed: string) {
   };
 }
 
-const FAKE_NAMES = [
+export const FAKE_NAMES = [
   // American
   'Marcus T.', 'Jordan B.', 'Alex R.', 'Sam K.', 'Riley P.',
   'Casey M.', 'Taylor W.', 'Morgan S.', 'Drew K.', 'Quinn R.',

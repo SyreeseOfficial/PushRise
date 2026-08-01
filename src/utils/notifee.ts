@@ -6,7 +6,7 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 import type {TimestampTrigger} from '@notifee/react-native';
-import {getDailyChallenge} from './engagement';
+import {getDailyChallenge, FAKE_NAMES} from './engagement';
 
 export const ALARM_CHANNEL_ID = 'pushrise-alarm';
 
@@ -247,13 +247,6 @@ export async function cancelTrialWarnings() {
   await notifee.cancelTriggerNotification('trial-warn-7');
 }
 
-// ─── Anonymous Rival ─────────────────────────────────────────────────────────
-
-const RIVAL_NAMES = [
-  'Marcus T.', 'Jordan B.', 'Wei L.', 'Arjun K.', 'Sofia M.',
-  'Camila R.', 'Diego F.', 'Priya S.', 'Luca R.', 'Kofi A.',
-];
-
 // ─── Daily Challenge ─────────────────────────────────────────────────────────
 
 export async function scheduleDailyChallengeNotif(hour = 8, minute = 0) {
@@ -286,7 +279,7 @@ export async function scheduleDailyChallengeNotif(hour = 8, minute = 0) {
 
 export async function scheduleRivalNotif(userReps: number) {
   const rivalReps = userReps + Math.floor(Math.random() * 8 + 1);
-  const name = RIVAL_NAMES[Math.floor(Math.random() * RIVAL_NAMES.length)];
+  const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
   const delayMs = (Math.floor(Math.random() * 60) + 30) * 60 * 1000; // 30–90 min
 
   const messages = [

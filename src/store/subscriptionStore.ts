@@ -4,8 +4,6 @@ import {makeMMKVStorage} from './mmkvStorage';
 
 const mmkvStorage = makeMMKVStorage('pushrise-subscription');
 
-const TRIAL_DAYS = 7;
-
 interface SubscriptionStore {
   trialStartedAt: number | null;
   isSubscribed: boolean;

@@ -8,13 +8,20 @@ import {BRAND_GRADIENT, cardShadow} from '../theme';
 const SYMBOLS = ['🍋', '🔔', '💎', '⭐', '7️⃣'];
 const {width} = Dimensions.get('window');
 
-function roll(wager: number): {payout: number; symbols: [string, string, string]; stopSequence: [number, number, number]} {
+type RollResult = {payout: number; symbols: [string, string, string]; stopSequence: [number, number, number]};
+
+const ROLLS: Array<[number, RollResult]> = [
+  [0.02, {payout: 7, symbols: ['7️⃣', '7️⃣', '7️⃣'], stopSequence: [800, 1200, 1600]}],
+  [0.07, {payout: 5, symbols: ['💎', '💎', '💎'],    stopSequence: [750, 1150, 1550]}],
+  [0.17, {payout: 3, symbols: ['⭐', '⭐', '⭐'],    stopSequence: [700, 1100, 1500]}],
+  [0.37, {payout: 2, symbols: ['🔔', '🔔', '🔔'],    stopSequence: [650, 1050, 1450]}],
+  [1.00, {payout: 0, symbols: ['🍋', '🔔', '💎'],    stopSequence: [900, 1300, 1700]}],
+];
+
+function roll(wager: number): RollResult {
   const r = Math.random();
-  if (r < 0.02) return {payout: wager * 7, symbols: ['7️⃣', '7️⃣', '7️⃣'], stopSequence: [800, 1200, 1600]};
-  if (r < 0.07) return {payout: wager * 5, symbols: ['💎', '💎', '💎'], stopSequence: [750, 1150, 1550]};
-  if (r < 0.17) return {payout: wager * 3, symbols: ['⭐', '⭐', '⭐'], stopSequence: [700, 1100, 1500]};
-  if (r < 0.37) return {payout: wager * 2, symbols: ['🔔', '🔔', '🔔'], stopSequence: [650, 1050, 1450]};
-  return {payout: 0, symbols: ['🍋', '🔔', '💎'], stopSequence: [900, 1300, 1700]};
+  const [, {payout, symbols, stopSequence}] = ROLLS.find(([t]) => r < t)!;
+  return {payout: payout * wager, symbols, stopSequence};
 }
 
 interface Props {
@@ -39,8 +46,6 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
   const spinButtonScale = useRef(new Animated.Value(1)).current;
   const headerShake = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-
   // ponytail: useEffect dependencies include all animated values to avoid stale closures
   useEffect(() => {
     if (visible) {
@@ -54,9 +59,8 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
       resultScale.setValue(0);
       spinButtonScale.setValue(1);
       headerShake.setValue(0);
-      glowAnim.setValue(0);
     }
-  }, [visible, shakeAnim, skullScale, reelScale, resultScale, spinButtonScale, headerShake, glowAnim]);
+  }, [visible, shakeAnim, skullScale, reelScale, resultScale, spinButtonScale, headerShake]);
 
   const stopPulse = () => {
     pulseLoop.current?.stop();
@@ -239,9 +243,7 @@ export default function RepSlotsModal({visible, wager, onResult, onClose}: Props
               </View>
               <Animated.View style={{width: '100%', transform: [{scale: spinButtonScale}]}}>
                 <LinearGradient
-                  colors={BRAND_GRADIENT.colors}
-                  start={BRAND_GRADIENT.start}
-                  end={BRAND_GRADIENT.end}
+                  {...BRAND_GRADIENT}
                   style={{
                     borderRadius: 20, marginBottom: 14, width: '100%',
                     shadowColor: BRAND_GRADIENT.colors[0], shadowOffset: {width: 0, height: 8},

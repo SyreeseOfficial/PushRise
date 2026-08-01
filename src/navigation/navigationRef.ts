@@ -17,13 +17,5 @@ export const navigationRef =
 export function navigate(name: keyof RootStackParamList, params?: any) {
   if (navigationRef.isReady()) {
     navigationRef.navigate(name as any, params);
-    return;
   }
-  // Nav not ready yet (cold launch) — wait for it
-  const interval = setInterval(() => {
-    if (navigationRef.isReady()) {
-      clearInterval(interval);
-      navigationRef.navigate(name as any, params);
-    }
-  }, 100);
 }

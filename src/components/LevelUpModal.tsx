@@ -79,9 +79,7 @@ export default function LevelUpModal() {
             LEVEL {pendingLevelUp.toLevel}
           </Text>
           <LinearGradient
-            colors={BRAND_GRADIENT.colors}
-            start={BRAND_GRADIENT.start}
-            end={BRAND_GRADIENT.end}
+            {...BRAND_GRADIENT}
             style={{borderRadius: 100, paddingHorizontal: 22, paddingVertical: 9, marginTop: 12}}>
             <Text style={{fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 1.5}}>
               {pendingLevelUp.toLabel.toUpperCase()}

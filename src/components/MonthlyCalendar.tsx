@@ -14,7 +14,7 @@ export default function MonthlyCalendar({dailyHistory}: Props) {
   const c = theme.colors;
 
   const now = new Date();
-  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayKey = now.toISOString().slice(0, 10);
   const [viewMonth, setViewMonth] = useState({
     year: now.getFullYear(),
     month: now.getMonth(),
